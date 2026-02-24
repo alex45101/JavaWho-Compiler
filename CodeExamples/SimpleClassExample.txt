@@ -15,6 +15,7 @@ class Pet
     }
 }
 
-Pet john = new Pet("john", 8);
+Pet john;
+john = new Pet("john", 8);
 
 john.Info();

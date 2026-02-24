@@ -1,6 +1,7 @@
 println("Normal while loop counter:");
 
-int a = 0;
+Int a;
+a = 0;
 
 while(a < 5)
 {
@@ -10,7 +11,8 @@ while(a < 5)
 
 println("Do while loop counter:");
 
-int b = 0;
+Int b;
+b = 0;
 
 while(true)
 {
@@ -26,7 +28,8 @@ while(true)
 
 println("String loop counter with a's:");
 
-String text = "";
+String text;
+text = "";
 
 while (text != "aaaa")
 {

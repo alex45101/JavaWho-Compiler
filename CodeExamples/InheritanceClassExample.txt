@@ -33,7 +33,8 @@ class Cat extends Pet
 
     method LoseLives(Int livesToLose) Boolean
     {
-        Int tempLives = this.Lives - livesToLose;
+        Int tempLives;
+        tempLives = this.Lives - livesToLose;
 
         if (tempLives < 0)
         {
@@ -46,16 +47,19 @@ class Cat extends Pet
     }
 }
 
-Pet john = new Pet("john", 8);
+Pet john;
+john = new Pet("john", 8);
 
 john.Info();
 
-Cat sam = new Cat("sam", 1, 9);
+Cat sam;
+sam = new Cat("sam", 1, 9);
 
 sam.Info();
 sam.Lives();
 
-Boolean result = sam.LoseLives(1);
+Boolean result;
+result = sam.LoseLives(1);
 println(result);
 sam.Lives();
 
