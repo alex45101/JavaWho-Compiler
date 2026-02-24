@@ -43,8 +43,6 @@ namespace JavaWhoCompiler
     public sealed record IfToken(string Value) : IToken;
     public sealed record ElseToken(string Value) : IToken;
     public sealed record VoidTypeToken(string Value) : IToken;
-    public sealed record IntTypeToken(string Value) : IToken;
-    public sealed record BoolTypeToken(string Value) : IToken;
     public sealed record MethodToken(string Value) : IToken;
     public sealed record ReturnToken(string Value) : IToken;
     public sealed record ExtendsToken(string Value) : IToken;
@@ -82,8 +80,6 @@ namespace JavaWhoCompiler
             [@"\Gif\b"] = value => new IfToken(value),
             [@"\Gelse\b"] = value => new ElseToken(value),
             [@"\GVoid\b"] = value => new VoidTypeToken(value),
-            [@"\GInt\b"] = value => new IntTypeToken(value),
-            [@"\GBoolean\b"] = value => new BoolTypeToken(value),
             [@"\Gmethod\b"] = value => new MethodToken(value),
             [@"\Greturn\b"] = value => new ReturnToken(value),
             [@"\Gextends\b"] = value => new ExtendsToken(value),

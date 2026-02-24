@@ -148,22 +148,6 @@ namespace CompilerTests
         }
 
         [Fact]
-        public void IntTypeTokenTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int");
-
-            Assert.IsType<IntTypeToken>(tokens.First());
-        }
-
-        [Fact]
-        public void BoolTypeTokenTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Boolean");
-
-            Assert.IsType<BoolTypeToken>(tokens.First());
-        }
-
-        [Fact]
         public void MethodTokenTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("method");
@@ -342,15 +326,15 @@ namespace CompilerTests
         public void CallsAndMathOperatorsExampleTest() {
             var tokens = Tokenizer.Tokenize("Int x; x = 5; Int y; y = 3; Int z; z = math_util.square(x + 3); Int a; a = z * x / y - x;");
             Assert.Equal([
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("x"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("x"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
                 new IdentifierToken("x"), new WhiteSpaceToken(" "), new AssignmentOperatorToken("="), new WhiteSpaceToken(" "), new NumberToken("5"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("y"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("y"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
                 new IdentifierToken("y"), new WhiteSpaceToken(" "), new AssignmentOperatorToken("="), new WhiteSpaceToken(" "), new NumberToken("3"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("z"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("z"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
                 new IdentifierToken("z"), new WhiteSpaceToken(" "), new AssignmentOperatorToken("="), new WhiteSpaceToken(" "),
                     new IdentifierToken("math_util"), new DotToken("."), new IdentifierToken("square"), new OpenParenthesisToken("("),
@@ -360,7 +344,7 @@ namespace CompilerTests
                     new CloseParenthesisToken(")"),
                 new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("a"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("a"), new SemiColonToken(";"),
                 new WhiteSpaceToken(" "),
                 new IdentifierToken("a"), new WhiteSpaceToken(" "), new AssignmentOperatorToken("="), new WhiteSpaceToken(" "),
                     new IdentifierToken("z"), new WhiteSpaceToken(" "), new MultiplyOperatorToken("*"), new WhiteSpaceToken(" "), new IdentifierToken("x"),
@@ -373,11 +357,11 @@ namespace CompilerTests
         public void CallsAndMathOperatorsCompactExampleTest() {
             var tokens = Tokenizer.Tokenize("Int x;x=5;Int y;y=3;Int z;z=math_util.square(x+3);Int a;a=z*x/y-x;");
             Assert.Equal([
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("x"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("x"), new SemiColonToken(";"),
                 new IdentifierToken("x"),  new AssignmentOperatorToken("="),  new NumberToken("5"), new SemiColonToken(";"),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("y"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("y"), new SemiColonToken(";"),
                 new IdentifierToken("y"),  new AssignmentOperatorToken("="),  new NumberToken("3"), new SemiColonToken(";"),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("z"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("z"), new SemiColonToken(";"),
                 new IdentifierToken("z"),  new AssignmentOperatorToken("="), 
                     new IdentifierToken("math_util"), new DotToken("."), new IdentifierToken("square"), new OpenParenthesisToken("("),
                         new IdentifierToken("x"),  
@@ -385,7 +369,7 @@ namespace CompilerTests
                         new NumberToken("3"),
                     new CloseParenthesisToken(")"),
                 new SemiColonToken(";"),
-                new IntTypeToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("a"), new SemiColonToken(";"),
+                new IdentifierToken("Int"), new WhiteSpaceToken(" "), new IdentifierToken("a"), new SemiColonToken(";"),
                 new IdentifierToken("a"),  new AssignmentOperatorToken("="), 
                     new IdentifierToken("z"),  new MultiplyOperatorToken("*"),  new IdentifierToken("x"),
                      new DivideOperatorToken("/"),  new IdentifierToken("y"), 
