@@ -24,8 +24,6 @@ comment ::= `//` (~newline)* newline
 type ::= `Int` | `Boolean` | `Void` | Built-in types
          classname class type; includes Object and String
 
-op ::= `+` | `-` | `*` | `/` | `<` | `==` | '!='
-
 comma_exp ::= [exp (`,` exp)*]
 
 primary_exp ::=
@@ -43,7 +41,11 @@ mult_exp ::= call_exp ((`*` | `/`) call_exp)*
 
 add_exp ::= mult_exp ((`+` | `-`) mult_exp)*
 
-exp ::= add_exp
+comp_exp ::= add_exp ('<' add_exp)*
+
+eq_exp ::= comp_exp (('==' | '!=') comp_exp)*
+
+exp ::= eq_exp
 
 vardec ::= type var
 
