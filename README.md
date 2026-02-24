@@ -18,6 +18,9 @@ methodname is the name of a method
 str is a string
 i is an integer
 
+comment ::= `//` (~newline)* newline
+          | `/*` (~`*/`)* `*/`
+
 type ::= `Int` | `Boolean` | `Void` | Built-in types
          classname class type; includes Object and String
 
