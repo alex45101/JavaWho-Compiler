@@ -16,6 +16,14 @@
     }
 
     #region Operators
+    public sealed record AddOperatorToken(string Value) : IToken;
+    public sealed record SubtractOperatorToken(string Value) : IToken;
+    public sealed record MultiplyOperatorToken(string Value) : IToken;
+    public sealed record DivideOperatorToken(string Value) : IToken;
+    public sealed record LessThanOperatorToken(string Value) : IToken;
+    public sealed record EqualsOperatorToken(string Value) : IToken;
+    public sealed record NotEqualsOperatorToken(string Value) : IToken;
+    public sealed record AssignmentOperatorToken(string Value) : IToken;
     #endregion
 
     #region Reserved Keywords
