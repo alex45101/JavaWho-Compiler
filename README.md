@@ -41,9 +41,9 @@ mult_exp ::= call_exp ((`*` | `/`) call_exp)*
 
 add_exp ::= mult_exp ((`+` | `-`) mult_exp)*
 
-comp_exp ::= add_exp ('<' add_exp)*
+comp_exp ::= add_exp ['<' add_exp]
 
-eq_exp ::= comp_exp (('==' | '!=') comp_exp)*
+eq_exp ::= comp_exp [('==' | '!=') comp_exp)]
 
 exp ::= eq_exp
 
