@@ -42,7 +42,12 @@ namespace JavaWhoCompiler
     public sealed record BreakToken(string Value) : IToken;
     public sealed record IfToken(string Value) : IToken;
     public sealed record ElseToken(string Value) : IToken;
-    public sealed record VoidToken(string Value) : IToken;
+    public sealed record VoidTypeToken(string Value) : IToken;
+    public sealed record IntTypeToken(string Value) : IToken;
+    public sealed record BoolTypeToken(string Value) : IToken;
+    public sealed record MethodToken(string Value) : IToken;
+    public sealed record ReturnToken(string Value) : IToken;
+    public sealed record ExtendsToken(string Value) : IToken;
     #endregion
 
     #region Punctuation
@@ -76,9 +81,14 @@ namespace JavaWhoCompiler
             [@"\Gbreak\b"] = value => new BreakToken(value),
             [@"\Gif\b"] = value => new IfToken(value),
             [@"\Gelse\b"] = value => new ElseToken(value),
-            [@"\Gvoid\b"] = value => new VoidToken(value),
+            [@"\GVoid\b"] = value => new VoidTypeToken(value),
+            [@"\GInt\b"] = value => new IntTypeToken(value),
+            [@"\GBoolean\b"] = value => new BoolTypeToken(value),
+            [@"\Gmethod\b"] = value => new MethodToken(value),
+            [@"\Greturn\b"] = value => new ReturnToken(value),
+            [@"\Gextends\b"] = value => new ExtendsToken(value),
 
-            [@"\G^[a-zA-Z_][a-zA-Z0-9_]*"] = value => new IdentifierToken(value),
+            [@"\G[a-zA-Z_][a-zA-Z0-9_]*"] = value => new IdentifierToken(value),
 
             [@"\G\+"] = value => new AddOperatorToken(value),
             [@"\G\-"] = value => new SubtractOperatorToken(value),
@@ -130,7 +140,7 @@ namespace JavaWhoCompiler
 
                 if (tokenMatch.Value is UnknownToken)
                 {
-                    throw new InvalidTokenException($"Invalid token starting at position: {i}");
+                    throw new InvalidTokenException($"Invalid token '{code[i]}' starting at position: {i}");
                 }
 
                 tokens.Add(tokenMatch.Value);
