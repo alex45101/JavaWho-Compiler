@@ -21,6 +21,8 @@ i is an integer
 type ::= `Int` | `Boolean` | `Void` | Built-in types
          classname class type; includes Object and String
 
+op ::= `+` | `-` | `*` | `/` | `<` | `==` | '!='
+
 comma_exp ::= [exp (`,` exp)*]
 
 primary_exp ::=
