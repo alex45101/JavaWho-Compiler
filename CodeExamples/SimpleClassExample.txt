@@ -1,0 +1,20 @@
+class Pet
+{
+    String Name;
+    Int Age;
+
+    init(String name, Int age)
+    {
+        this.Name = name;
+        this.Age = age;
+    } 
+
+    method Info() Void
+    {
+        println("Pet Name: " + Name + ", Age: " + Age);
+    }
+}
+
+Pet john = new Pet("john", 8);
+
+john.Info();
