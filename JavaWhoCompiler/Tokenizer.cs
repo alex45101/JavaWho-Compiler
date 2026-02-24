@@ -16,7 +16,7 @@ namespace JavaWhoCompiler
     public sealed record StringToken(string Value) : IToken;
     public sealed record NumberToken(string Value) : IToken
     {
-        int Number => int.Parse(Value);
+        public int Number => int.Parse(Value);
     }
 
     #region Operators

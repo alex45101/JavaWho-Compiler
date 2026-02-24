@@ -16,7 +16,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(text);
 
-            Assert.IsType<IdentifierToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal(text, token.Value);
+            Assert.IsType<IdentifierToken>(token);
         }
 
         [Fact]
@@ -32,7 +35,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("     ");
 
-            Assert.IsType<WhiteSpaceToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("     ", token.Value);
+            Assert.IsType<WhiteSpaceToken>(token);
         }
 
         [Fact]
@@ -40,7 +46,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("\"Hello World!\"");
 
-            Assert.IsType<StringToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("\"Hello World!\"", token.Value);
+            Assert.IsType<StringToken>(token);
         }
 
         [Fact]
@@ -48,7 +57,12 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("425");
 
-            Assert.IsType<NumberToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("425", token.Value);
+            Assert.IsType<NumberToken>(token);
+
+            Assert.Equal(425, (token as NumberToken).Number);
         }
 
         [Fact]
@@ -56,7 +70,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this");
 
-            Assert.IsType<ThisToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("this", token.Value);
+            Assert.IsType<ThisToken>(token);
         }
 
         [Fact]
@@ -64,7 +81,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("true");
 
-            Assert.IsType<TrueToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("true", token.Value);
+            Assert.IsType<TrueToken>(token);
         }
 
         [Fact]
@@ -72,7 +92,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("false");
 
-            Assert.IsType<FalseToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("false", token.Value);
+            Assert.IsType<FalseToken>(token);
         }
 
         [Fact]
@@ -80,7 +103,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("new");
 
-            Assert.IsType<NewToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("new", token.Value);
+            Assert.IsType<NewToken>(token);
         }
 
         [Fact]
@@ -88,7 +114,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("init");
 
-            Assert.IsType<InitToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("init", token.Value);
+            Assert.IsType<InitToken>(token);
         }
 
         [Fact]
@@ -96,7 +125,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("class");
 
-            Assert.IsType<ClassToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("class", token.Value);
+            Assert.IsType<ClassToken>(token);
         }
 
         [Fact]
@@ -104,7 +136,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("super");
 
-            Assert.IsType<SuperToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("super", token.Value);
+            Assert.IsType<SuperToken>(token);
         }
 
         [Fact]
@@ -112,7 +147,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("while");
 
-            Assert.IsType<WhileToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("while", token.Value);
+            Assert.IsType<WhileToken>(token);
         }
 
         [Fact]
@@ -120,7 +158,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("break");
 
-            Assert.IsType<BreakToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("break", token.Value);
+            Assert.IsType<BreakToken>(token);
         }
 
         [Fact]
@@ -128,7 +169,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("if");
 
-            Assert.IsType<IfToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("if", token.Value);
+            Assert.IsType<IfToken>(token);
         }
 
         [Fact]
@@ -136,7 +180,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("else");
 
-            Assert.IsType<ElseToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("else", token.Value);
+            Assert.IsType<ElseToken>(token);
         }
 
         [Fact]
@@ -144,7 +191,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("Void");
 
-            Assert.IsType<VoidTypeToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("Void", token.Value);
+            Assert.IsType<VoidTypeToken>(token);
         }
 
         [Fact]
@@ -152,7 +202,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("method");
 
-            Assert.IsType<MethodToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("method", token.Value);
+            Assert.IsType<MethodToken>(token);
         }
 
         [Fact]
@@ -160,7 +213,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("return");
 
-            Assert.IsType<ReturnToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("return", token.Value);
+            Assert.IsType<ReturnToken>(token);
         }
 
         [Fact]
@@ -168,7 +224,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("extends");
 
-            Assert.IsType<ExtendsToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("extends", token.Value);
+            Assert.IsType<ExtendsToken>(token);
         }
 
         [Fact]
@@ -176,7 +235,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("+");
 
-            Assert.IsType<AddOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("+", token.Value);
+            Assert.IsType<AddOperatorToken>(token);
         }
 
         [Fact]
@@ -184,7 +246,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("-");
 
-            Assert.IsType<SubtractOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("-", token.Value);
+            Assert.IsType<SubtractOperatorToken>(token);
         }
 
         [Fact]
@@ -192,7 +257,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("*");
 
-            Assert.IsType<MultiplyOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("*", token.Value);
+            Assert.IsType<MultiplyOperatorToken>(token);
         }
 
         [Fact]
@@ -200,7 +268,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("/");
 
-            Assert.IsType<DivideOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("/", token.Value);
+            Assert.IsType<DivideOperatorToken>(token);
         }
 
         [Fact]
@@ -208,7 +279,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("<");
 
-            Assert.IsType<LessThanOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("<", token.Value);
+            Assert.IsType<LessThanOperatorToken>(token);
         }
 
         [Fact]
@@ -216,7 +290,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("==");
 
-            Assert.IsType<EqualsOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("==", token.Value);
+            Assert.IsType<EqualsOperatorToken>(token);
         }
 
         [Fact]
@@ -224,7 +301,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("!=");
 
-            Assert.IsType<NotEqualsOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("!=", token.Value);
+            Assert.IsType<NotEqualsOperatorToken>(token);
         }
 
         [Fact]
@@ -232,7 +312,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("=");
 
-            Assert.IsType<AssignmentOperatorToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("=", token.Value);
+            Assert.IsType<AssignmentOperatorToken>(token);
         }
 
         [Fact]
@@ -240,7 +323,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("(");
 
-            Assert.IsType<OpenParenthesisToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal("(", token.Value);
+            Assert.IsType<OpenParenthesisToken>(token);
         }
 
         [Fact]
@@ -248,7 +334,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(")");
 
-            Assert.IsType<CloseParenthesisToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal(")", token.Value);
+            Assert.IsType<CloseParenthesisToken>(token);
         }
 
         [Fact]
@@ -256,7 +345,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(";");
 
-            Assert.IsType<SemiColonToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal(";", token.Value);
+            Assert.IsType<SemiColonToken>(token);
         }
 
         [Fact]
@@ -264,7 +356,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(",");
 
-            Assert.IsType<CommaToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal(",", token.Value);
+            Assert.IsType<CommaToken>(token);
         }
 
         [Fact]
@@ -272,7 +367,10 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(".");
 
-            Assert.IsType<DotToken>(tokens.First());
+            IToken token = tokens.First();
+
+            Assert.Equal(".", token.Value);
+            Assert.IsType<DotToken>(token);
         }
 
         [Fact]
