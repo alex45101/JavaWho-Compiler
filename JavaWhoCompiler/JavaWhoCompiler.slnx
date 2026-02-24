@@ -1,3 +1,5 @@
 <Solution>
+  <Project Path="../CompilerTests/CompilerTests.csproj" />
+  <Project Path="../ConsolePlayground/ConsolePlayground.csproj" />
   <Project Path="JavaWhoCompiler.csproj" />
 </Solution>
