@@ -1,0 +1,40 @@
+println("Normal while loop counter:");
+
+int a = 0;
+
+while(a < 5)
+{
+    println(a);
+    a = a + 1;
+}
+
+println("Do while loop counter:");
+
+int b = 0;
+
+while(true)
+{
+    println(a);
+
+    a = a + 1;
+
+    if(a > 4)
+    {
+        break;
+    }
+}
+
+println("String loop counter with a's:");
+
+String text = "";
+
+while (text != "aaaa")
+{
+    if(text == "aa")
+    {
+        println("double aa, yaya");
+    }
+
+    println(text);
+    text = text + "a";
+}

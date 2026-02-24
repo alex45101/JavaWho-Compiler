@@ -1,0 +1,64 @@
+class Pet
+{
+    String Name;
+    Int Age;
+
+    init(String name, Int age)
+    {
+        this.Name = name;
+        this.Age = age;
+    } 
+
+    method Info() Void
+    {
+        println("Pet Name: " + this.Name + ", Age: " + this.Age);
+    }
+}
+
+class Cat extends Pet
+{
+    Int Lives;
+
+    init(String name, Int age, Int lives)
+    {
+        super(name, age)
+
+        this.Lives = lives;
+    }
+
+    method Lives() Void
+    {
+        println("Lives: " + this.Lives);
+    }
+
+    method LoseLives(Int livesToLose) Boolean
+    {
+        Int tempLives = this.Lives - livesToLose;
+
+        if (tempLives < 0)
+        {
+            return false;
+        }
+
+        this.Lives = tempLives;
+
+        return true;
+    }
+}
+
+Pet john = new Pet("john", 8);
+
+john.Info();
+
+Cat sam = new Cat("sam", 1, 9);
+
+sam.Info();
+sam.Lives();
+
+Boolean result = sam.LoseLives(1);
+println(result);
+sam.Lives();
+
+result = sam.LoseLives(67);
+println(result);
+sam.Lives();
