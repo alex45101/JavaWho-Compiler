@@ -23,6 +23,12 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void UnknownTokenTest()
+        {
+            Assert.Throws<InvalidTokenException>(() => Tokenizer.Tokenize("$"));
+        }
+
+        [Fact]
         public void NoTokensTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("");
