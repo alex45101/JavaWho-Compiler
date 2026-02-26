@@ -33,6 +33,20 @@ namespace CompilerTests
                 OperatorType.Subtract,
                 new IntLiteral(5)
             };
+
+            yield return new object[] {
+                "5 == true;",
+                new IntLiteral(5),
+                OperatorType.Equal,
+                new BooleanLiteral(true)
+            };
+
+            yield return new object[] {
+                "5 != false;",
+                new IntLiteral(5),
+                OperatorType.NotEqual,
+                new BooleanLiteral(false)
+            };
         }
 
         [Fact]
