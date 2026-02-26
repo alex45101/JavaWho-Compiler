@@ -30,6 +30,17 @@ namespace JavaWhoCompiler
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
 
 
+    //statements
+    public sealed record ExpStmt(AST Exp) : AST;
+    public sealed record VardecStmt(string Type, string Var) : AST;
+    public sealed record AssignStmt(string Var, AST Val) : AST;
+    public sealed record WhileStmt(AST Guard, AST Stmt) : AST;
+    public sealed record BreakStmt() : AST;
+    public sealed record ReturnStmt(AST Val) : AST;
+    public sealed record IfStmt(AST Guard, AST IfBody, AST ElseBody) : AST;
+    public sealed record BlockStmt(List<AST> Stmts) : AST;
+
+
     public class ParserException(string message) : Exception(message);
 
     public class Parser
@@ -77,10 +88,60 @@ namespace JavaWhoCompiler
 
         private AST ParseStatement()
         {
-            AST exp = ParseExpression();
+            AST stmt = CurrentToken switch {
+                WhileToken => ParseWhileStmt(),
+                BreakToken => ParseBreakStmt(),
+                ReturnToken => ParseReturnStmt(),
+                IfToken => ParseIfStmt(),
+                OpenCurlyBracketToken => ParseBlockStmt(),
+                IdentifierToken => PeekNext() switch {
+                    IdentifierToken => ParseVardecStmt(),
+                    AssignmentOperatorToken => ParseAssignStmt(),
 
-            Expect<SemiColonToken>();
-            return exp;
+                    // no token ahead of identifier
+                    null => throw new ParserException("Expected ';', got EOF"),
+
+                    // try expression statement
+                    _ => ParseExpressionStmt(),
+                },
+
+                // try expression statement
+                _ => ParseExpressionStmt(),
+            };
+
+            return stmt;
+        }
+
+        private AST ParseWhileStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseBreakStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseReturnStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseIfStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseBlockStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseVardecStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseAssignStmt() {
+            throw new NotImplementedException();
+        }
+
+        private AST ParseExpressionStmt() {
+            throw new NotImplementedException();
         }
 
         private AST ParseExpression() => ParseEqualityExpression();
