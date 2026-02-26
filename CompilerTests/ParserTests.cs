@@ -83,6 +83,48 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void VardecStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int x;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var vardecStatement = Assert.IsType<VardecStmt>(program.Statements[0]);
+
+            var expected = new VardecStmt(
+                    "Int",
+                    "x"
+                    );
+
+            Assert.Equal(expected, vardecStatement);
+        }
+
+        [Fact]
+        public void AssignStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("x = 5;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var assignStatement = Assert.IsType<AssignStmt>(program.Statements[0]);
+
+            var expected = new AssignStmt(
+                    "x",
+                    new IntLiteral(5)
+                    );
+
+            Assert.Equal(expected, assignStatement);
+        }
+
+        [Fact]
         public void WhileStmtTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("while(x < 5) x = x + 1;");
 
@@ -112,6 +154,158 @@ namespace CompilerTests
             );
 
             Assert.Equal(expected, whileStmt);
+        }
+
+        [Fact]
+        public void BreakStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("break;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            Assert.IsType<BreakStmt>(program.Statements[0]);
+
+        }
+
+        [Fact]
+        public void ReturnVoidStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("return;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var returnStmt = Assert.IsType<ReturnStmt>(program.Statements[0]);
+            Assert.Null(returnStmt.Val);
+        }
+
+        [Fact]
+        public void ReturnStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("return 5 + 8;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var returnStmt = Assert.IsType<ReturnStmt>(program.Statements[0]);
+
+            var expectedVal = new BinaryExpression(
+                    new IntLiteral(5),
+                    OperatorType.Add,
+                    new IntLiteral(8)
+                    );
+
+            Assert.Equal(expectedVal, returnStmt.Val);
+        }
+
+        [Fact]
+        public void IfStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("if(x != 5) return v;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var ifStatement = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            var expected = 
+                new IfStmt(
+                    new BinaryExpression(
+                        new IdentifiedNode("x"),
+                        OperatorType.NotEqual,
+                        new IntLiteral(5)
+                        ),
+                    new ReturnStmt(
+                        new IdentifiedNode("v")
+                    ),
+                    null
+                );
+
+            Assert.Equal(expected, ifStatement);
+        }
+
+        [Fact]
+        public void IfElseStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    if(x != 5)
+                        return v;
+                    else
+                        return x;
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var ifStatement = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            var expected = 
+                new IfStmt(
+                    new BinaryExpression(
+                        new IdentifiedNode("x"),
+                        OperatorType.NotEqual,
+                        new IntLiteral(5)
+                        ),
+                    new ReturnStmt(
+                        new IdentifiedNode("v")
+                    ),
+                    new ReturnStmt(
+                        new IdentifiedNode("x")
+                        )
+                );
+
+            Assert.Equal(expected, ifStatement);
+        }
+
+        [Fact]
+        public void BlockStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    {
+                        Int x;
+                        x = 5 + 2;
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var blockStatement = Assert.IsType<BlockStmt>(program.Statements[0]);
+
+            List<AST> expectedStmts = [
+                        new VardecStmt("Int", "x"),
+                        new AssignStmt(
+                            "x",
+                            new BinaryExpression(
+                                new IntLiteral(5),
+                                OperatorType.Add,
+                                new IntLiteral(2)
+                            )
+                        )
+            ];
+
+            foreach(var (i, stmt) in expectedStmts.Index()) {
+                Assert.Equal(stmt, blockStatement.Stmts[i]);
+            }
         }
     }
 }

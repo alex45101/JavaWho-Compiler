@@ -160,16 +160,13 @@ namespace JavaWhoCompiler
             AST ifBody = ParseStatement();
 
             AST elseBody = null;
+
+            // we don't care if an exception is thrown on the 'else' expect
             try {
                 Expect<ElseToken>();
+            } catch { return new IfStmt(guard, ifBody, elseBody); }
 
-                elseBody = ParseStatement();
-            } catch(ParserException) {
-                // we don't care if an exception is thrown on the 'else' expect
-
-                // throw if the else statement fails to parse
-                throw;
-            }
+            elseBody = ParseStatement();
 
             return new IfStmt(guard, ifBody, elseBody);
         }
@@ -182,6 +179,9 @@ namespace JavaWhoCompiler
             while(CurrentToken is not CloseCurlyBracketToken) {
                 stmts.Add(ParseStatement());
             }
+
+            // consume closing bracket
+            Consume();
 
             return new BlockStmt(stmts);
         }
