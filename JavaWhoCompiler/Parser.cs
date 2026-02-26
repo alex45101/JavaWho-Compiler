@@ -208,6 +208,8 @@ namespace JavaWhoCompiler
             
             AST value = ParseExpression();
 
+            Expect<SemiColonToken>();
+
             return new AssignStmt(varIdent, value);
         }
 

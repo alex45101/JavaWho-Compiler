@@ -53,7 +53,7 @@ namespace CompilerTests
         public void EmptyTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("");
-            
+
             AST root = Parser.Parse(tokens);
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
@@ -73,13 +73,45 @@ namespace CompilerTests
 
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
-            
+
             ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
             BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(expStmt.Exp);
 
             Assert.Equal(expectedLeft, binaryExpression.Left);
             Assert.Equal(expectedRight, binaryExpression.Right);
             Assert.Equal(expectedOperator, binaryExpression.OperatorType);
+        }
+
+        [Fact]
+        public void WhileStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("while(x < 5) x = x + 1;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            WhileStmt whileStmt = Assert.IsType<WhileStmt>(program.Statements[0]);
+
+            var expected = new WhileStmt(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                    ),
+                new AssignStmt(
+                    "x",
+                    new BinaryExpression(
+                        new IdentifiedNode("x"),
+                        OperatorType.Add,
+                        new IntLiteral(1)
+                        )
+                    )
+            );
+
+            Assert.Equal(expected, whileStmt);
         }
     }
 }
