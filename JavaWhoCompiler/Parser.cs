@@ -113,7 +113,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseWhileStmt() {
-            Console.WriteLine("WHILE");
             Expect<WhileToken>();
             Expect<OpenParenthesisToken>();
 
@@ -127,7 +126,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseBreakStmt() {
-            Console.WriteLine("BREAK");
             Expect<BreakToken>();
             Expect<SemiColonToken>();
 
@@ -135,7 +133,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseReturnStmt() {
-            Console.WriteLine("RETURN");
             Expect<ReturnToken>();
 
             AST val = null;
@@ -149,7 +146,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseIfStmt() {
-            Console.WriteLine("IF");
             Expect<IfToken>();
             Expect<OpenParenthesisToken>();
 
@@ -172,7 +168,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseBlockStmt() {
-            Console.WriteLine("BLOCK");
             Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
@@ -187,7 +182,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseVardecStmt() {
-            Console.WriteLine("VARDEC");
             
             string typeIdent = Expect<IdentifierToken>().Value;
 
@@ -203,7 +197,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseAssignStmt() {
-            Console.WriteLine("ASSIGN");
             
             string varIdent = Expect<IdentifierToken>().Value;
 
@@ -220,7 +213,6 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseExpressionStmt() {
-            Console.WriteLine("EXP");
             AST exp = ParseExpression();
 
             Expect<SemiColonToken>();
