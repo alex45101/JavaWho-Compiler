@@ -45,6 +45,15 @@ namespace JavaWhoCompiler
         private IToken GetTokenAt(int pos) => !IsEnd ? tokens[pos] : throw new IndexOutOfRangeException();
         private IToken PeekNext() => currPos + 1 < tokens.Length ? tokens[currPos + 1] : null;
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
+        private void Expect<T>() where T : IToken
+        {
+            if (!Check<T>())
+            {
+                throw new ParserException($"Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
+            }
+
+            Consume();
+        }
 
 
         public static AST Parse(IEnumerable<IToken> tokens)
@@ -66,16 +75,6 @@ namespace JavaWhoCompiler
         {
             this.tokens = tokens.ToArray();
             currPos = 0;
-        }
-
-        private void Expect<T>() where T : IToken
-        {
-            if (!Check<T>())
-            {
-                throw new ParserException($"Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
-            }
-
-            Consume();
         }
 
         private ParseNode ParseStatement()

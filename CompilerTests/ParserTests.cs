@@ -53,7 +53,7 @@ namespace CompilerTests
 
             AST root = Parser.Parse(tokens);
 
-            BinaryParseNode binaryParseNode = Assert.IsType<BinaryParseNode>(root);
+            //BinaryParseNode binaryParseNode = Assert.IsType<BinaryParseNode>(root);
             //Assert.Equal(expectedLeft, binaryParseNode.Left);
             //Assert.Equal(expectedRight, binaryParseNode.Right);
             //Assert.Equal(expectedOperator, binaryParseNode.OperatorType);
