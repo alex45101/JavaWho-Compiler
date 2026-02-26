@@ -32,8 +32,8 @@ namespace JavaWhoCompiler
 
     //statements
     public sealed record ExpStmt(AST Exp) : AST;
-    public sealed record VardecStmt(string Type, string Var) : AST;
-    public sealed record AssignStmt(string Var, AST Val) : AST;
+    public sealed record VardecStmt(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record AssignStmt(IdentifiedNode Var, AST Val) : AST;
     public sealed record WhileStmt(AST Guard, AST Stmt) : AST;
     public sealed record BreakStmt() : AST;
     public sealed record ReturnStmt(AST Val) : AST;
@@ -196,7 +196,10 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
             
-            return new VardecStmt(typeIdent, varIdent);
+            return new VardecStmt(
+                    new IdentifiedNode(typeIdent), 
+                    new IdentifiedNode(varIdent)
+                    );
         }
 
         private AST ParseAssignStmt() {
@@ -210,7 +213,10 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
 
-            return new AssignStmt(varIdent, value);
+            return new AssignStmt(
+                    new IdentifiedNode(varIdent), 
+                    value
+                    );
         }
 
         private AST ParseExpressionStmt() {

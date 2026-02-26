@@ -96,8 +96,8 @@ namespace CompilerTests
             var vardecStatement = Assert.IsType<VardecStmt>(program.Statements[0]);
 
             var expected = new VardecStmt(
-                    "Int",
-                    "x"
+                    new IdentifiedNode("Int"),
+                    new IdentifiedNode("x")
                     );
 
             Assert.Equal(expected, vardecStatement);
@@ -117,7 +117,7 @@ namespace CompilerTests
             var assignStatement = Assert.IsType<AssignStmt>(program.Statements[0]);
 
             var expected = new AssignStmt(
-                    "x",
+                    new IdentifiedNode("x"),
                     new IntLiteral(5)
                     );
 
@@ -144,7 +144,7 @@ namespace CompilerTests
                     new IntLiteral(5)
                     ),
                 new AssignStmt(
-                    "x",
+                    new IdentifiedNode("x"),
                     new BinaryExpression(
                         new IdentifiedNode("x"),
                         OperatorType.Add,
@@ -292,9 +292,12 @@ namespace CompilerTests
             var blockStatement = Assert.IsType<BlockStmt>(program.Statements[0]);
 
             List<AST> expectedStmts = [
-                        new VardecStmt("Int", "x"),
+                        new VardecStmt(
+                                new IdentifiedNode("Int"),
+                                new IdentifiedNode("x")
+                                ),
                         new AssignStmt(
-                            "x",
+                            new IdentifiedNode("x"),
                             new BinaryExpression(
                                 new IntLiteral(5),
                                 OperatorType.Add,
