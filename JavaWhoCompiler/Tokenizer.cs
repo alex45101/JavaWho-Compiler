@@ -134,14 +134,19 @@ namespace JavaWhoCompiler
                     }
                 }
 
+
                 if (tokenMatch.Value is UnknownToken)
                 {
                     throw new InvalidTokenException($"Invalid token '{code[i]}' starting at position: {i}");
                 }
 
-                tokens.Add(tokenMatch.Value);
-
                 i += tokenMatch.Key.Length - 1;
+
+                // ignore whitespace
+                if (tokenMatch.Value is not WhiteSpaceToken) {
+                    tokens.Add(tokenMatch.Value);
+                }
+
             }
 
             return tokens;
