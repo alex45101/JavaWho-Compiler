@@ -17,20 +17,18 @@ namespace JavaWhoCompiler
         NotEqual
     }
 
-    public abstract record ParseNode;
-    public sealed record ParseStatement(List<ParseNode> Classes, List<ParseNode> Statements) : ParseNode;
+    public abstract record AST;
+    public sealed record ProgramNode(List<AST> Classes, List<AST> Statements) : AST;
+
+    public sealed record IntLiteral(int Value) : AST;
+    public sealed record StringLiteral(string Value) : AST;
+    public sealed record BooleanLiteral(bool Value) : AST;
+    public sealed record IdentifiedNode(string Value) : AST;
 
     //expressions
-    public sealed record PrimaryParseNode(string Value) : ParseNode;
-    public sealed record BinaryParseNode(ParseNode Left, OperatorType OperatorType, ParseNode Right) : ParseNode;
+    public sealed record PrimaryExpression(string Value) : AST;
+    public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
 
-    #region WIP AST
-    public abstract record AST;
-
-    public sealed record BinaryExpression(AST Left, OperatorType Operator, AST Right) : AST;
-    public sealed record VariableExpression(string Name) : AST;
-    public sealed record IntLiteralNode(int Value) : AST;
-    #endregion  
 
     public class ParserException(string message) : Exception(message);
 
@@ -55,20 +53,20 @@ namespace JavaWhoCompiler
             Consume();
         }
 
-
         public static AST Parse(IEnumerable<IToken> tokens)
         {
-            AST root = null;
-
             Parser parser = new Parser(tokens);
-            List<ParseNode> statements = new List<ParseNode>();
+            List<AST> classes = new List<AST>();
+            List<AST> statements = new List<AST>();
+
+            //TODO: Parse classes
 
             while (!parser.IsEnd)
             {
                 statements.Add(parser.ParseStatement());
             }
             
-            return root;
+            return new ProgramNode(classes, statements);
         }
 
         private Parser(IEnumerable<IToken> tokens)
@@ -77,19 +75,19 @@ namespace JavaWhoCompiler
             currPos = 0;
         }
 
-        private ParseNode ParseStatement()
+        private AST ParseStatement()
         {
-            ParseNode exp = ParseExpression();
+            AST exp = ParseExpression();
 
             Expect<SemiColonToken>();
             return exp;
         }
 
-        private ParseNode ParseExpression() => ParseEqualityExpression();
+        private AST ParseExpression() => ParseEqualityExpression();
 
-        private ParseNode ParseEqualityExpression()
+        private AST ParseEqualityExpression()
         {
-            ParseNode left = ParseCompareExpression();
+            AST left = ParseCompareExpression();
 
             if (Check<EqualsOperatorToken>() || Check<NotEqualsOperatorToken>())
             {
@@ -97,17 +95,17 @@ namespace JavaWhoCompiler
                 
                 Consume();
 
-                ParseNode right = ParseCompareExpression();
+                AST right = ParseCompareExpression();
 
-                return new BinaryParseNode(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right);
             }
 
             return left;
         }
 
-        private ParseNode ParseCompareExpression()
+        private AST ParseCompareExpression()
         {
-            ParseNode left = ParseAddExpression();
+            AST left = ParseAddExpression();
 
             if (Check<LessThanOperatorToken>())
             {
@@ -115,17 +113,17 @@ namespace JavaWhoCompiler
 
                 Consume();
 
-                ParseNode right = ParseAddExpression();
+                AST right = ParseAddExpression();
 
-                return new BinaryParseNode(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right);
             }
 
             return left;
         }
 
-        private ParseNode ParseAddExpression()
+        private AST ParseAddExpression()
         {
-            ParseNode left = ParseMultiplyExpression();
+            AST left = ParseMultiplyExpression();
 
             if (Check<AddOperatorToken>() || Check<SubtractOperatorToken>())
             {
@@ -133,17 +131,17 @@ namespace JavaWhoCompiler
 
                 Consume();
 
-                ParseNode right = ParseMultiplyExpression();
+                AST right = ParseMultiplyExpression();
 
-                return new BinaryParseNode(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right);
             }
 
             return left;
         }
 
-        private ParseNode ParseMultiplyExpression()
+        private AST ParseMultiplyExpression()
         {
-            ParseNode left = ParseCallExpression();
+            AST left = ParseCallExpression();
 
             if (Check<MultiplyOperatorToken>() || Check<DivideOperatorToken>())
             {
@@ -151,32 +149,34 @@ namespace JavaWhoCompiler
 
                 Consume();
 
-                ParseNode right = ParseCallExpression();
+                AST right = ParseCallExpression();
 
-                return new BinaryParseNode(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right);
             }
 
             return left;
         }
 
-        private ParseNode ParseCallExpression()
+        private AST ParseCallExpression()
         {
-            ParseNode left = ParsePrimaryExpression();
+            AST left = ParsePrimaryExpression();
 
             if (Check<DotToken>())
             {
+                //need to implement dot stuff
                 throw new NotImplementedException();
             }
 
             return left;
         }
 
-        private ParseNode ParsePrimaryExpression()
+        private AST ParsePrimaryExpression()
         {
-            PrimaryParseNode primaryNode = CurrentToken switch
+            AST primaryNode = CurrentToken switch
             {
-                IdentifierToken or 
-                NumberToken => new PrimaryParseNode(Consume().Value),
+                IdentifierToken => new IdentifiedNode(Consume().Value),
+                NumberToken => new IntLiteral((Consume() as NumberToken).Number),
+                TrueToken or FalseToken => new BooleanLiteral(Consume().Value == "true"),
                 _ => throw new ParserException($"Unexpected token {CurrentToken.GetType().Name}")
             };
 

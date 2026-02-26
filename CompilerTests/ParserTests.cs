@@ -8,30 +8,30 @@ namespace CompilerTests
         {
             yield return new object[] {
                 "a < 5;",
-                //new VariableExpression("a"),
-                //OperatorType.LessThan,
-                //new IntLiteralNode(5)
+                new IdentifiedNode("a"),
+                OperatorType.LessThan,
+                new IntLiteral(5)
             };
 
             yield return new object[] {
                 "a == 5;",
-                //new VariableExpression("a"),
-                //OperatorType.Equal,
-                //new IntLiteralNode(5)
+                new IdentifiedNode("a"),
+                OperatorType.Equal,
+                new IntLiteral(5)
             };
 
             yield return new object[] {
                 "a + 5;",
-                //new VariableExpression("a"),
-                //OperatorType.Add,
-                //new IntLiteralNode(5)
+                new IdentifiedNode("a"),
+                OperatorType.Add,
+                new IntLiteral(5)
             };
 
             yield return new object[] {
                 "a - 5;",
-                //new VariableExpression("a"),
-                //OperatorType.Subtract,
-                //new IntLiteralNode(5)
+                new IdentifiedNode("a"),
+                OperatorType.Subtract,
+                new IntLiteral(5)
             };
         }
 
@@ -42,21 +42,28 @@ namespace CompilerTests
             
             AST root = Parser.Parse(tokens);
 
-            Assert.Null(root);
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+            Assert.Empty(program.Classes);
+            Assert.Empty(program.Statements);
         }
 
         [Theory]
         [MemberData(nameof(BinaryExpressionData))]
-        public void BinaryExpressionTests(string text)//, ParseNode expectedLeft, OperatorType expectedOperator, ParseNode expectedRight)
+        public void BinaryExpressionTests(string text, AST expectedLeft, OperatorType expectedOperator, AST expectedRight)
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(text);
 
             AST root = Parser.Parse(tokens);
 
-            //BinaryParseNode binaryParseNode = Assert.IsType<BinaryParseNode>(root);
-            //Assert.Equal(expectedLeft, binaryParseNode.Left);
-            //Assert.Equal(expectedRight, binaryParseNode.Right);
-            //Assert.Equal(expectedOperator, binaryParseNode.OperatorType);
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+            
+            BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(program.Statements[0]);
+            Assert.Equal(expectedLeft, binaryExpression.Left);
+            Assert.Equal(expectedRight, binaryExpression.Right);
+            Assert.Equal(expectedOperator, binaryExpression.OperatorType);
         }
     }
 }
