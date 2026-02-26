@@ -54,14 +54,14 @@ namespace JavaWhoCompiler
         private IToken GetTokenAt(int pos) => !IsEnd ? tokens[pos] : throw new IndexOutOfRangeException();
         private IToken PeekNext() => currPos + 1 < tokens.Length ? tokens[currPos + 1] : null;
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
-        private void Expect<T>() where T : IToken
+        private IToken Expect<T>() where T : IToken
         {
             if (!Check<T>())
             {
                 throw new ParserException($"Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
             }
 
-            Consume();
+            return Consume();
         }
 
         public static AST Parse(IEnumerable<IToken> tokens)
@@ -113,35 +113,111 @@ namespace JavaWhoCompiler
         }
 
         private AST ParseWhileStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("WHILE");
+            Expect<WhileToken>();
+            Expect<OpenParenthesisToken>();
+
+            AST guard = ParseExpression();
+
+            Expect<CloseParenthesisToken>();
+
+            AST body = ParseStatement();
+
+            return new WhileStmt(guard, body);
         }
 
         private AST ParseBreakStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("BREAK");
+            Expect<BreakToken>();
+            Expect<SemiColonToken>();
+
+            return new BreakStmt();
         }
 
         private AST ParseReturnStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("RETURN");
+            Expect<ReturnToken>();
+
+            AST val = null;
+            try {
+                val = ParseExpression();
+            } catch {}
+
+            Expect<SemiColonToken>();
+
+            return new ReturnStmt(val);
         }
 
         private AST ParseIfStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("IF");
+            Expect<IfToken>();
+            Expect<OpenParenthesisToken>();
+
+            AST guard = ParseExpression();
+
+            Expect<CloseParenthesisToken>();
+
+            AST ifBody = ParseStatement();
+
+            AST elseBody = null;
+            try {
+                Expect<ElseToken>();
+
+                elseBody = ParseStatement();
+            } catch(ParserException) {
+                // we don't care if an exception is thrown on the 'else' expect
+
+                // throw if the else statement fails to parse
+                throw;
+            }
+
+            return new IfStmt(guard, ifBody, elseBody);
         }
 
         private AST ParseBlockStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("BLOCK");
+            Expect<OpenCurlyBracketToken>();
+
+            List<AST> stmts = [];
+            while(CurrentToken is not CloseCurlyBracketToken) {
+                stmts.Add(ParseStatement());
+            }
+
+            return new BlockStmt(stmts);
         }
 
         private AST ParseVardecStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("VARDEC");
+            
+            string typeIdent = Expect<IdentifierToken>().Value;
+
+            
+            string varIdent = Expect<IdentifierToken>().Value;
+
+            Expect<SemiColonToken>();
+            
+            return new VardecStmt(typeIdent, varIdent);
         }
 
         private AST ParseAssignStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("ASSIGN");
+            
+            string varIdent = Expect<IdentifierToken>().Value;
+
+            Expect<AssignmentOperatorToken>();
+            
+            AST value = ParseExpression();
+
+            return new AssignStmt(varIdent, value);
         }
 
         private AST ParseExpressionStmt() {
-            throw new NotImplementedException();
+            Console.WriteLine("EXP");
+            AST exp = ParseExpression();
+
+            Expect<SemiColonToken>();
+
+            return new ExpStmt(exp);
         }
 
         private AST ParseExpression() => ParseEqualityExpression();

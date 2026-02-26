@@ -74,7 +74,9 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
             
-            BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(program.Statements[0]);
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(expStmt.Exp);
+
             Assert.Equal(expectedLeft, binaryExpression.Left);
             Assert.Equal(expectedRight, binaryExpression.Right);
             Assert.Equal(expectedOperator, binaryExpression.OperatorType);
