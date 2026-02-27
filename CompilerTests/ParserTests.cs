@@ -74,16 +74,6 @@ namespace CompilerTests
                                         """ };
         }
 
-        // private bool CollectionsEqual<T>(ICollection<T> col1, ICollection<T> col2) {
-        //     if(col1.Count != col2.Count) return false;
-        //
-        //     foreach(var (i, item) in col1.Index()) {
-        //         if(item.Equals(col2.ElementAt(i))) return false;
-        //     }
-        //
-        //     return true;
-        // }
-
         [Fact]
         public void EmptyTest()
         {
