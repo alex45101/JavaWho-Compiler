@@ -49,7 +49,7 @@ namespace CompilerTests
             };
         }
 
-        public static IEnumerable<object[]> NoSemicolonStmts()
+        public static IEnumerable<object[]> NoSemicolonEndStmts()
         {
             yield return new object[] {"x + 2" };
             yield return new object[] {"Int x" };
@@ -57,6 +57,21 @@ namespace CompilerTests
             yield return new object[] { "break" };
             yield return new object[] { "return" };
             yield return new object[] { "return 84" };
+            yield return new object[] { "while(x == 1) x = x + 1" };
+            yield return new object[] { "if(x == 1) x = x + 1" };
+        }
+
+        public static IEnumerable<object[]> NoSemicolonMidStmts()
+        {
+            yield return new object[] {"{ x + 2 }" };
+            yield return new object[] {"{ Int x; x + 2 }" };
+            yield return new object[] { "if(x != 2) { x = 21 }" };
+            yield return new object[] { """
+                                        while(x == 9) { 
+                                            x = x + 1;
+                                            if(x == 12) break
+                                        }
+                                        """ };
         }
 
         [Fact]
@@ -93,10 +108,17 @@ namespace CompilerTests
         }
 
         [Theory]
-        [MemberData(nameof(NoSemicolonStmts))]
-        public void ThrowOnNoSemicolonStmtTest(string code) {
+        [MemberData(nameof(NoSemicolonEndStmts))]
+        public void ThrowOnNoSemicolonEndStmtTest(string code) {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(code);
             Assert.Throws<IndexOutOfRangeException>(() => Parser.Parse(tokens));
+        }
+
+        [Theory]
+        [MemberData(nameof(NoSemicolonMidStmts))]
+        public void ThrowOnNoSemicolonMidStmtTest(string code) {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize(code);
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
         }
 
         [Fact]
