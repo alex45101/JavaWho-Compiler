@@ -49,6 +49,16 @@ namespace CompilerTests
             };
         }
 
+        public static IEnumerable<object[]> NoSemicolonStmts()
+        {
+            yield return new object[] {"x + 2" };
+            yield return new object[] {"Int x" };
+            yield return new object[] { "x = 24" };
+            yield return new object[] { "break" };
+            yield return new object[] { "return" };
+            yield return new object[] { "return 84" };
+        }
+
         [Fact]
         public void EmptyTest()
         {
@@ -80,6 +90,13 @@ namespace CompilerTests
             Assert.Equal(expectedLeft, binaryExpression.Left);
             Assert.Equal(expectedRight, binaryExpression.Right);
             Assert.Equal(expectedOperator, binaryExpression.OperatorType);
+        }
+
+        [Theory]
+        [MemberData(nameof(NoSemicolonStmts))]
+        public void ThrowOnNoSemicolonStmtTest(string code) {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize(code);
+            Assert.Throws<IndexOutOfRangeException>(() => Parser.Parse(tokens));
         }
 
         [Fact]
