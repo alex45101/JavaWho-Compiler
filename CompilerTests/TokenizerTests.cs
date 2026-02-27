@@ -378,20 +378,27 @@ namespace CompilerTests
         }
 
 
-        private bool TokenEqualIgnoreLinePos(IToken expected, IToken actual) {
-            return expected.GetType() == actual.GetType() 
-                && expected.Value == actual.Value;
+        private void AssertTokenEqualIgnoreLinePos(IToken expected, IToken actual) {
+            Assert.Equal(expected.GetType(), actual.GetType());
+            Assert.Equal(expected.Value, actual.Value);
         }
 
-        private bool TokenListEqualIgnoreLinePos(IEnumerable<IToken> expected, IEnumerable<IToken> actual) {
-            if(expected.Count() != expected.Count()) return false;
+        private void AssertTokenListEqualIgnoreLinePos(IEnumerable<IToken> expected, IEnumerable<IToken> actual) {
+            Assert.Equal(expected.Count(), actual.Count());
 
             foreach(var (i, expectedToken) in expected.Index()) {
                 var actualToken = actual.ElementAt(i);
-                if(!TokenEqualIgnoreLinePos(expectedToken, actualToken)) return false;
+                AssertTokenEqualIgnoreLinePos(expectedToken, actualToken);
             }
+        }
 
-            return true;
+        private void AssertTokenListEqual(IEnumerable<IToken> expected, IEnumerable<IToken> actual) {
+            Assert.Equal(expected.Count(), actual.Count());
+
+            foreach(var (i, expectedToken) in expected.Index()) {
+                var actualToken = actual.ElementAt(i);
+                Assert.Equal(expectedToken, actualToken);
+            }
         }
 
         [Fact]
@@ -400,24 +407,24 @@ namespace CompilerTests
             List<IToken> expected = [
                 new ClassToken("class", 0, 0),  new IdentifierToken("Bear", 0, 0), new ExtendsToken("extends", 0, 0),  new IdentifierToken("Animal", 0, 0),
                      new OpenCurlyBracketToken("{", 0, 0),
-                
+
                 new InitToken("init", 0, 0), new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
                  new OpenCurlyBracketToken("{", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
-                
+
                 new MethodToken("method", 0, 0),  new IdentifierToken("speak", 0, 0), 
                     new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
                      new VoidTypeToken("Void", 0, 0),  new OpenCurlyBracketToken("{", 0, 0),
-                
+
                 new ReturnToken("return", 0, 0), 
                     new IdentifierToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0), new NumberToken("0", 0, 0), 
                      new EqualsOperatorToken("==", 0, 0),  new NumberToken("5", 0, 0),
                     new CloseParenthesisToken(")", 0, 0),
                     new SemiColonToken(";", 0, 0),
-                
+
                 new CloseCurlyBracketToken("}", 0, 0),
             ];
 
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
         [Fact]
@@ -440,7 +447,7 @@ namespace CompilerTests
                 new CloseCurlyBracketToken("}", 0, 0),
             ];
 
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
 
@@ -467,7 +474,7 @@ namespace CompilerTests
                     new SubtractOperatorToken("-", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
             ];
 
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
         [Fact]
@@ -493,7 +500,7 @@ namespace CompilerTests
                     new SubtractOperatorToken("-", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
             ];
 
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
         [Fact]
@@ -514,7 +521,8 @@ namespace CompilerTests
                      new NumberToken("1", 0, 0), new SemiColonToken(";", 0, 0),
                      new CloseCurlyBracketToken("}", 0, 0),
             ];
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
         [Fact]
@@ -534,7 +542,8 @@ namespace CompilerTests
                      new NumberToken("1", 0, 0), new SemiColonToken(";", 0, 0),
                      new CloseCurlyBracketToken("}", 0, 0),
             ];
-            Assert.True(TokenListEqualIgnoreLinePos(expected, tokens));
+
+            AssertTokenListEqualIgnoreLinePos(expected, tokens);
         }
 
         [Theory]
@@ -543,6 +552,26 @@ namespace CompilerTests
         [InlineData("y > 9")] // > not valid
         public void ErrorOnUnkownSymbolTest(string sequence) {
             Assert.Throws<InvalidTokenException>(() => Tokenizer.Tokenize(sequence));
+        }
+
+        [Theory]
+        [InlineData("""
+                x = 5;
+                x + 2;
+
+                println("Hello world");
+                """)]
+        public void LineNumPosTest(string code) {
+            var tokens = Tokenizer.Tokenize(code);
+            List<IToken> expected = [
+                new IdentifierToken("x", 1, 1), new AssignmentOperatorToken("=", 1, 3), new NumberToken("5", 1, 5), new SemiColonToken(";", 1, 6),
+                new IdentifierToken("x", 2, 1), new AddOperatorToken("+", 2, 3), new NumberToken("2", 2, 5), new SemiColonToken(";", 2, 6),
+
+                new IdentifierToken("println", 4, 1), new OpenParenthesisToken("(", 4, 8), new StringToken("\"Hello world\"", 4, 9), new CloseParenthesisToken(")", 4, 22), 
+                            new SemiColonToken(";", 4, 23),
+            ];
+
+            AssertTokenListEqual(expected, tokens);
         }
     }
 }

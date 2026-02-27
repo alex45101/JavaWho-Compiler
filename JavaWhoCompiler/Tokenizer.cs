@@ -67,7 +67,7 @@ namespace JavaWhoCompiler
         {
 
             [@"\G[\p{Zs}\t]+"] = (value, line, pos) => new WhiteSpaceToken(value, line, pos),
-            [@"\G\r?\n|\r"] = (value, line, pos) => new NewLineToken(value, line, pos),
+            [@"\G(\r?\n|\r)"] = (value, line, pos) => new NewLineToken(value, line, pos),
 
             [@"\G\d+"] = (value, line, pos) => new NumberToken(value, line, pos),
             [@"\G""(?:\\.|[^""\\])*"""] = (value, line, pos) => new StringToken(value, line, pos),
@@ -142,11 +142,12 @@ namespace JavaWhoCompiler
 
                 if (tokenMatch.Value is UnknownToken)
                 {
-                    throw new InvalidTokenException($"Invalid token '{code[i]}' starting at position: {i}");
+                    throw new InvalidTokenException($"Invalid token '{code[i]}' on line {line} position {position}");
                 }
 
+
                 i += tokenMatch.Key.Length - 1;
-                position += tokenMatch.Key.Length - 1;
+                position += tokenMatch.Key.Length;
 
                 if (tokenMatch.Value is NewLineToken) {
                     line += 1;
@@ -154,7 +155,7 @@ namespace JavaWhoCompiler
                 }
 
                 // ignore whitespace
-                if (tokenMatch.Value is not WhiteSpaceToken) {
+                if (tokenMatch.Value is not WhiteSpaceToken && tokenMatch.Value is not NewLineToken) {
                     tokens.Add(tokenMatch.Value);
                 }
 
