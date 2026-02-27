@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Text;
 
 namespace JavaWhoCompiler
@@ -26,7 +25,6 @@ namespace JavaWhoCompiler
     public sealed record IdentifiedNode(string Value) : AST;
 
     //expressions
-    public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
 
 
@@ -45,13 +43,13 @@ namespace JavaWhoCompiler
 
     public class Parser
     {
-        private IToken[] tokens = null;
+        private IToken[] tokens;
         private int currPos = 0;
 
         private bool IsEnd => currPos >= tokens.Length;
         private IToken CurrentToken => !IsEnd ? tokens[currPos] : throw new IndexOutOfRangeException();
         private IToken Consume() => !IsEnd ? tokens[currPos++] : throw new IndexOutOfRangeException();
-        private IToken GetTokenAt(int pos) => !IsEnd ? tokens[pos] : throw new IndexOutOfRangeException();
+        private IToken GetTokenAt(int pos) => pos < tokens.Length ? tokens[pos] : throw new IndexOutOfRangeException();
         private IToken PeekNext() => currPos + 1 < tokens.Length ? tokens[currPos + 1] : null;
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
         private IToken Expect<T>() where T : IToken
@@ -136,9 +134,9 @@ namespace JavaWhoCompiler
             Expect<ReturnToken>();
 
             AST val = null;
-            try {
+            if (!Check<SemiColonToken>()) {
                 val = ParseExpression();
-            } catch {}
+            }
 
             Expect<SemiColonToken>();
 
@@ -157,12 +155,10 @@ namespace JavaWhoCompiler
 
             AST elseBody = null;
 
-            // we don't care if an exception is thrown on the 'else' expect
-            try {
-                Expect<ElseToken>();
-            } catch { return new IfStmt(guard, ifBody, elseBody); }
-
-            elseBody = ParseStatement();
+            if (Check<ElseToken>()) {
+                Consume();
+                elseBody = ParseStatement();
+            }
 
             return new IfStmt(guard, ifBody, elseBody);
         }
@@ -171,9 +167,12 @@ namespace JavaWhoCompiler
             Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
-            while(CurrentToken is not CloseCurlyBracketToken) {
+            while(!IsEnd && CurrentToken is not CloseCurlyBracketToken) {
                 stmts.Add(ParseStatement());
             }
+
+            if (IsEnd)
+                throw new ParserException("Expected '}' but got EOF");
 
             // consume closing bracket
             Consume();
@@ -226,7 +225,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseCompareExpression();
 
-            if (Check<EqualsOperatorToken>() || Check<NotEqualsOperatorToken>())
+            while (Check<EqualsOperatorToken>() || Check<NotEqualsOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is EqualsOperatorToken ? OperatorType.Equal : OperatorType.NotEqual;
                 
@@ -234,7 +233,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseCompareExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
@@ -244,7 +243,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseAddExpression();
 
-            if (Check<LessThanOperatorToken>())
+            while (Check<LessThanOperatorToken>())
             {
                 OperatorType operatorType = OperatorType.LessThan;
 
@@ -252,7 +251,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseAddExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
@@ -262,7 +261,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseMultiplyExpression();
 
-            if (Check<AddOperatorToken>() || Check<SubtractOperatorToken>())
+            while (Check<AddOperatorToken>() || Check<SubtractOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is AddOperatorToken ? OperatorType.Add : OperatorType.Subtract;
 
@@ -270,7 +269,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseMultiplyExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
@@ -280,7 +279,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseCallExpression();
 
-            if (Check<MultiplyOperatorToken>() || Check<DivideOperatorToken>())
+            while (Check<MultiplyOperatorToken>() || Check<DivideOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is MultiplyOperatorToken ? OperatorType.Multiply : OperatorType.Divide;
 
@@ -288,7 +287,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseCallExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
