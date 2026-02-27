@@ -74,6 +74,16 @@ namespace CompilerTests
                                         """ };
         }
 
+        // private bool CollectionsEqual<T>(ICollection<T> col1, ICollection<T> col2) {
+        //     if(col1.Count != col2.Count) return false;
+        //
+        //     foreach(var (i, item) in col1.Index()) {
+        //         if(item.Equals(col2.ElementAt(i))) return false;
+        //     }
+        //
+        //     return true;
+        // }
+
         [Fact]
         public void EmptyTest()
         {
@@ -345,9 +355,48 @@ namespace CompilerTests
                         )
             ];
 
+            Assert.Equal(expectedStmts.Count, blockStatement.Stmts.Count);
+
             foreach(var (i, stmt) in expectedStmts.Index()) {
                 Assert.Equal(stmt, blockStatement.Stmts[i]);
             }
         }
+
+        [Fact]
+        public void MultipleStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    x = 5 + 2;
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+
+
+            List<AST> expected = [
+                        new VardecStmt(
+                                new IdentifiedNode("Int"),
+                                new IdentifiedNode("x")
+                                ),
+                        new AssignStmt(
+                            new IdentifiedNode("x"),
+                            new BinaryExpression(
+                                new IntLiteral(5),
+                                OperatorType.Add,
+                                new IntLiteral(2)
+                            )
+                        ),
+            ];
+
+            Assert.Equal(expected.Count, program.Statements.Count);
+
+            foreach(var (i, item) in expected.Index()) {
+                Assert.Equal(item, program.Statements[i]);
+            }
+        }
+
     }
 }
