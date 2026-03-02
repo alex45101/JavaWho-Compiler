@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
-using System.Text;
-
-namespace JavaWhoCompiler
+﻿namespace JavaWhoCompiler
 {
     public enum OperatorType
     { 
@@ -26,9 +20,9 @@ namespace JavaWhoCompiler
     public sealed record IdentifiedNode(string Value) : AST;
 
     //expressions
+    public sealed record ThisExpression() : AST;
     public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
-
 
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
@@ -39,6 +33,7 @@ namespace JavaWhoCompiler
     public sealed record ReturnStatement(AST Val) : AST;
     public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
     public sealed record BlockStatement(List<AST> Statements) : AST;
+    public sealed record MethodCallStatement(string Name, AST Target, List<AST> Arguments) : AST;
 
 
     public class ParserException(string message) : Exception(message);
@@ -62,6 +57,11 @@ namespace JavaWhoCompiler
             }
 
             return Consume();
+        }
+        private AST ConsumeAndReturn(AST node)
+        {
+            Consume();
+            return node;
         }
 
         public static AST Parse(IEnumerable<IToken> tokens)
@@ -304,10 +304,11 @@ namespace JavaWhoCompiler
         {
             AST left = ParsePrimaryExpression();
 
-            if (Check<DotToken>())
+            while (Check<DotToken>())
             {
-                //need to implement dot stuff
-                throw new NotImplementedException();
+                Consume();
+
+                left = MethodCallExpression(left);
             }
 
             return left;
@@ -321,10 +322,42 @@ namespace JavaWhoCompiler
                 StringToken => new StringLiteral(Consume().Value),
                 NumberToken => new IntLiteral((Consume() as NumberToken).Number),
                 TrueToken or FalseToken => new BooleanLiteral(Consume().Value == "true"),
+                ThisToken => ConsumeAndReturn(new ThisExpression()),
                 _ => throw new ParserException($"Unexpected token {CurrentToken.GetType().Name}")
             };
 
             return primaryNode;
+        }
+
+        private AST MethodCallExpression(AST Target)
+        {
+            var token = Expect<IdentifierToken>();
+            Expect<OpenParenthesisToken>();
+
+            List<AST> arguments = CommaExpression();
+
+            Expect<CloseParenthesisToken>();
+
+            return new MethodCallStatement(token.Value, Target, arguments);
+        }
+
+        private List<AST> CommaExpression()
+        {
+            List<AST> result = new List<AST>();
+
+            while (!Check<CloseParenthesisToken>())
+            {
+                AST exp = ParseExpression();
+
+                if (Check<CommaToken>())
+                {
+                    Consume();
+                }
+
+                result.Add(exp);
+            }
+
+            return result;
         }
     }
 }
