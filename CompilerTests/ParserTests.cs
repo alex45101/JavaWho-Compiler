@@ -90,6 +90,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void EmptyTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("");
@@ -102,6 +103,7 @@ namespace CompilerTests
         }
 
         [Theory]
+        [Trait("Category", "Expression")]
         [MemberData(nameof(BinaryExpressionData))]
         public void BinaryExpressionTests(string text, AST expectedLeft, OperatorType expectedOperator, AST expectedRight)
         {
@@ -123,6 +125,7 @@ namespace CompilerTests
         }
 
         [Theory]
+        [Trait("Category", "ParserError")]
         [MemberData(nameof(NoSemicolonEndStmts))]
         public void ThrowOnNoSemicolonEndStmtTest(string code)
         {
@@ -131,6 +134,7 @@ namespace CompilerTests
         }
 
         [Theory]
+        [Trait("Category", "ParserError")]
         [MemberData(nameof(NoSemicolonMidStmts))]
         public void ThrowOnNoSemicolonMidStmtTest(string code)
         {
@@ -139,6 +143,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void VardecStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int x;");
@@ -161,6 +166,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void AssignStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("x = 5;");
@@ -183,6 +189,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "While")]
         public void WhileStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("while(x < 5) x = x + 1;");
@@ -216,6 +223,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void BreakStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("break;");
@@ -232,6 +240,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void ReturnVoidStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("return;");
@@ -248,6 +257,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void ReturnStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("return 5 + 8;");
@@ -271,6 +281,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void IfStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("if(x != 5) return v;");
@@ -301,6 +312,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void IfElseStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -338,6 +350,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void EmptyBlockStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("{}");
@@ -355,6 +368,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void BlockStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -397,6 +411,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Statement")]
         public void MultipleStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -435,6 +450,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void OperatorPrecedenceMultiplyBeforeAddTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("2 + 3 * 4;");
@@ -459,6 +475,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void OperatorPrecedenceAddBeforeCompareTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("a + 2 < b + 3;");
@@ -487,6 +504,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void OperatorPrecedenceCompareBeforeEqualityTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("a < 5 == b < 10;");
@@ -515,6 +533,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void ComplexOperatorPrecedenceTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("a * 2 + b / 3 - 4;");
@@ -547,6 +566,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void SimpleIdentifierExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("x;");
@@ -564,6 +584,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void SimpleIntLiteralExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("42;");
@@ -581,6 +602,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
         public void SimpleBooleanLiteralExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("true;");
@@ -598,6 +620,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void NestedIfStatementsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -643,6 +666,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "While")]
         public void NestedWhileStatementsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -694,6 +718,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "While")]
         public void WhileWithBlockBodyTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -750,6 +775,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void IfWithBlockBodyTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -800,6 +826,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void IfElseWithBlockBodiesTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -826,6 +853,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void ElseIfStatementTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -891,6 +919,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void MultipleElseIfStatementsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -961,6 +990,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void ElseIfWithBlocksTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -1025,6 +1055,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void NestedIfInsideElseTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -1078,6 +1109,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
         public void ComplexNestedIfElseTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -1192,6 +1224,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void SimpleMethodCallExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this.run();");
@@ -1211,6 +1244,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void SimpleChainedMethodCallExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("a.run().jump().walk();");
@@ -1242,6 +1276,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithSingleIntArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(42);");
@@ -1265,6 +1300,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithSingleBooleanArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this.setFlag(true);");
@@ -1285,6 +1321,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithSingleStringArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.print(\"hello\");");
@@ -1304,6 +1341,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithSingleIdentifierArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this.process(x);");
@@ -1324,6 +1362,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithMultipleArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(5, x, true);");
@@ -1349,6 +1388,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithBinaryExpressionArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(x + 5);");
@@ -1374,6 +1414,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithComplexBinaryExpressionArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this.evaluate(a * 2 + b);");
@@ -1396,6 +1437,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithNestedMethodCallArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.process(helper.getValue());");
@@ -1419,6 +1461,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithMultipleNestedMethodCallArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.compare(a.getValue(), b.getValue());");
@@ -1445,6 +1488,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithChainedMethodCallArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.process(helper.getManager().getValue());");
@@ -1470,6 +1514,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithMixedComplexArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(x + 5, helper.getValue(), true, 42);");
@@ -1498,6 +1543,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void ChainedMethodCallWithArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.first(5).second(x).third(true);");
@@ -1531,6 +1577,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void MethodCallWithMethodCallWithArgumentsAsArgumentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.outer(inner.compute(5, x));");
@@ -1557,6 +1604,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Method")]
         public void ThisMethodCallWithMultipleArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("this.compute(x, y + 10, false);");
