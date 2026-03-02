@@ -114,8 +114,8 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
-            BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(expStmt.Exp);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(expStmt.Expression);
 
             Assert.Equal(expectedLeft, binaryExpression.Left);
             Assert.Equal(expectedRight, binaryExpression.Right);
@@ -147,9 +147,9 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var vardecStatement = Assert.IsType<VardecStmt>(program.Statements[0]);
+            var vardecStatement = Assert.IsType<VariableDeclarationStatement>(program.Statements[0]);
 
-            var expected = new VardecStmt(
+            var expected = new VariableDeclarationStatement(
                     new IdentifiedNode("Int"),
                     new IdentifiedNode("x")
                     );
@@ -168,9 +168,9 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var assignStatement = Assert.IsType<AssignStmt>(program.Statements[0]);
+            var assignStatement = Assert.IsType<AssignmentStatement>(program.Statements[0]);
 
-            var expected = new AssignStmt(
+            var expected = new AssignmentStatement(
                     new IdentifiedNode("x"),
                     new IntLiteral(5)
                     );
@@ -189,15 +189,15 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            WhileStmt whileStmt = Assert.IsType<WhileStmt>(program.Statements[0]);
+            WhileStatement whileStmt = Assert.IsType<WhileStatement>(program.Statements[0]);
 
-            var expected = new WhileStmt(
+            var expected = new WhileStatement(
                 new BinaryExpression(
                     new IdentifiedNode("x"),
                     OperatorType.LessThan,
                     new IntLiteral(5)
                     ),
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("x"),
                     new BinaryExpression(
                         new IdentifiedNode("x"),
@@ -221,7 +221,7 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            Assert.IsType<BreakStmt>(program.Statements[0]);
+            Assert.IsType<BreakStatement>(program.Statements[0]);
 
         }
 
@@ -236,7 +236,7 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var returnStmt = Assert.IsType<ReturnStmt>(program.Statements[0]);
+            var returnStmt = Assert.IsType<ReturnStatement>(program.Statements[0]);
             Assert.Null(returnStmt.Val);
         }
 
@@ -251,7 +251,7 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var returnStmt = Assert.IsType<ReturnStmt>(program.Statements[0]);
+            var returnStmt = Assert.IsType<ReturnStatement>(program.Statements[0]);
 
             var expectedVal = new BinaryExpression(
                     new IntLiteral(5),
@@ -273,16 +273,16 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var ifStatement = Assert.IsType<IfStmt>(program.Statements[0]);
+            var ifStatement = Assert.IsType<IfStatement>(program.Statements[0]);
 
             var expected = 
-                new IfStmt(
+                new IfStatement(
                     new BinaryExpression(
                         new IdentifiedNode("x"),
                         OperatorType.NotEqual,
                         new IntLiteral(5)
                         ),
-                    new ReturnStmt(
+                    new ReturnStatement(
                         new IdentifiedNode("v")
                     ),
                     null
@@ -307,19 +307,19 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var ifStatement = Assert.IsType<IfStmt>(program.Statements[0]);
+            var ifStatement = Assert.IsType<IfStatement>(program.Statements[0]);
 
             var expected = 
-                new IfStmt(
+                new IfStatement(
                     new BinaryExpression(
                         new IdentifiedNode("x"),
                         OperatorType.NotEqual,
                         new IntLiteral(5)
                         ),
-                    new ReturnStmt(
+                    new ReturnStatement(
                         new IdentifiedNode("v")
                     ),
-                    new ReturnStmt(
+                    new ReturnStatement(
                         new IdentifiedNode("x")
                         )
                 );
@@ -338,9 +338,9 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var blockStatement = Assert.IsType<BlockStmt>(program.Statements[0]);
+            var blockStatement = Assert.IsType<BlockStatement>(program.Statements[0]);
 
-            Assert.Empty(blockStatement.Stmts);
+            Assert.Empty(blockStatement.Statements);
         }
 
         [Fact]
@@ -359,14 +359,14 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var blockStatement = Assert.IsType<BlockStmt>(program.Statements[0]);
+            var blockStatement = Assert.IsType<BlockStatement>(program.Statements[0]);
 
             List<AST> expectedStmts = [
-                        new VardecStmt(
+                        new VariableDeclarationStatement(
                                 new IdentifiedNode("Int"),
                                 new IdentifiedNode("x")
                                 ),
-                        new AssignStmt(
+                        new AssignmentStatement(
                             new IdentifiedNode("x"),
                             new BinaryExpression(
                                 new IntLiteral(5),
@@ -376,10 +376,10 @@ namespace CompilerTests
                         )
             ];
 
-            Assert.Equal(expectedStmts.Count, blockStatement.Stmts.Count);
+            Assert.Equal(expectedStmts.Count, blockStatement.Statements.Count);
 
             foreach(var (i, stmt) in expectedStmts.Index()) {
-                Assert.Equal(stmt, blockStatement.Stmts[i]);
+                Assert.Equal(stmt, blockStatement.Statements[i]);
             }
         }
 
@@ -398,11 +398,11 @@ namespace CompilerTests
 
 
             List<AST> expected = [
-                        new VardecStmt(
+                        new VariableDeclarationStatement(
                                 new IdentifiedNode("Int"),
                                 new IdentifiedNode("x")
                                 ),
-                        new AssignStmt(
+                        new AssignmentStatement(
                             new IdentifiedNode("x"),
                             new BinaryExpression(
                                 new IntLiteral(5),
@@ -427,7 +427,7 @@ namespace CompilerTests
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
                 new IntLiteral(2),
@@ -439,7 +439,7 @@ namespace CompilerTests
                 )
             );
 
-            Assert.Equal(expected, expStmt.Exp);
+            Assert.Equal(expected, expStmt.Expression);
         }
 
         [Fact]
@@ -450,7 +450,7 @@ namespace CompilerTests
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
@@ -466,7 +466,7 @@ namespace CompilerTests
                 )
             );
 
-            Assert.Equal(expected, expStmt.Exp);
+            Assert.Equal(expected, expStmt.Expression);
         }
 
         [Fact]
@@ -477,7 +477,7 @@ namespace CompilerTests
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
@@ -493,7 +493,7 @@ namespace CompilerTests
                 )
             );
 
-            Assert.Equal(expected, expStmt.Exp);
+            Assert.Equal(expected, expStmt.Expression);
         }
 
         [Fact]
@@ -504,7 +504,7 @@ namespace CompilerTests
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
@@ -524,7 +524,7 @@ namespace CompilerTests
                 new IntLiteral(4)
             );
 
-            Assert.Equal(expected, expStmt.Exp);
+            Assert.Equal(expected, expStmt.Expression);
         }
 
         [Fact]
@@ -537,8 +537,8 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
-            IdentifiedNode identifier = Assert.IsType<IdentifiedNode>(expStmt.Exp);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            IdentifiedNode identifier = Assert.IsType<IdentifiedNode>(expStmt.Expression);
 
             Assert.Equal("x", identifier.Value);
         }
@@ -553,8 +553,8 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
-            IntLiteral literal = Assert.IsType<IntLiteral>(expStmt.Exp);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            IntLiteral literal = Assert.IsType<IntLiteral>(expStmt.Expression);
 
             Assert.Equal(42, literal.Value);
         }
@@ -569,8 +569,8 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
-            BooleanLiteral literal = Assert.IsType<BooleanLiteral>(expStmt.Exp);
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            BooleanLiteral literal = Assert.IsType<BooleanLiteral>(expStmt.Expression);
 
             Assert.True(literal.Value);
         }
@@ -589,8 +589,8 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
-            var innerIf = Assert.IsType<IfStmt>(outerIf.IfBody);
+            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
+            var innerIf = Assert.IsType<IfStatement>(outerIf.IfBody);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -611,7 +611,7 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("x"),
                     new IntLiteral(1)
                 ),
@@ -633,8 +633,8 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerWhile = Assert.IsType<WhileStmt>(program.Statements[0]);
-            var innerWhile = Assert.IsType<WhileStmt>(outerWhile.Stmt);
+            var outerWhile = Assert.IsType<WhileStatement>(program.Statements[0]);
+            var innerWhile = Assert.IsType<WhileStatement>(outerWhile.Statement);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -654,10 +654,10 @@ namespace CompilerTests
                 innerWhile.Guard
             );
 
-            var innerWhileBody = Assert.IsType<AssignStmt>(innerWhile.Stmt);
+            var innerWhileBody = Assert.IsType<AssignmentStatement>(innerWhile.Statement);
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new BinaryExpression(
                         new IdentifiedNode("y"),
@@ -684,7 +684,7 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var whileStmt = Assert.IsType<WhileStmt>(program.Statements[0]);
+            var whileStmt = Assert.IsType<WhileStatement>(program.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -695,12 +695,12 @@ namespace CompilerTests
                 whileStmt.Guard
             );
 
-            var block = Assert.IsType<BlockStmt>(whileStmt.Stmt);
+            var block = Assert.IsType<BlockStatement>(whileStmt.Statement);
 
-            Assert.Equal(2, block.Stmts.Count);
+            Assert.Equal(2, block.Statements.Count);
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("x"),
                     new BinaryExpression(
                         new IdentifiedNode("x"),
@@ -708,11 +708,11 @@ namespace CompilerTests
                         new IntLiteral(1)
                     )
                 ),
-                block.Stmts[0]
+                block.Statements[0]
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new BinaryExpression(
                         new IdentifiedNode("y"),
@@ -720,7 +720,7 @@ namespace CompilerTests
                         new IntLiteral(2)
                     )
                 ),
-                block.Stmts[1]
+                block.Statements[1]
             );
         }
 
@@ -739,7 +739,7 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var ifStmt = Assert.IsType<IfStmt>(program.Statements[0]);
+            var ifStmt = Assert.IsType<IfStatement>(program.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -750,24 +750,24 @@ namespace CompilerTests
                 ifStmt.Guard
             );
 
-            var block = Assert.IsType<BlockStmt>(ifStmt.IfBody);
+            var block = Assert.IsType<BlockStatement>(ifStmt.IfBody);
 
-            Assert.Equal(2, block.Stmts.Count);
+            Assert.Equal(2, block.Statements.Count);
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("x"),
                     new IntLiteral(0)
                 ),
-                block.Stmts[0]
+                block.Statements[0]
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new IntLiteral(0)
                 ),
-                block.Stmts[1]
+                block.Statements[1]
             );
 
             Assert.Null(ifStmt.ElseBody);
@@ -790,12 +790,12 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var ifStmt = Assert.IsType<IfStmt>(program.Statements[0]);
-            var ifBlock = Assert.IsType<BlockStmt>(ifStmt.IfBody);
-            var elseBlock = Assert.IsType<BlockStmt>(ifStmt.ElseBody);
+            var ifStmt = Assert.IsType<IfStatement>(program.Statements[0]);
+            var ifBlock = Assert.IsType<BlockStatement>(ifStmt.IfBody);
+            var elseBlock = Assert.IsType<BlockStatement>(ifStmt.ElseBody);
 
-            Assert.Single(ifBlock.Stmts);
-            Assert.Equal(2, elseBlock.Stmts.Count);
+            Assert.Single(ifBlock.Statements);
+            Assert.Equal(2, elseBlock.Statements.Count);
         }
 
         [Fact]
@@ -815,7 +815,7 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -827,14 +827,14 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new IntLiteral(1)
                 ),
                 outerIf.IfBody
             );
 
-            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
+            var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -846,7 +846,7 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new IntLiteral(2)
                 ),
@@ -854,7 +854,7 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("y"),
                     new IntLiteral(3)
                 ),
@@ -883,10 +883,10 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var firstIf = Assert.IsType<IfStmt>(program.Statements[0]);
-            var secondIf = Assert.IsType<IfStmt>(firstIf.ElseBody);
-            var thirdIf = Assert.IsType<IfStmt>(secondIf.ElseBody);
-            var fourthIf = Assert.IsType<IfStmt>(thirdIf.ElseBody);
+            var firstIf = Assert.IsType<IfStatement>(program.Statements[0]);
+            var secondIf = Assert.IsType<IfStatement>(firstIf.ElseBody);
+            var thirdIf = Assert.IsType<IfStatement>(secondIf.ElseBody);
+            var fourthIf = Assert.IsType<IfStatement>(thirdIf.ElseBody);
 
             Assert.Equal(
                 new BinaryExpression(new IdentifiedNode("x"), OperatorType.Equal, new IntLiteral(1)),
@@ -906,27 +906,27 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(10)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(10)),
                 firstIf.IfBody
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(20)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(20)),
                 secondIf.IfBody
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(30)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(30)),
                 thirdIf.IfBody
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(40)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(40)),
                 fourthIf.IfBody
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(50)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(50)),
                 fourthIf.ElseBody
             );
         }
@@ -952,45 +952,45 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
-            var ifBlock = Assert.IsType<BlockStmt>(outerIf.IfBody);
+            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
+            var ifBlock = Assert.IsType<BlockStatement>(outerIf.IfBody);
 
-            Assert.Equal(2, ifBlock.Stmts.Count);
+            Assert.Equal(2, ifBlock.Statements.Count);
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(1)), 
-                ifBlock.Stmts[0]
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(1)), 
+                ifBlock.Statements[0]
             );
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(1)), 
-                ifBlock.Stmts[1]
+                new AssignmentStatement(new IdentifiedNode("z"), new IntLiteral(1)), 
+                ifBlock.Statements[1]
             );
 
-            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
-            var elseIfBlock = Assert.IsType<BlockStmt>(elseIfStmt.IfBody);
+            var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
+            var elseIfBlock = Assert.IsType<BlockStatement>(elseIfStmt.IfBody);
 
-            Assert.Equal(2, elseIfBlock.Stmts.Count);
+            Assert.Equal(2, elseIfBlock.Statements.Count);
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(2)), 
-                elseIfBlock.Stmts[0]
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(2)), 
+                elseIfBlock.Statements[0]
             );
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(2)), 
-                elseIfBlock.Stmts[1]
+                new AssignmentStatement(new IdentifiedNode("z"), new IntLiteral(2)), 
+                elseIfBlock.Statements[1]
             );
 
-            var finalElseBlock = Assert.IsType<BlockStmt>(elseIfStmt.ElseBody);
+            var finalElseBlock = Assert.IsType<BlockStatement>(elseIfStmt.ElseBody);
 
-            Assert.Equal(2, finalElseBlock.Stmts.Count);
+            Assert.Equal(2, finalElseBlock.Statements.Count);
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(3)), 
-                finalElseBlock.Stmts[0]
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(3)), 
+                finalElseBlock.Statements[0]
             );
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(3)), 
-                finalElseBlock.Stmts[1]
+                new AssignmentStatement(new IdentifiedNode("z"), new IntLiteral(3)), 
+                finalElseBlock.Statements[1]
             );
         }
 
@@ -1013,18 +1013,18 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(1)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(1)),
                 outerIf.IfBody
             );
 
-            var elseBlock = Assert.IsType<BlockStmt>(outerIf.ElseBody);
+            var elseBlock = Assert.IsType<BlockStatement>(outerIf.ElseBody);
 
-            Assert.Single(elseBlock.Stmts);
+            Assert.Single(elseBlock.Statements);
 
-            var nestedIf = Assert.IsType<IfStmt>(elseBlock.Stmts[0]);
+            var nestedIf = Assert.IsType<IfStatement>(elseBlock.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -1036,12 +1036,12 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(2)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(2)),
                 nestedIf.IfBody
             );
 
             Assert.Equal(
-                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(3)),
+                new AssignmentStatement(new IdentifiedNode("y"), new IntLiteral(3)),
                 nestedIf.ElseBody
             );
         }
@@ -1068,7 +1068,7 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -1079,11 +1079,11 @@ namespace CompilerTests
                 outerIf.Guard
             );
 
-            var ifBlock = Assert.IsType<BlockStmt>(outerIf.IfBody);
+            var ifBlock = Assert.IsType<BlockStatement>(outerIf.IfBody);
 
-            Assert.Single(ifBlock.Stmts);
+            Assert.Single(ifBlock.Statements);
 
-            var nestedIfInIfBlock = Assert.IsType<IfStmt>(ifBlock.Stmts[0]);
+            var nestedIfInIfBlock = Assert.IsType<IfStatement>(ifBlock.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -1095,7 +1095,7 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("z"),
                     new IntLiteral(1)
                 ),
@@ -1103,14 +1103,14 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("z"),
                     new IntLiteral(2)
                 ),
                 nestedIfInIfBlock.ElseBody
             );
 
-            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
+            var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -1121,11 +1121,11 @@ namespace CompilerTests
                 elseIfStmt.Guard
             );
 
-            var elseIfBlock = Assert.IsType<BlockStmt>(elseIfStmt.IfBody);
+            var elseIfBlock = Assert.IsType<BlockStatement>(elseIfStmt.IfBody);
 
-            Assert.Single(elseIfBlock.Stmts);
+            Assert.Single(elseIfBlock.Statements);
 
-            var nestedIfInElseIfBlock = Assert.IsType<IfStmt>(elseIfBlock.Stmts[0]);
+            var nestedIfInElseIfBlock = Assert.IsType<IfStatement>(elseIfBlock.Statements[0]);
 
             Assert.Equal(
                 new BinaryExpression(
@@ -1137,7 +1137,7 @@ namespace CompilerTests
             );
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("z"),
                     new IntLiteral(3)
                 ),
@@ -1146,16 +1146,16 @@ namespace CompilerTests
 
             Assert.Null(nestedIfInElseIfBlock.ElseBody);
 
-            var finalElseBlock = Assert.IsType<BlockStmt>(elseIfStmt.ElseBody);
+            var finalElseBlock = Assert.IsType<BlockStatement>(elseIfStmt.ElseBody);
 
-            Assert.Single(finalElseBlock.Stmts);
+            Assert.Single(finalElseBlock.Statements);
 
             Assert.Equal(
-                new AssignStmt(
+                new AssignmentStatement(
                     new IdentifiedNode("z"),
                     new IntLiteral(4)
                 ),
-                finalElseBlock.Stmts[0]
+                finalElseBlock.Statements[0]
             );
         }
 

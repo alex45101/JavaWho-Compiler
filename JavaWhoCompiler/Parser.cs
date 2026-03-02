@@ -31,14 +31,14 @@ namespace JavaWhoCompiler
 
 
     //statements
-    public sealed record ExpStmt(AST Exp) : AST;
-    public sealed record VardecStmt(IdentifiedNode Type, IdentifiedNode Var) : AST;
-    public sealed record AssignStmt(IdentifiedNode Var, AST Val) : AST;
-    public sealed record WhileStmt(AST Guard, AST Stmt) : AST;
-    public sealed record BreakStmt() : AST;
-    public sealed record ReturnStmt(AST Val) : AST;
-    public sealed record IfStmt(AST Guard, AST IfBody, AST ElseBody) : AST;
-    public sealed record BlockStmt(List<AST> Stmts) : AST;
+    public sealed record ExpressionStatement(AST Expression) : AST;
+    public sealed record VariableDeclarationStatement(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record AssignmentStatement(IdentifiedNode Var, AST Val) : AST;
+    public sealed record WhileStatement(AST Guard, AST Statement) : AST;
+    public sealed record BreakStatement() : AST;
+    public sealed record ReturnStatement(AST Val) : AST;
+    public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
+    public sealed record BlockStatement(List<AST> Statements) : AST;
 
 
     public class ParserException(string message) : Exception(message);
@@ -122,14 +122,14 @@ namespace JavaWhoCompiler
 
             AST body = ParseStatement();
 
-            return new WhileStmt(guard, body);
+            return new WhileStatement(guard, body);
         }
 
         private AST ParseBreakStatement() {
             Expect<BreakToken>();
             Expect<SemiColonToken>();
 
-            return new BreakStmt();
+            return new BreakStatement();
         }
 
         private AST ParseReturnStatement() {
@@ -145,7 +145,7 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
 
-            return new ReturnStmt(val);
+            return new ReturnStatement(val);
         }
 
         private AST ParseIfStatement() {
@@ -163,14 +163,14 @@ namespace JavaWhoCompiler
             //no else token next then return right away with null elsebody
             if (!Check<ElseToken>())
             {
-                return new IfStmt(guard, ifBody, elseBody);
+                return new IfStatement(guard, ifBody, elseBody);
             }
 
             Consume(); //eat else token
 
             elseBody = ParseStatement();
 
-            return new IfStmt(guard, ifBody, elseBody);
+            return new IfStatement(guard, ifBody, elseBody);
         }
 
         private AST ParseBlockStatement() {
@@ -184,7 +184,7 @@ namespace JavaWhoCompiler
             // consume closing bracket
             Consume();
 
-            return new BlockStmt(stmts);
+            return new BlockStatement(stmts);
         }
 
         private AST ParseVardecStatement() {
@@ -196,7 +196,7 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
             
-            return new VardecStmt(
+            return new VariableDeclarationStatement(
                     new IdentifiedNode(typeIdent), 
                     new IdentifiedNode(varIdent)
                     );
@@ -212,7 +212,7 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
 
-            return new AssignStmt(
+            return new AssignmentStatement(
                     new IdentifiedNode(varIdent), 
                     value
                     );
@@ -223,7 +223,7 @@ namespace JavaWhoCompiler
 
             Expect<SemiColonToken>();
 
-            return new ExpStmt(exp);
+            return new ExpressionStatement(exp);
         }
 
         private AST ParseExpression() => ParseEqualityExpression();
