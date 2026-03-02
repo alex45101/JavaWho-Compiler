@@ -392,7 +392,7 @@ namespace CompilerTests
                      new VoidTypeToken("Void"),  new OpenCurlyBracketToken("{"),
                 
                 new ReturnToken("return"), 
-                    new IdentifierToken("println"), new OpenParenthesisToken("("), new NumberToken("0"), 
+                    new PrintLnToken("println"), new OpenParenthesisToken("("), new NumberToken("0"), 
                      new EqualsOperatorToken("=="),  new NumberToken("5"),
                     new CloseParenthesisToken(")"),
                     new SemiColonToken(";"),
@@ -414,7 +414,7 @@ namespace CompilerTests
                     new OpenParenthesisToken("("), new CloseParenthesisToken(")"),
                     new VoidTypeToken("Void"), new OpenCurlyBracketToken("{"),
                 new ReturnToken("return"), 
-                    new IdentifierToken("println"), new OpenParenthesisToken("("),
+                    new PrintLnToken("println"), new OpenParenthesisToken("("),
                     new NumberToken("0"), new EqualsOperatorToken("=="), new NumberToken("5"),
                     new CloseParenthesisToken(")"),
                     new SemiColonToken(";"),
@@ -489,7 +489,7 @@ namespace CompilerTests
                 
                 new OpenCurlyBracketToken("{"),
                 
-                new IdentifierToken("println"), new OpenParenthesisToken("("),
+                new PrintLnToken("println"), new OpenParenthesisToken("("),
                     new StringToken("\"hello world\""), new CloseParenthesisToken(")"), new CloseCurlyBracketToken("}"),
                 
                 new ElseToken("else"),
@@ -511,7 +511,7 @@ namespace CompilerTests
                 new IdentifierToken("x"), new LessThanOperatorToken("<"), new NumberToken("7"),
                 new CloseParenthesisToken(")"),
                 new OpenCurlyBracketToken("{"),
-                new IdentifierToken("println"), new OpenParenthesisToken("("),
+                new PrintLnToken("println"), new OpenParenthesisToken("("),
                     new StringToken("\"hello world\""), new CloseParenthesisToken(")"), new CloseCurlyBracketToken("}"),
                 new ElseToken("else"),
                 new OpenCurlyBracketToken("{"),
