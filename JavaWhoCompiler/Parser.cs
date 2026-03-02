@@ -23,9 +23,8 @@
     public sealed record ThisExpression() : AST;
     public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
-    public sealed record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
-
-
+    public record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
+    
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
     public sealed record VariableDeclarationStatement(IdentifiedNode Type, IdentifiedNode Var) : AST;
@@ -35,6 +34,8 @@
     public sealed record ReturnStatement(AST Val) : AST;
     public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
     public sealed record BlockStatement(List<AST> Statements) : AST;
+    public sealed record PrintLnStatement(AST Argument) : MethodCallExpression("println", null, [Argument]);
+
 
     public class ParserException(string message) : Exception(message);
 
@@ -302,6 +303,20 @@
 
         private AST ParseCallExpression()
         {
+            if (Check<PrintLnToken>())
+            {
+                Consume();
+                Expect<OpenParenthesisToken>();
+
+                List<AST> arguments = CommaExpression();
+
+                Expect<CloseParenthesisToken>();
+
+                if (arguments.Count > 1) throw new ParserException("Invalid amount of arguments for println");
+
+                return new PrintLnStatement(arguments.FirstOrDefault());
+            }
+
             AST left = ParsePrimaryExpression();
 
             while (Check<DotToken>())
