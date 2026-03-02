@@ -1236,7 +1236,7 @@ namespace CompilerTests
             Assert.Single(program.Statements);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.IsType<ThisExpression>(methodCall.Target);
             Assert.Equal("run", methodCall.Name);
@@ -1257,9 +1257,9 @@ namespace CompilerTests
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
-            var finalMethodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
-            var innerMethodCall = Assert.IsType<MethodCallStatement>(finalMethodCall.Target);
-            var outterMethodCall = Assert.IsType<MethodCallStatement>(innerMethodCall.Target);
+            var finalMethodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
+            var innerMethodCall = Assert.IsType<MethodCallExpression>(finalMethodCall.Target);
+            var outterMethodCall = Assert.IsType<MethodCallExpression>(innerMethodCall.Target);
 
             var identifier = Assert.IsType<IdentifiedNode>(outterMethodCall.Target);
 
@@ -1288,7 +1288,7 @@ namespace CompilerTests
             Assert.Single(program.Statements);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             var target = Assert.IsType<IdentifiedNode>(methodCall.Target);
             Assert.Equal("obj", target.Value);
@@ -1310,7 +1310,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.IsType<ThisExpression>(methodCall.Target);
             Assert.Equal("setFlag", methodCall.Name);
@@ -1331,7 +1331,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("print", methodCall.Name);
             Assert.Single(methodCall.Arguments);
@@ -1351,7 +1351,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.IsType<ThisExpression>(methodCall.Target);
             Assert.Equal("process", methodCall.Name);
@@ -1372,7 +1372,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("calculate", methodCall.Name);
             Assert.Equal(3, methodCall.Arguments.Count);
@@ -1398,7 +1398,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("calculate", methodCall.Name);
             Assert.Single(methodCall.Arguments);
@@ -1424,7 +1424,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("evaluate", methodCall.Name);
             Assert.Single(methodCall.Arguments);
@@ -1447,12 +1447,12 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("process", methodCall.Name);
             Assert.Single(methodCall.Arguments);
 
-            var nestedCall = Assert.IsType<MethodCallStatement>(methodCall.Arguments[0]);
+            var nestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[0]);
             Assert.Equal("getValue", nestedCall.Name);
             Assert.Empty(nestedCall.Arguments);
 
@@ -1471,17 +1471,17 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("compare", methodCall.Name);
             Assert.Equal(2, methodCall.Arguments.Count);
 
-            var firstNestedCall = Assert.IsType<MethodCallStatement>(methodCall.Arguments[0]);
+            var firstNestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[0]);
             Assert.Equal("getValue", firstNestedCall.Name);
             var firstTarget = Assert.IsType<IdentifiedNode>(firstNestedCall.Target);
             Assert.Equal("a", firstTarget.Value);
 
-            var secondNestedCall = Assert.IsType<MethodCallStatement>(methodCall.Arguments[1]);
+            var secondNestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[1]);
             Assert.Equal("getValue", secondNestedCall.Name);
             var secondTarget = Assert.IsType<IdentifiedNode>(secondNestedCall.Target);
             Assert.Equal("b", secondTarget.Value);
@@ -1498,15 +1498,15 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("process", methodCall.Name);
             Assert.Single(methodCall.Arguments);
 
-            var nestedCall = Assert.IsType<MethodCallStatement>(methodCall.Arguments[0]);
+            var nestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[0]);
             Assert.Equal("getValue", nestedCall.Name);
 
-            var innerCall = Assert.IsType<MethodCallStatement>(nestedCall.Target);
+            var innerCall = Assert.IsType<MethodCallExpression>(nestedCall.Target);
             Assert.Equal("getManager", innerCall.Name);
 
             var innerTarget = Assert.IsType<IdentifiedNode>(innerCall.Target);
@@ -1524,7 +1524,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("calculate", methodCall.Name);
             Assert.Equal(4, methodCall.Arguments.Count);
@@ -1532,7 +1532,7 @@ namespace CompilerTests
             var firstArg = Assert.IsType<BinaryExpression>(methodCall.Arguments[0]);
             Assert.Equal(OperatorType.Add, firstArg.OperatorType);
 
-            var secondArg = Assert.IsType<MethodCallStatement>(methodCall.Arguments[1]);
+            var secondArg = Assert.IsType<MethodCallExpression>(methodCall.Arguments[1]);
             Assert.Equal("getValue", secondArg.Name);
 
             var thirdArg = Assert.IsType<BooleanLiteral>(methodCall.Arguments[2]);
@@ -1553,20 +1553,20 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var finalCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var finalCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("third", finalCall.Name);
             Assert.Single(finalCall.Arguments);
             var finalArg = Assert.IsType<BooleanLiteral>(finalCall.Arguments[0]);
             Assert.True(finalArg.Value);
 
-            var middleCall = Assert.IsType<MethodCallStatement>(finalCall.Target);
+            var middleCall = Assert.IsType<MethodCallExpression>(finalCall.Target);
             Assert.Equal("second", middleCall.Name);
             Assert.Single(middleCall.Arguments);
             var middleArg = Assert.IsType<IdentifiedNode>(middleCall.Arguments[0]);
             Assert.Equal("x", middleArg.Value);
 
-            var firstCall = Assert.IsType<MethodCallStatement>(middleCall.Target);
+            var firstCall = Assert.IsType<MethodCallExpression>(middleCall.Target);
             Assert.Equal("first", firstCall.Name);
             Assert.Single(firstCall.Arguments);
             var firstArg = Assert.IsType<IntLiteral>(firstCall.Arguments[0]);
@@ -1587,12 +1587,12 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var outerCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var outerCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.Equal("outer", outerCall.Name);
             Assert.Single(outerCall.Arguments);
 
-            var innerCall = Assert.IsType<MethodCallStatement>(outerCall.Arguments[0]);
+            var innerCall = Assert.IsType<MethodCallExpression>(outerCall.Arguments[0]);
             Assert.Equal("compute", innerCall.Name);
             Assert.Equal(2, innerCall.Arguments.Count);
 
@@ -1614,7 +1614,7 @@ namespace CompilerTests
             var program = Assert.IsType<ProgramNode>(root);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallStatement>(expressionStmt.Expression);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
             Assert.IsType<ThisExpression>(methodCall.Target);
             Assert.Equal("compute", methodCall.Name);

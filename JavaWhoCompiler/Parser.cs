@@ -23,6 +23,8 @@
     public sealed record ThisExpression() : AST;
     public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
+    public sealed record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
+
 
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
@@ -33,8 +35,6 @@
     public sealed record ReturnStatement(AST Val) : AST;
     public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
     public sealed record BlockStatement(List<AST> Statements) : AST;
-    public sealed record MethodCallStatement(string Name, AST Target, List<AST> Arguments) : AST;
-
 
     public class ParserException(string message) : Exception(message);
 
@@ -338,7 +338,7 @@
 
             Expect<CloseParenthesisToken>();
 
-            return new MethodCallStatement(token.Value, Target, arguments);
+            return new MethodCallExpression(token.Value, Target, arguments);
         }
 
         private List<AST> CommaExpression()
