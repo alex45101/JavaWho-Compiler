@@ -1,4 +1,5 @@
 ﻿using JavaWhoCompiler;
+using System.Runtime.ExceptionServices;
 
 namespace CompilerTests
 {
@@ -46,6 +47,20 @@ namespace CompilerTests
                 new IntLiteral(5),
                 OperatorType.NotEqual,
                 new BooleanLiteral(false)
+            };
+
+            yield return new object[] {
+                "a * 5;",
+                new IdentifiedNode("a"),
+                OperatorType.Multiply,
+                new IntLiteral(5)
+            };
+
+            yield return new object[] {
+                "10 / b;",
+                new IntLiteral(10),
+                OperatorType.Divide,
+                new IdentifiedNode("b")
             };
         }
 
@@ -313,6 +328,22 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void EmptyBlockStmtTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("{}");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var blockStatement = Assert.IsType<BlockStmt>(program.Statements[0]);
+
+            Assert.Empty(blockStatement.Stmts);
+        }
+
+        [Fact]
         public void BlockStmtTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     {
@@ -386,6 +417,746 @@ namespace CompilerTests
             foreach(var (i, item) in expected.Index()) {
                 Assert.Equal(item, program.Statements[i]);
             }
+        }
+
+        [Fact]
+        public void OperatorPrecedenceMultiplyBeforeAddTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("2 + 3 * 4;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IntLiteral(2),
+                OperatorType.Add,
+                new BinaryExpression(
+                    new IntLiteral(3),
+                    OperatorType.Multiply,
+                    new IntLiteral(4)
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Exp);
+        }
+
+        [Fact]
+        public void OperatorPrecedenceAddBeforeCompareTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("a + 2 < b + 3;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.Add,
+                    new IntLiteral(2)
+                ),
+                OperatorType.LessThan,
+                new BinaryExpression(
+                    new IdentifiedNode("b"),
+                    OperatorType.Add,
+                    new IntLiteral(3)
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Exp);
+        }
+
+        [Fact]
+        public void OperatorPrecedenceCompareBeforeEqualityTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("a < 5 == b < 10;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                OperatorType.Equal,
+                new BinaryExpression(
+                    new IdentifiedNode("b"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Exp);
+        }
+
+        [Fact]
+        public void ComplexOperatorPrecedenceTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("a * 2 + b / 3 - 4;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new BinaryExpression(
+                        new IdentifiedNode("a"),
+                        OperatorType.Multiply,
+                        new IntLiteral(2)
+                    ),
+                    OperatorType.Add,
+                    new BinaryExpression(
+                        new IdentifiedNode("b"),
+                        OperatorType.Divide,
+                        new IntLiteral(3)
+                    )
+                ),
+                OperatorType.Subtract,
+                new IntLiteral(4)
+            );
+
+            Assert.Equal(expected, expStmt.Exp);
+        }
+
+        [Fact]
+        public void SimpleIdentifierExpressionTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("x;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            IdentifiedNode identifier = Assert.IsType<IdentifiedNode>(expStmt.Exp);
+
+            Assert.Equal("x", identifier.Value);
+        }
+
+        [Fact]
+        public void SimpleIntLiteralExpressionTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("42;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            IntLiteral literal = Assert.IsType<IntLiteral>(expStmt.Exp);
+
+            Assert.Equal(42, literal.Value);
+        }
+
+        [Fact]
+        public void SimpleBooleanLiteralExpressionTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("true;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpStmt expStmt = Assert.IsType<ExpStmt>(program.Statements[0]);
+            BooleanLiteral literal = Assert.IsType<BooleanLiteral>(expStmt.Exp);
+
+            Assert.True(literal.Value);
+        }
+
+        [Fact]
+        public void NestedIfStatementsTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x < 5)
+                    if(y < 10)
+                        x = 1;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var innerIf = Assert.IsType<IfStmt>(outerIf.IfBody);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                outerIf.Guard
+            );
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                ),
+                innerIf.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("x"),
+                    new IntLiteral(1)
+                ),
+                innerIf.IfBody
+            );
+        }
+
+        [Fact]
+        public void NestedWhileStatementsTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(x < 5)
+                    while(y < 10)
+                        y = y + 1;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerWhile = Assert.IsType<WhileStmt>(program.Statements[0]);
+            var innerWhile = Assert.IsType<WhileStmt>(outerWhile.Stmt);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                outerWhile.Guard
+            );
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                ),
+                innerWhile.Guard
+            );
+
+            var innerWhileBody = Assert.IsType<AssignStmt>(innerWhile.Stmt);
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new BinaryExpression(
+                        new IdentifiedNode("y"),
+                        OperatorType.Add,
+                        new IntLiteral(1)
+                    )
+                ),
+                innerWhileBody
+            );
+        }
+
+        [Fact]
+        public void WhileWithBlockBodyTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(x < 5) {
+                    x = x + 1;
+                    y = y + 2;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var whileStmt = Assert.IsType<WhileStmt>(program.Statements[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                whileStmt.Guard
+            );
+
+            var block = Assert.IsType<BlockStmt>(whileStmt.Stmt);
+
+            Assert.Equal(2, block.Stmts.Count);
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("x"),
+                    new BinaryExpression(
+                        new IdentifiedNode("x"),
+                        OperatorType.Add,
+                        new IntLiteral(1)
+                    )
+                ),
+                block.Stmts[0]
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new BinaryExpression(
+                        new IdentifiedNode("y"),
+                        OperatorType.Add,
+                        new IntLiteral(2)
+                    )
+                ),
+                block.Stmts[1]
+            );
+        }
+
+        [Fact]
+        public void IfWithBlockBodyTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x == 5) {
+                    x = 0;
+                    y = 0;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var ifStmt = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.Equal,
+                    new IntLiteral(5)
+                ),
+                ifStmt.Guard
+            );
+
+            var block = Assert.IsType<BlockStmt>(ifStmt.IfBody);
+
+            Assert.Equal(2, block.Stmts.Count);
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("x"),
+                    new IntLiteral(0)
+                ),
+                block.Stmts[0]
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new IntLiteral(0)
+                ),
+                block.Stmts[1]
+            );
+
+            Assert.Null(ifStmt.ElseBody);
+        }
+
+        [Fact]
+        public void IfElseWithBlockBodiesTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x == 5) {
+                    x = 0;
+                } else {
+                    x = 1;
+                    y = 2;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var ifStmt = Assert.IsType<IfStmt>(program.Statements[0]);
+            var ifBlock = Assert.IsType<BlockStmt>(ifStmt.IfBody);
+            var elseBlock = Assert.IsType<BlockStmt>(ifStmt.ElseBody);
+
+            Assert.Single(ifBlock.Stmts);
+            Assert.Equal(2, elseBlock.Stmts.Count);
+        }
+
+        [Fact]
+        public void ElseIfStatementTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x < 5)
+                    y = 1;
+                else if(x < 10)
+                    y = 2;
+                else
+                    y = 3;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                outerIf.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new IntLiteral(1)
+                ),
+                outerIf.IfBody
+            );
+
+            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                ),
+                elseIfStmt.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new IntLiteral(2)
+                ),
+                elseIfStmt.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("y"),
+                    new IntLiteral(3)
+                ),
+                elseIfStmt.ElseBody
+            );
+        }
+
+        [Fact]
+        public void MultipleElseIfStatementsTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x == 1)
+                    y = 10;
+                else if(x == 2)
+                    y = 20;
+                else if(x == 3)
+                    y = 30;
+                else if(x == 4)
+                    y = 40;
+                else
+                    y = 50;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var firstIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var secondIf = Assert.IsType<IfStmt>(firstIf.ElseBody);
+            var thirdIf = Assert.IsType<IfStmt>(secondIf.ElseBody);
+            var fourthIf = Assert.IsType<IfStmt>(thirdIf.ElseBody);
+
+            Assert.Equal(
+                new BinaryExpression(new IdentifiedNode("x"), OperatorType.Equal, new IntLiteral(1)),
+                firstIf.Guard
+            );
+            Assert.Equal(
+                new BinaryExpression(new IdentifiedNode("x"), OperatorType.Equal, new IntLiteral(2)),
+                secondIf.Guard
+            );
+            Assert.Equal(
+                new BinaryExpression(new IdentifiedNode("x"), OperatorType.Equal, new IntLiteral(3)),
+                thirdIf.Guard
+            );
+            Assert.Equal(
+                new BinaryExpression(new IdentifiedNode("x"), OperatorType.Equal, new IntLiteral(4)),
+                fourthIf.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(10)),
+                firstIf.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(20)),
+                secondIf.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(30)),
+                thirdIf.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(40)),
+                fourthIf.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(50)),
+                fourthIf.ElseBody
+            );
+        }
+
+        [Fact]
+        public void ElseIfWithBlocksTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x < 5) {
+                    y = 1;
+                    z = 1;
+                } else if(x < 10) {
+                    y = 2;
+                    z = 2;
+                } else {
+                    y = 3;
+                    z = 3;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+            var ifBlock = Assert.IsType<BlockStmt>(outerIf.IfBody);
+
+            Assert.Equal(2, ifBlock.Stmts.Count);
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(1)), 
+                ifBlock.Stmts[0]
+            );
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(1)), 
+                ifBlock.Stmts[1]
+            );
+
+            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
+            var elseIfBlock = Assert.IsType<BlockStmt>(elseIfStmt.IfBody);
+
+            Assert.Equal(2, elseIfBlock.Stmts.Count);
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(2)), 
+                elseIfBlock.Stmts[0]
+            );
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(2)), 
+                elseIfBlock.Stmts[1]
+            );
+
+            var finalElseBlock = Assert.IsType<BlockStmt>(elseIfStmt.ElseBody);
+
+            Assert.Equal(2, finalElseBlock.Stmts.Count);
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(3)), 
+                finalElseBlock.Stmts[0]
+            );
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("z"), new IntLiteral(3)), 
+                finalElseBlock.Stmts[1]
+            );
+        }
+
+        [Fact]
+        public void NestedIfInsideElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x < 5)
+                    y = 1;
+                else {
+                    if(z < 10)
+                        y = 2;
+                    else
+                        y = 3;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(1)),
+                outerIf.IfBody
+            );
+
+            var elseBlock = Assert.IsType<BlockStmt>(outerIf.ElseBody);
+
+            Assert.Single(elseBlock.Stmts);
+
+            var nestedIf = Assert.IsType<IfStmt>(elseBlock.Stmts[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("z"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                ),
+                nestedIf.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(2)),
+                nestedIf.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(new IdentifiedNode("y"), new IntLiteral(3)),
+                nestedIf.ElseBody
+            );
+        }
+
+        [Fact]
+        public void ComplexNestedIfElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(x < 5) {
+                    if(y < 3)
+                        z = 1;
+                    else
+                        z = 2;
+                } else if(x < 10) {
+                    if(y < 3)
+                        z = 3;
+                } else {
+                    z = 4;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            var outerIf = Assert.IsType<IfStmt>(program.Statements[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(5)
+                ),
+                outerIf.Guard
+            );
+
+            var ifBlock = Assert.IsType<BlockStmt>(outerIf.IfBody);
+
+            Assert.Single(ifBlock.Stmts);
+
+            var nestedIfInIfBlock = Assert.IsType<IfStmt>(ifBlock.Stmts[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.LessThan,
+                    new IntLiteral(3)
+                ),
+                nestedIfInIfBlock.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("z"),
+                    new IntLiteral(1)
+                ),
+                nestedIfInIfBlock.IfBody
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("z"),
+                    new IntLiteral(2)
+                ),
+                nestedIfInIfBlock.ElseBody
+            );
+
+            var elseIfStmt = Assert.IsType<IfStmt>(outerIf.ElseBody);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("x"),
+                    OperatorType.LessThan,
+                    new IntLiteral(10)
+                ),
+                elseIfStmt.Guard
+            );
+
+            var elseIfBlock = Assert.IsType<BlockStmt>(elseIfStmt.IfBody);
+
+            Assert.Single(elseIfBlock.Stmts);
+
+            var nestedIfInElseIfBlock = Assert.IsType<IfStmt>(elseIfBlock.Stmts[0]);
+
+            Assert.Equal(
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.LessThan,
+                    new IntLiteral(3)
+                ),
+                nestedIfInElseIfBlock.Guard
+            );
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("z"),
+                    new IntLiteral(3)
+                ),
+                nestedIfInElseIfBlock.IfBody
+            );
+
+            Assert.Null(nestedIfInElseIfBlock.ElseBody);
+
+            var finalElseBlock = Assert.IsType<BlockStmt>(elseIfStmt.ElseBody);
+
+            Assert.Single(finalElseBlock.Stmts);
+
+            Assert.Equal(
+                new AssignStmt(
+                    new IdentifiedNode("z"),
+                    new IntLiteral(4)
+                ),
+                finalElseBlock.Stmts[0]
+            );
         }
 
     }

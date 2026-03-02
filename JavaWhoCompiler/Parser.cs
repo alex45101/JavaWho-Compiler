@@ -89,30 +89,30 @@ namespace JavaWhoCompiler
         private AST ParseStatement()
         {
             AST stmt = CurrentToken switch {
-                WhileToken => ParseWhileStmt(),
-                BreakToken => ParseBreakStmt(),
-                ReturnToken => ParseReturnStmt(),
-                IfToken => ParseIfStmt(),
-                OpenCurlyBracketToken => ParseBlockStmt(),
+                WhileToken => ParseWhileStatement(),
+                BreakToken => ParseBreakStatement(),
+                ReturnToken => ParseReturnStatement(),
+                IfToken => ParseIfStatement(),
+                OpenCurlyBracketToken => ParseBlockStatement(),
                 IdentifierToken => PeekNext() switch {
-                    IdentifierToken => ParseVardecStmt(),
-                    AssignmentOperatorToken => ParseAssignStmt(),
+                    IdentifierToken => ParseVardecStatement(),
+                    AssignmentOperatorToken => ParseAssignStatement(),
 
                     // no token ahead of identifier
                     null => throw new ParserException("Expected ';', got EOF"),
 
                     // try expression statement
-                    _ => ParseExpressionStmt(),
+                    _ => ParseExpressionStatement(),
                 },
 
                 // try expression statement
-                _ => ParseExpressionStmt(),
+                _ => ParseExpressionStatement(),
             };
 
             return stmt;
         }
 
-        private AST ParseWhileStmt() {
+        private AST ParseWhileStatement() {
             Expect<WhileToken>();
             Expect<OpenParenthesisToken>();
 
@@ -125,27 +125,30 @@ namespace JavaWhoCompiler
             return new WhileStmt(guard, body);
         }
 
-        private AST ParseBreakStmt() {
+        private AST ParseBreakStatement() {
             Expect<BreakToken>();
             Expect<SemiColonToken>();
 
             return new BreakStmt();
         }
 
-        private AST ParseReturnStmt() {
+        private AST ParseReturnStatement() {
             Expect<ReturnToken>();
 
+
             AST val = null;
-            try {
+
+            if (!Check<SemiColonToken>())
+            {
                 val = ParseExpression();
-            } catch {}
+            }
 
             Expect<SemiColonToken>();
 
             return new ReturnStmt(val);
         }
 
-        private AST ParseIfStmt() {
+        private AST ParseIfStatement() {
             Expect<IfToken>();
             Expect<OpenParenthesisToken>();
 
@@ -157,17 +160,20 @@ namespace JavaWhoCompiler
 
             AST elseBody = null;
 
-            // we don't care if an exception is thrown on the 'else' expect
-            try {
-                Expect<ElseToken>();
-            } catch { return new IfStmt(guard, ifBody, elseBody); }
+            //no else token next then return right away with null elsebody
+            if (!Check<ElseToken>())
+            {
+                return new IfStmt(guard, ifBody, elseBody);
+            }
+
+            Consume(); //eat else token
 
             elseBody = ParseStatement();
 
             return new IfStmt(guard, ifBody, elseBody);
         }
 
-        private AST ParseBlockStmt() {
+        private AST ParseBlockStatement() {
             Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
@@ -181,7 +187,7 @@ namespace JavaWhoCompiler
             return new BlockStmt(stmts);
         }
 
-        private AST ParseVardecStmt() {
+        private AST ParseVardecStatement() {
             
             string typeIdent = Expect<IdentifierToken>().Value;
 
@@ -196,7 +202,7 @@ namespace JavaWhoCompiler
                     );
         }
 
-        private AST ParseAssignStmt() {
+        private AST ParseAssignStatement() {
             
             string varIdent = Expect<IdentifierToken>().Value;
 
@@ -212,7 +218,7 @@ namespace JavaWhoCompiler
                     );
         }
 
-        private AST ParseExpressionStmt() {
+        private AST ParseExpressionStatement() {
             AST exp = ParseExpression();
 
             Expect<SemiColonToken>();
@@ -262,7 +268,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseMultiplyExpression();
 
-            if (Check<AddOperatorToken>() || Check<SubtractOperatorToken>())
+            while (Check<AddOperatorToken>() || Check<SubtractOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is AddOperatorToken ? OperatorType.Add : OperatorType.Subtract;
 
@@ -270,7 +276,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseMultiplyExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
@@ -280,7 +286,7 @@ namespace JavaWhoCompiler
         {
             AST left = ParseCallExpression();
 
-            if (Check<MultiplyOperatorToken>() || Check<DivideOperatorToken>())
+            while (Check<MultiplyOperatorToken>() || Check<DivideOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is MultiplyOperatorToken ? OperatorType.Multiply : OperatorType.Divide;
 
@@ -288,7 +294,7 @@ namespace JavaWhoCompiler
 
                 AST right = ParseCallExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right);
             }
 
             return left;
@@ -312,6 +318,7 @@ namespace JavaWhoCompiler
             AST primaryNode = CurrentToken switch
             {
                 IdentifierToken => new IdentifiedNode(Consume().Value),
+                StringToken => new StringLiteral(Consume().Value),
                 NumberToken => new IntLiteral((Consume() as NumberToken).Number),
                 TrueToken or FalseToken => new BooleanLiteral(Consume().Value == "true"),
                 _ => throw new ParserException($"Unexpected token {CurrentToken.GetType().Name}")
