@@ -27,7 +27,7 @@
     
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
-    public sealed record VariableDeclarationStatement(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record VariableDeclarationStatement(VariableDeclaration VariableDeclaration) : AST;
     public sealed record AssignmentStatement(IdentifiedNode Var, AST Val) : AST;
     public sealed record WhileStatement(AST Guard, AST Statement) : AST;
     public sealed record BreakStatement() : AST;
@@ -35,6 +35,15 @@
     public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
     public sealed record BlockStatement(List<AST> Statements) : AST;
     public sealed record PrintLnStatement(AST Argument) : MethodCallExpression("println", null, [Argument]);
+
+    //class
+    public sealed record MethodDefinition(IdentifiedNode Name, CommaVariableDeclaration Parameters, IdentifiedNode ReturnType, BlockStatement Body) : AST;
+    public sealed record Constructor(CommaVariableDeclaration Parameters, List<AST> SuperArguments, List<AST> Statements) : AST;
+    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<VariableDeclarationStatement> VariableDeclarations, List<MethodDefinition> MethodDefinitions) : AST;
+
+    //misc
+    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record CommaVariableDeclaration(List<VariableDeclaration> VariableDeclarations) : AST;
 
 
     public class ParserException(string message) : Exception(message);
@@ -198,8 +207,10 @@
             Expect<SemiColonToken>();
             
             return new VariableDeclarationStatement(
-                    new IdentifiedNode(typeIdent), 
-                    new IdentifiedNode(varIdent)
+                    new VariableDeclaration(
+                        new IdentifiedNode(typeIdent), 
+                        new IdentifiedNode(varIdent)
+                        )
                     );
         }
 
