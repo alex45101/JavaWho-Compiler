@@ -79,7 +79,6 @@
             List<AST> classes = new List<AST>();
             List<AST> statements = new List<AST>();
 
-            //TODO: Parse classes
             while(parser.Check<ClassToken>()) {
                 classes.Add(parser.ParseClassDefinition());
             }

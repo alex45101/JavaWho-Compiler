@@ -1962,6 +1962,24 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
+        public void ClassVardecNoSemicolonTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        Int a
+
+                        init(Int x, String y) {}
+
+                        method test1(Int x, String y) {
+                            return;
+                        }
+                    }
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
         public void ClassDefExtendTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
@@ -2143,6 +2161,22 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
+        public void ClassDefMethodNoRetTypeTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {}
+
+                        method test1(Int x, String y) {
+                            return;
+                        }
+                    }
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
         public void ClassDefConstructorNoSuperTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
@@ -2312,6 +2346,46 @@ namespace CompilerTests
 
                             super(x, y);
                         }
+                    }
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefMultConstructorTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            Int z;
+                            z = x;
+                        }
+                        init(Int a, String y) {
+                            Int z;
+                            z = x;
+                        }
+                    }
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefOutOfOrderTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        method b(String s) String {
+                            return s;
+                        }
+
+                        init(Int x, String y) {
+                            Int z;
+                            z = x;
+                        }
+
+                        Int a;
                     }
                     """);
 
