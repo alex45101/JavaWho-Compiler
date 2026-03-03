@@ -129,7 +129,7 @@ namespace CompilerTests
         public void ThrowOnNoSemicolonEndStmtTest(string code)
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize(code);
-            Assert.Throws<IndexOutOfRangeException>(() => Parser.Parse(tokens));
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
         }
 
         [Theory]

@@ -59,9 +59,12 @@
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
         private IToken Expect<T>() where T : IToken
         {
-            if (!Check<T>())
+            if(IsEnd) 
             {
-                throw new ParserException($"Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
+                throw new ParserException($"Expected {typeof(T)} but reached end of file");
+            } else if (!Check<T>())
+            {
+                throw new ParserException($"{CurrentToken.Line}:{CurrentToken.Position}: Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
             }
 
             return Consume();
@@ -346,6 +349,9 @@
 
         private AST ParsePrimaryExpression()
         {
+            if(IsEnd) {
+                throw new ParserException("Expected primary expression but reached end of file");
+            }
 
             AST primaryNode = CurrentToken switch
             {
