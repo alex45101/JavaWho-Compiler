@@ -39,7 +39,7 @@
     //class
     public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body) : AST;
     public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements) : AST;
-    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, List<AST> MethodDefinitions) : AST;
+    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions) : AST;
 
     //misc
     public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
@@ -80,6 +80,9 @@
             List<AST> statements = new List<AST>();
 
             //TODO: Parse classes
+            while(parser.Check<ClassToken>()) {
+                classes.Add(parser.ParseClassDefinition());
+            }
 
             while (!parser.IsEnd)
             {
@@ -418,14 +421,22 @@
             
             Expect<CloseParenthesisToken>();
 
-            string returnType = Expect<IdentifierToken>().Value;
+            // check for void first
+            IdentifiedNode returnType = null;
+            if(Check<VoidTypeToken>()) {
+                Consume();
+            } else {
+                returnType = new IdentifiedNode(
+                                Expect<IdentifierToken>().Value
+                             );
+            }
 
             AST body = ParseBlockStatement();
 
             return new MethodDefinition(
                     new IdentifiedNode(methodName),
                     parameters,
-                    new IdentifiedNode(returnType),
+                    returnType,
                     body
                     );
         }
@@ -501,6 +512,7 @@
                     new IdentifiedNode(className),
                     extendsName,
                     vardecs,
+                    constructor,
                     methodDefs
                     );
         }

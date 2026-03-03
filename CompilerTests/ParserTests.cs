@@ -1763,5 +1763,114 @@ namespace CompilerTests
             var thirdArg = Assert.IsType<BooleanLiteral>(methodCall.Arguments[2]);
             Assert.False(thirdArg.Value);
         }
+
+
+
+        private void AssertShallowListEqual<T>(List<T> expected, List<T> actual) {
+            Assert.Equal(expected.Count, actual.Count);
+
+            foreach(var (index, item) in expected.Index()) {
+                Assert.Equal(item, actual[index]);
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass {
+                        init() {}
+                        method test(Int x, String y) Void {
+                            return;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+
+            var expClassDef = new ClassDefinition(
+                        new IdentifiedNode("MyClass"),
+                        null,
+                        [],
+                        new Constructor(
+                            [],
+                            null,
+                            []
+                            ),
+                        [
+                            new MethodDefinition(
+                                new IdentifiedNode("test"),
+                                [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("x")
+                                    ),
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String"),
+                                    new IdentifiedNode("y")
+                                    ),
+                                ],
+                                null,
+                                new BlockStatement([
+                                    new ReturnStatement(null)
+                                ])
+                            )
+                        ]
+                        );
+
+            ClassDefinition classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+
+            Assert.Equal(expClassDef.Name, classDef.Name);
+
+            Assert.Null(classDef.ExtendsName);
+
+            Assert.Empty(classDef.VariableDeclarations);
+
+            var constr = Assert.IsType<Constructor>(classDef.Constructor);
+            var expConstr = (Constructor)expClassDef.Constructor;
+
+            AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
+            
+            if(expConstr.SuperArguments == null) {
+                Assert.Null(constr.SuperArguments);
+            } else if(constr.SuperArguments == null) {
+                Assert.Fail();
+            } else {
+                AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
+            }
+
+            AssertShallowListEqual(expConstr.Statements, constr.Statements);
+
+
+            var actualMethodDefs = classDef.MethodDefinitions;
+            Assert.Single(actualMethodDefs);
+
+            var method1 = Assert.IsType<MethodDefinition>(actualMethodDefs[0]);
+            var method1Name = Assert.IsType<IdentifiedNode>(method1.Name);
+            Assert.Equal(new IdentifiedNode("test"), method1Name);
+
+            List<AST> expectedMethod1Params = [
+                            new VariableDeclaration(
+                                new IdentifiedNode("Int"),
+                                new IdentifiedNode("x")
+                                ),
+                            new VariableDeclaration(
+                                new IdentifiedNode("String"),
+                                new IdentifiedNode("y")
+                                ),
+                        ];
+
+            Assert.Equal(expectedMethod1Params.Count, method1.Parameters.Count);
+
+            foreach(var (index, param) in expectedMethod1Params.Index()) {
+                Assert.Equal(param, method1.Parameters[index]);
+            }
+        }
     }
 }
