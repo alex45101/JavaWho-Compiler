@@ -345,18 +345,10 @@
 
         private AST ParsePrimaryExpression()
         {
-            if (Check<OpenParenthesisToken>())
-            {
-                Consume();
-                AST yeet = ParseExpression();
-
-                Expect<CloseParenthesisToken>();
-
-                return yeet;
-            }
 
             AST primaryNode = CurrentToken switch
             {
+                OpenParenthesisToken => ParseParenthesisExpression(),
                 IdentifierToken => new IdentifiedNode(Consume().Value),
                 StringToken => new StringLiteral(Consume().Value),
                 NumberToken => new IntLiteral((Consume() as NumberToken).Number),
@@ -366,6 +358,16 @@
             };
 
             return primaryNode;
+        }
+
+        private AST ParseParenthesisExpression()
+        {
+            Consume();
+            AST yeet = ParseExpression();
+
+            Expect<CloseParenthesisToken>();
+
+            return yeet;
         }
 
         private AST MethodCallExpression(AST Target)
