@@ -809,7 +809,222 @@ namespace CompilerTests
                     newObjectExpression.Arguments[1]);
         }
 
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void SimpleParenthesizedLiteralTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(42);");
 
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            IntLiteral literal = Assert.IsType<IntLiteral>(expStmt.Expression);
+
+            Assert.Equal(42, literal.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ParenthesesOverridePrecedenceTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(2 + 3) * 4;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IntLiteral(2),
+                    OperatorType.Add,
+                    new IntLiteral(3)
+                ),
+                OperatorType.Multiply,
+                new IntLiteral(4)
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void NestedParenthesesInExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(e + (a + b) * c) / d;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("e"),
+                    OperatorType.Add,
+                    new BinaryExpression(
+                        new BinaryExpression(
+                            new IdentifiedNode("a"),
+                            OperatorType.Add,
+                            new IdentifiedNode("b")
+                        ),
+                        OperatorType.Multiply,
+                        new IdentifiedNode("c")
+                    )
+                ),
+                OperatorType.Divide,
+                new IdentifiedNode("d")
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void MultipleParenthesizedGroupsTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(a + b) * (c - d);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.Add,
+                    new IdentifiedNode("b")
+                ),
+                OperatorType.Multiply,
+                new BinaryExpression(
+                    new IdentifiedNode("c"),
+                    OperatorType.Subtract,
+                    new IdentifiedNode("d")
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void DeeplyNestedParenthesesTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(x + (y * (z + 1)));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("x"),
+                OperatorType.Add,
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.Multiply,
+                    new BinaryExpression(
+                        new IdentifiedNode("z"),
+                        OperatorType.Add,
+                        new IntLiteral(1)
+                    )
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ParenthesesInComparisonTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(a + b) < (c + d);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.Add,
+                    new IdentifiedNode("b")
+                ),
+                OperatorType.LessThan,
+                new BinaryExpression(
+                    new IdentifiedNode("c"),
+                    OperatorType.Add,
+                    new IdentifiedNode("d")
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ComplexNestedParenthesesWithDivisionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("a * ((b + c) / (d - e));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("a"),
+                OperatorType.Multiply,
+                new BinaryExpression(
+                    new BinaryExpression(
+                        new IdentifiedNode("b"),
+                        OperatorType.Add,
+                        new IdentifiedNode("c")
+                    ),
+                    OperatorType.Divide,
+                    new BinaryExpression(
+                        new IdentifiedNode("d"),
+                        OperatorType.Subtract,
+                        new IdentifiedNode("e")
+                    )
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void DoubleParenthesesTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("((x + 5));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("x"),
+                OperatorType.Add,
+                new IntLiteral(5)
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
         [Fact]
         [Trait("Category", "If")]
         public void NestedIfStatementsTest()
@@ -1823,24 +2038,29 @@ namespace CompilerTests
 
 
 
-        private void AssertShallowListEqual<T>(List<T> expected, List<T> actual) {
+        private void AssertShallowListEqual<T>(List<T> expected, List<T> actual)
+        {
             Assert.Equal(expected.Count, actual.Count);
 
-            foreach(var (index, item) in expected.Index()) {
+            foreach (var (index, item) in expected.Index())
+            {
                 Assert.Equal(item, actual[index]);
             }
         }
 
-        private void AssertShallowMethodDefsEqual(List<AST> expected, List<AST> actual) {
+        private void AssertShallowMethodDefsEqual(List<AST> expected, List<AST> actual)
+        {
             Assert.Equal(expected.Count, actual.Count);
-            for(int i = 0; i < expected.Count; i++) {
+            for (int i = 0; i < expected.Count; i++)
+            {
                 var expectedMethod = (MethodDefinition)expected[i];
                 var method = Assert.IsType<MethodDefinition>(actual[i]);
 
                 Assert.Equal(expectedMethod.Name, method.Name);
 
                 Assert.Equal(expectedMethod.Parameters.Count, method.Parameters.Count);
-                foreach(var (index, param) in expectedMethod.Parameters.Index()) {
+                foreach (var (index, param) in expectedMethod.Parameters.Index())
+                {
                     Assert.Equal(param, method.Parameters[index]);
                 }
 
@@ -1853,7 +2073,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefTest() {
+        public void ClassDefTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
                         init() {}
@@ -1913,12 +2134,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -1931,7 +2157,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefVardecTest() {
+        public void ClassDefVardecTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
                         Int z;
@@ -2002,12 +2229,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2020,7 +2252,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassVardecNoSemicolonTest() {
+        public void ClassVardecNoSemicolonTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         Int a
@@ -2038,7 +2271,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefExtendTest() {
+        public void ClassDefExtendTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init() {}
@@ -2098,12 +2332,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2117,7 +2356,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMultMethodsTest() {
+        public void ClassDefMultMethodsTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init() {}
@@ -2200,12 +2440,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2219,7 +2464,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMethodNoRetTypeTest() {
+        public void ClassDefMethodNoRetTypeTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {}
@@ -2235,7 +2481,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorNoSuperTest() {
+        public void ClassDefConstructorNoSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2295,12 +2542,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2313,7 +2565,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorSuperTest() {
+        public void ClassDefConstructorSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2377,12 +2630,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2395,7 +2653,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorBadSuperTest() {
+        public void ClassDefConstructorBadSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2412,7 +2671,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMultConstructorTest() {
+        public void ClassDefMultConstructorTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2431,7 +2691,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefOutOfOrderTest() {
+        public void ClassDefOutOfOrderTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         method b(String s) String {
@@ -2452,7 +2713,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void MultipleClassesCountTest() {
+        public void MultipleClassesCountTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}
@@ -2478,7 +2740,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void MultipleClassesAndStatementsCountTest() {
+        public void MultipleClassesAndStatementsCountTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}
@@ -2509,7 +2772,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void CantMisplaceClassAndStatementTest() {
+        public void CantMisplaceClassAndStatementTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}
