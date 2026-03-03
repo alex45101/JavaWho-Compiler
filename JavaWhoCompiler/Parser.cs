@@ -27,7 +27,7 @@
     
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
-    public sealed record VariableDeclarationStatement(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
     public sealed record AssignmentStatement(IdentifiedNode Var, AST Val) : AST;
     public sealed record WhileStatement(AST Guard, AST Statement) : AST;
     public sealed record BreakStatement() : AST;
@@ -35,6 +35,12 @@
     public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
     public sealed record BlockStatement(List<AST> Statements) : AST;
     public sealed record PrintLnStatement(AST Argument) : MethodCallExpression("println", null, [Argument]);
+
+    //class
+    public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body) : AST;
+    public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements) : AST;
+    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions) : AST;
+
 
 
     public class ParserException(string message) : Exception(message);
@@ -71,7 +77,9 @@
             List<AST> classes = new List<AST>();
             List<AST> statements = new List<AST>();
 
-            //TODO: Parse classes
+            while(parser.Check<ClassToken>()) {
+                classes.Add(parser.ParseClassDefinition());
+            }
 
             while (!parser.IsEnd)
             {
@@ -96,7 +104,7 @@
                 IfToken => ParseIfStatement(),
                 OpenCurlyBracketToken => ParseBlockStatement(),
                 IdentifierToken => PeekNext() switch {
-                    IdentifierToken => ParseVardecStatement(),
+                    IdentifierToken => ParseVariableDeclarationStatement(),
                     AssignmentOperatorToken => ParseAssignStatement(),
 
                     // no token ahead of identifier
@@ -188,19 +196,13 @@
             return new BlockStatement(stmts);
         }
 
-        private AST ParseVardecStatement() {
+        private AST ParseVariableDeclarationStatement() {
             
-            string typeIdent = Expect<IdentifierToken>().Value;
-
-            
-            string varIdent = Expect<IdentifierToken>().Value;
+            var vardec = ParseVariableDeclaration();
 
             Expect<SemiColonToken>();
             
-            return new VariableDeclarationStatement(
-                    new IdentifiedNode(typeIdent), 
-                    new IdentifiedNode(varIdent)
-                    );
+            return vardec;
         }
 
         private AST ParseAssignStatement() {
@@ -373,6 +375,136 @@
             }
 
             return result;
+        }
+
+        private AST ParseVariableDeclaration() {
+            string typeIdent = Expect<IdentifierToken>().Value;
+            string varIdent = Expect<IdentifierToken>().Value;
+
+            return new VariableDeclaration(
+                    new IdentifiedNode(typeIdent),
+                    new IdentifiedNode(varIdent)
+                    );
+        }
+
+        private List<AST> ParseCommaVariableDeclaration() {
+            if(!Check<IdentifierToken>()) return [];
+
+            List<AST> vardecs = [ParseVariableDeclaration()];
+
+            while(Check<CommaToken>()) {
+                Consume();
+                vardecs.Add(ParseVariableDeclaration());
+            }
+
+            return vardecs;
+        }
+
+        private AST ParseMethodDefinition() {
+            Expect<MethodToken>();
+
+            string methodName = Expect<IdentifierToken>().Value;
+
+            Expect<OpenParenthesisToken>();
+
+            List<AST> parameters = ParseCommaVariableDeclaration();
+            
+            Expect<CloseParenthesisToken>();
+
+            // check for void first
+            IdentifiedNode returnType = null;
+            if(Check<VoidTypeToken>()) {
+                Consume();
+            } else {
+                returnType = new IdentifiedNode(
+                                Expect<IdentifierToken>().Value
+                             );
+            }
+
+            AST body = ParseBlockStatement();
+
+            return new MethodDefinition(
+                    new IdentifiedNode(methodName),
+                    parameters,
+                    returnType,
+                    body
+                    );
+        }
+
+        private AST ParseConstructor() {
+            Expect<InitToken>();
+
+            Expect<OpenParenthesisToken>();
+
+            List<AST> parameters = ParseCommaVariableDeclaration();
+
+            Expect<CloseParenthesisToken>();
+            
+            Expect<OpenCurlyBracketToken>();
+
+            List<AST> superArgs = null;
+
+            // optional super call
+            if(Check<SuperToken>()) {
+                Consume();
+                Expect<OpenParenthesisToken>();
+                superArgs = CommaExpression();
+                Expect<CloseParenthesisToken>();
+                Expect<SemiColonToken>();
+            }
+            
+            List<AST> statements = [];
+            while(!Check<CloseCurlyBracketToken>()) {
+                statements.Add(ParseStatement());
+            }
+
+            Expect<CloseCurlyBracketToken>();
+
+            return new Constructor(
+                    parameters,
+                    superArgs,
+                    statements
+                    );
+        }
+
+        private AST ParseClassDefinition() {
+            Expect<ClassToken>();
+
+            string className = Expect<IdentifierToken>().Value;
+
+            IdentifiedNode extendsName = null;
+            if(Check<ExtendsToken>()) {
+                Consume();
+                extendsName = new IdentifiedNode(
+                    Expect<IdentifierToken>().Value
+                );
+            }
+
+            Expect<OpenCurlyBracketToken>();
+
+            List<AST> vardecs = [];
+            // vardecs continue until constructor
+            while(!Check<InitToken>()) {
+                vardecs.Add(ParseVariableDeclarationStatement());
+            }
+
+            AST constructor = ParseConstructor();
+
+            List<AST> methodDefs = [];
+
+            while(!Check<CloseCurlyBracketToken>()) {
+                methodDefs.Add(ParseMethodDefinition());
+            }
+
+            Expect<CloseCurlyBracketToken>();
+
+            return new ClassDefinition(
+                    new IdentifiedNode(className),
+                    extendsName,
+                    vardecs,
+                    constructor,
+                    methodDefs
+                    );
         }
     }
 }
