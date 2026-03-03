@@ -1982,24 +1982,29 @@ namespace CompilerTests
 
 
 
-        private void AssertShallowListEqual<T>(List<T> expected, List<T> actual) {
+        private void AssertShallowListEqual<T>(List<T> expected, List<T> actual)
+        {
             Assert.Equal(expected.Count, actual.Count);
 
-            foreach(var (index, item) in expected.Index()) {
+            foreach (var (index, item) in expected.Index())
+            {
                 Assert.Equal(item, actual[index]);
             }
         }
 
-        private void AssertShallowMethodDefsEqual(List<AST> expected, List<AST> actual) {
+        private void AssertShallowMethodDefsEqual(List<AST> expected, List<AST> actual)
+        {
             Assert.Equal(expected.Count, actual.Count);
-            for(int i = 0; i < expected.Count; i++) {
+            for (int i = 0; i < expected.Count; i++)
+            {
                 var expectedMethod = (MethodDefinition)expected[i];
                 var method = Assert.IsType<MethodDefinition>(actual[i]);
 
                 Assert.Equal(expectedMethod.Name, method.Name);
 
                 Assert.Equal(expectedMethod.Parameters.Count, method.Parameters.Count);
-                foreach(var (index, param) in expectedMethod.Parameters.Index()) {
+                foreach (var (index, param) in expectedMethod.Parameters.Index())
+                {
                     Assert.Equal(param, method.Parameters[index]);
                 }
 
@@ -2012,7 +2017,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefTest() {
+        public void ClassDefTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
                         init() {}
@@ -2072,12 +2078,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2090,7 +2101,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefVardecTest() {
+        public void ClassDefVardecTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
                         Int z;
@@ -2161,12 +2173,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2179,7 +2196,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassVardecNoSemicolonTest() {
+        public void ClassVardecNoSemicolonTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         Int a
@@ -2197,7 +2215,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefExtendTest() {
+        public void ClassDefExtendTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init() {}
@@ -2257,12 +2276,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2276,7 +2300,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMultMethodsTest() {
+        public void ClassDefMultMethodsTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init() {}
@@ -2359,12 +2384,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2378,7 +2408,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMethodNoRetTypeTest() {
+        public void ClassDefMethodNoRetTypeTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {}
@@ -2394,7 +2425,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorNoSuperTest() {
+        public void ClassDefConstructorNoSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2454,12 +2486,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2472,7 +2509,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorSuperTest() {
+        public void ClassDefConstructorSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2536,12 +2574,17 @@ namespace CompilerTests
             var expConstr = (Constructor)expClassDef.Constructor;
 
             AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
-            
-            if(expConstr.SuperArguments == null) {
+
+            if (expConstr.SuperArguments == null)
+            {
                 Assert.Null(constr.SuperArguments);
-            } else if(constr.SuperArguments == null) {
+            }
+            else if (constr.SuperArguments == null)
+            {
                 Assert.Fail();
-            } else {
+            }
+            else
+            {
                 AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
             }
 
@@ -2554,7 +2597,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefConstructorBadSuperTest() {
+        public void ClassDefConstructorBadSuperTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2571,7 +2615,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMultConstructorTest() {
+        public void ClassDefMultConstructorTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         init(Int x, String y) {
@@ -2590,7 +2635,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefOutOfOrderTest() {
+        public void ClassDefOutOfOrderTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass extends OtherClass {
                         method b(String s) String {
@@ -2611,7 +2657,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void MultipleClassesCountTest() {
+        public void MultipleClassesCountTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}
@@ -2637,7 +2684,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void MultipleClassesAndStatementsCountTest() {
+        public void MultipleClassesAndStatementsCountTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}
@@ -2668,7 +2716,8 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void CantMisplaceClassAndStatementTest() {
+        public void CantMisplaceClassAndStatementTest()
+        {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherClass {
                         init() {}

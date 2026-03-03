@@ -1,7 +1,7 @@
 ﻿namespace JavaWhoCompiler
 {
     public enum OperatorType
-    { 
+    {
         Add,
         Subtract,
         Multiply,
@@ -24,7 +24,7 @@
     public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
     public record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
-    
+
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
     public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
@@ -77,7 +77,8 @@
             List<AST> classes = new List<AST>();
             List<AST> statements = new List<AST>();
 
-            while(parser.Check<ClassToken>()) {
+            while (parser.Check<ClassToken>())
+            {
                 classes.Add(parser.ParseClassDefinition());
             }
 
@@ -85,7 +86,7 @@
             {
                 statements.Add(parser.ParseStatement());
             }
-            
+
             return new ProgramNode(classes, statements);
         }
 
@@ -97,13 +98,15 @@
 
         private AST ParseStatement()
         {
-            AST stmt = CurrentToken switch {
+            AST stmt = CurrentToken switch
+            {
                 WhileToken => ParseWhileStatement(),
                 BreakToken => ParseBreakStatement(),
                 ReturnToken => ParseReturnStatement(),
                 IfToken => ParseIfStatement(),
                 OpenCurlyBracketToken => ParseBlockStatement(),
-                IdentifierToken => PeekNext() switch {
+                IdentifierToken => PeekNext() switch
+                {
                     IdentifierToken => ParseVariableDeclarationStatement(),
                     AssignmentOperatorToken => ParseAssignStatement(),
 
@@ -121,7 +124,8 @@
             return stmt;
         }
 
-        private AST ParseWhileStatement() {
+        private AST ParseWhileStatement()
+        {
             Expect<WhileToken>();
             Expect<OpenParenthesisToken>();
 
@@ -134,14 +138,16 @@
             return new WhileStatement(guard, body);
         }
 
-        private AST ParseBreakStatement() {
+        private AST ParseBreakStatement()
+        {
             Expect<BreakToken>();
             Expect<SemiColonToken>();
 
             return new BreakStatement();
         }
 
-        private AST ParseReturnStatement() {
+        private AST ParseReturnStatement()
+        {
             Expect<ReturnToken>();
 
 
@@ -157,7 +163,8 @@
             return new ReturnStatement(val);
         }
 
-        private AST ParseIfStatement() {
+        private AST ParseIfStatement()
+        {
             Expect<IfToken>();
             Expect<OpenParenthesisToken>();
 
@@ -182,11 +189,13 @@
             return new IfStatement(guard, ifBody, elseBody);
         }
 
-        private AST ParseBlockStatement() {
+        private AST ParseBlockStatement()
+        {
             Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
-            while(CurrentToken is not CloseCurlyBracketToken) {
+            while (CurrentToken is not CloseCurlyBracketToken)
+            {
                 stmts.Add(ParseStatement());
             }
 
@@ -196,38 +205,35 @@
             return new BlockStatement(stmts);
         }
 
-        private AST ParseVariableDeclarationStatement() {
-            
+        private AST ParseVariableDeclarationStatement()
+        {
+
             var vardec = ParseVariableDeclaration();
 
             Expect<SemiColonToken>();
-            
+
             return vardec;
         }
 
-        private AST ParseAssignStatement() {
-            
+        private AST ParseAssignStatement()
+        {
+
             string varIdent = Expect<IdentifierToken>().Value;
 
             Expect<AssignmentOperatorToken>();
-            
+
             AST value = ParseExpression();
 
             Expect<SemiColonToken>();
 
             return new AssignmentStatement(
-                    new IdentifiedNode(varIdent), 
+                    new IdentifiedNode(varIdent),
                     value
                     );
         }
 
-        private AST ParseExpressionStatement() {
-            //if (Check<OpenParenthesisToken>())
-            //{
-            //    Consume();
-            //    ParseExpressionStatement();
-            //}
-
+        private AST ParseExpressionStatement()
+        {
             AST exp = ParseExpression();
 
             Expect<SemiColonToken>();
@@ -244,7 +250,7 @@
             if (Check<EqualsOperatorToken>() || Check<NotEqualsOperatorToken>())
             {
                 OperatorType operatorType = CurrentToken is EqualsOperatorToken ? OperatorType.Equal : OperatorType.NotEqual;
-                
+
                 Consume();
 
                 AST right = ParseCompareExpression();
@@ -339,6 +345,16 @@
 
         private AST ParsePrimaryExpression()
         {
+            if (Check<OpenParenthesisToken>())
+            {
+                Consume();
+                AST yeet = ParseExpression();
+
+                Expect<CloseParenthesisToken>();
+
+                return yeet;
+            }
+
             AST primaryNode = CurrentToken switch
             {
                 IdentifierToken => new IdentifiedNode(Consume().Value),
@@ -383,7 +399,8 @@
             return result;
         }
 
-        private AST ParseVariableDeclaration() {
+        private AST ParseVariableDeclaration()
+        {
             string typeIdent = Expect<IdentifierToken>().Value;
             string varIdent = Expect<IdentifierToken>().Value;
 
@@ -393,12 +410,14 @@
                     );
         }
 
-        private List<AST> ParseCommaVariableDeclaration() {
-            if(!Check<IdentifierToken>()) return [];
+        private List<AST> ParseCommaVariableDeclaration()
+        {
+            if (!Check<IdentifierToken>()) return [];
 
             List<AST> vardecs = [ParseVariableDeclaration()];
 
-            while(Check<CommaToken>()) {
+            while (Check<CommaToken>())
+            {
                 Consume();
                 vardecs.Add(ParseVariableDeclaration());
             }
@@ -406,7 +425,8 @@
             return vardecs;
         }
 
-        private AST ParseMethodDefinition() {
+        private AST ParseMethodDefinition()
+        {
             Expect<MethodToken>();
 
             string methodName = Expect<IdentifierToken>().Value;
@@ -414,14 +434,17 @@
             Expect<OpenParenthesisToken>();
 
             List<AST> parameters = ParseCommaVariableDeclaration();
-            
+
             Expect<CloseParenthesisToken>();
 
             // check for void first
             IdentifiedNode returnType = null;
-            if(Check<VoidTypeToken>()) {
+            if (Check<VoidTypeToken>())
+            {
                 Consume();
-            } else {
+            }
+            else
+            {
                 returnType = new IdentifiedNode(
                                 Expect<IdentifierToken>().Value
                              );
@@ -437,7 +460,8 @@
                     );
         }
 
-        private AST ParseConstructor() {
+        private AST ParseConstructor()
+        {
             Expect<InitToken>();
 
             Expect<OpenParenthesisToken>();
@@ -445,22 +469,24 @@
             List<AST> parameters = ParseCommaVariableDeclaration();
 
             Expect<CloseParenthesisToken>();
-            
+
             Expect<OpenCurlyBracketToken>();
 
             List<AST> superArgs = null;
 
             // optional super call
-            if(Check<SuperToken>()) {
+            if (Check<SuperToken>())
+            {
                 Consume();
                 Expect<OpenParenthesisToken>();
                 superArgs = CommaExpression();
                 Expect<CloseParenthesisToken>();
                 Expect<SemiColonToken>();
             }
-            
+
             List<AST> statements = [];
-            while(!Check<CloseCurlyBracketToken>()) {
+            while (!Check<CloseCurlyBracketToken>())
+            {
                 statements.Add(ParseStatement());
             }
 
@@ -473,13 +499,15 @@
                     );
         }
 
-        private AST ParseClassDefinition() {
+        private AST ParseClassDefinition()
+        {
             Expect<ClassToken>();
 
             string className = Expect<IdentifierToken>().Value;
 
             IdentifiedNode extendsName = null;
-            if(Check<ExtendsToken>()) {
+            if (Check<ExtendsToken>())
+            {
                 Consume();
                 extendsName = new IdentifiedNode(
                     Expect<IdentifierToken>().Value
@@ -490,7 +518,8 @@
 
             List<AST> vardecs = [];
             // vardecs continue until constructor
-            while(!Check<InitToken>()) {
+            while (!Check<InitToken>())
+            {
                 vardecs.Add(ParseVariableDeclarationStatement());
             }
 
@@ -498,7 +527,8 @@
 
             List<AST> methodDefs = [];
 
-            while(!Check<CloseCurlyBracketToken>()) {
+            while (!Check<CloseCurlyBracketToken>())
+            {
                 methodDefs.Add(ParseMethodDefinition());
             }
 
