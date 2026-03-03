@@ -1790,10 +1790,7 @@ namespace CompilerTests
                 var expectedMethodBody = (BlockStatement)expectedMethod.Body;
                 var methodBody = Assert.IsType<BlockStatement>(method.Body);
 
-                Assert.Equal(expectedMethodBody.Statements.Count, methodBody.Statements.Count);
-                foreach(var (index, param) in expectedMethodBody.Statements.Index()) {
-                    Assert.Equal(param, expectedMethodBody.Statements[index]);
-                }
+                AssertShallowListEqual(expectedMethodBody.Statements, methodBody.Statements);
             }
         }
 
@@ -1854,6 +1851,95 @@ namespace CompilerTests
             Assert.Null(classDef.ExtendsName);
 
             Assert.Empty(classDef.VariableDeclarations);
+
+            var constr = Assert.IsType<Constructor>(classDef.Constructor);
+            var expConstr = (Constructor)expClassDef.Constructor;
+
+            AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
+            
+            if(expConstr.SuperArguments == null) {
+                Assert.Null(constr.SuperArguments);
+            } else if(constr.SuperArguments == null) {
+                Assert.Fail();
+            } else {
+                AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
+            }
+
+            AssertShallowListEqual(expConstr.Statements, constr.Statements);
+
+
+            var actualMethodDefs = classDef.MethodDefinitions;
+            AssertShallowMethodDefsEqual(classDef.MethodDefinitions, actualMethodDefs);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefVardecTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass {
+                        Int z;
+                        String a;
+                        init() {}
+                        method test(Int x, String y) Void {
+                            return;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+
+            var expClassDef = new ClassDefinition(
+                        new IdentifiedNode("MyClass"),
+                        null,
+                        [
+                            new VariableDeclarationStatement(
+                                new IdentifiedNode("Int"),
+                                new IdentifiedNode("z")
+                                ),
+                            new VariableDeclarationStatement(
+                                new IdentifiedNode("String"),
+                                new IdentifiedNode("a")
+                                )
+                        ],
+                        new Constructor(
+                            [],
+                            null,
+                            []
+                            ),
+                        [
+                            new MethodDefinition(
+                                new IdentifiedNode("test"),
+                                [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("x")
+                                    ),
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String"),
+                                    new IdentifiedNode("y")
+                                    ),
+                                ],
+                                null,
+                                new BlockStatement([
+                                    new ReturnStatement(null)
+                                ])
+                            )
+                        ]
+                        );
+
+            ClassDefinition classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+
+            Assert.Equal(expClassDef.Name, classDef.Name);
+
+            Assert.Null(classDef.ExtendsName);
+
+            AssertShallowListEqual(expClassDef.VariableDeclarations, classDef.VariableDeclarations);
 
             var constr = Assert.IsType<Constructor>(classDef.Constructor);
             var expConstr = (Constructor)expClassDef.Constructor;
@@ -2054,6 +2140,183 @@ namespace CompilerTests
             var actualMethodDefs = classDef.MethodDefinitions;
 
             AssertShallowMethodDefsEqual(classDef.MethodDefinitions, actualMethodDefs);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefConstructorNoSuperTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            Int z;
+                            z = x;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+
+            var expClassDef = new ClassDefinition(
+                        new IdentifiedNode("MyClass"),
+                        new IdentifiedNode("OtherClass"),
+                        [],
+                        new Constructor(
+                            [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("x")
+                                    ),
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String"),
+                                    new IdentifiedNode("y")
+                                    ),
+                            ],
+                            null,
+                            [
+                                new VariableDeclarationStatement(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("z")
+                                    ),
+                                new AssignmentStatement(
+                                    new IdentifiedNode("z"),
+                                    new IdentifiedNode("x")
+                                    )
+                            ]
+                            ),
+                        []
+                        );
+
+            ClassDefinition classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+
+            Assert.Equal(expClassDef.Name, classDef.Name);
+
+            Assert.Equal(expClassDef.ExtendsName, classDef.ExtendsName);
+
+            Assert.Empty(classDef.VariableDeclarations);
+
+            var constr = Assert.IsType<Constructor>(classDef.Constructor);
+            var expConstr = (Constructor)expClassDef.Constructor;
+
+            AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
+            
+            if(expConstr.SuperArguments == null) {
+                Assert.Null(constr.SuperArguments);
+            } else if(constr.SuperArguments == null) {
+                Assert.Fail();
+            } else {
+                AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
+            }
+
+            AssertShallowListEqual(expConstr.Statements, constr.Statements);
+
+            var actualMethodDefs = classDef.MethodDefinitions;
+
+            AssertShallowMethodDefsEqual(classDef.MethodDefinitions, actualMethodDefs);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefConstructorSuperTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            super(x, y);
+                            Int z;
+                            z = x;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+
+            var expClassDef = new ClassDefinition(
+                        new IdentifiedNode("MyClass"),
+                        new IdentifiedNode("OtherClass"),
+                        [],
+                        new Constructor(
+                            [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("x")
+                                    ),
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String"),
+                                    new IdentifiedNode("y")
+                                    ),
+                            ],
+                            [
+                                new IdentifiedNode("x"),
+                                new IdentifiedNode("y")
+                            ],
+                            [
+                                new VariableDeclarationStatement(
+                                    new IdentifiedNode("Int"),
+                                    new IdentifiedNode("z")
+                                    ),
+                                new AssignmentStatement(
+                                    new IdentifiedNode("z"),
+                                    new IdentifiedNode("x")
+                                    )
+                            ]
+                            ),
+                        []
+                        );
+
+            ClassDefinition classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+
+            Assert.Equal(expClassDef.Name, classDef.Name);
+
+            Assert.Equal(expClassDef.ExtendsName, classDef.ExtendsName);
+
+            Assert.Empty(classDef.VariableDeclarations);
+
+            var constr = Assert.IsType<Constructor>(classDef.Constructor);
+            var expConstr = (Constructor)expClassDef.Constructor;
+
+            AssertShallowListEqual(expConstr.Parameters, constr.Parameters);
+            
+            if(expConstr.SuperArguments == null) {
+                Assert.Null(constr.SuperArguments);
+            } else if(constr.SuperArguments == null) {
+                Assert.Fail();
+            } else {
+                AssertShallowListEqual(expConstr.SuperArguments, constr.SuperArguments);
+            }
+
+            AssertShallowListEqual(expConstr.Statements, constr.Statements);
+
+            var actualMethodDefs = classDef.MethodDefinitions;
+
+            AssertShallowMethodDefsEqual(classDef.MethodDefinitions, actualMethodDefs);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefConstructorBadSuperTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            Int z;
+                            z = x;
+
+                            super(x, y);
+                        }
+                    }
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
         }
     }
 }
