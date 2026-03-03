@@ -416,7 +416,7 @@ namespace CompilerTests
                      new VoidTypeToken("Void", 0, 0),  new OpenCurlyBracketToken("{", 0, 0),
 
                 new ReturnToken("return", 0, 0), 
-                    new IdentifierToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0), new NumberToken("0", 0, 0), 
+                    new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0), new NumberToken("0", 0, 0), 
                      new EqualsOperatorToken("==", 0, 0),  new NumberToken("5", 0, 0),
                     new CloseParenthesisToken(")", 0, 0),
                     new SemiColonToken(";", 0, 0),
@@ -440,7 +440,7 @@ namespace CompilerTests
                     new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
                     new VoidTypeToken("Void", 0, 0), new OpenCurlyBracketToken("{", 0, 0),
                 new ReturnToken("return", 0, 0), 
-                    new IdentifierToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
+                    new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
                     new NumberToken("0", 0, 0), new EqualsOperatorToken("==", 0, 0), new NumberToken("5", 0, 0),
                     new CloseParenthesisToken(")", 0, 0),
                     new SemiColonToken(";", 0, 0),
@@ -512,7 +512,7 @@ namespace CompilerTests
                      new NumberToken("7", 0, 0),
                 new CloseParenthesisToken(")", 0, 0),
                 new OpenCurlyBracketToken("{", 0, 0),
-                new IdentifierToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
+                new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
                     new StringToken("\"hello world\"", 0, 0), new CloseParenthesisToken(")", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
                 new ElseToken("else", 0, 0),
                 new OpenCurlyBracketToken("{", 0, 0),
@@ -533,7 +533,7 @@ namespace CompilerTests
                 new IdentifierToken("x", 0, 0), new LessThanOperatorToken("<", 0, 0), new NumberToken("7", 0, 0),
                 new CloseParenthesisToken(")", 0, 0),
                 new OpenCurlyBracketToken("{", 0, 0),
-                new IdentifierToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
+                new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
                     new StringToken("\"hello world\"", 0, 0), new CloseParenthesisToken(")", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
                 new ElseToken("else", 0, 0),
                 new OpenCurlyBracketToken("{", 0, 0),
@@ -567,7 +567,7 @@ namespace CompilerTests
                 new IdentifierToken("x", 1, 1), new AssignmentOperatorToken("=", 1, 3), new NumberToken("5", 1, 5), new SemiColonToken(";", 1, 6),
                 new IdentifierToken("x", 2, 1), new AddOperatorToken("+", 2, 3), new NumberToken("2", 2, 5), new SemiColonToken(";", 2, 6),
 
-                new IdentifierToken("println", 4, 1), new OpenParenthesisToken("(", 4, 8), new StringToken("\"Hello world\"", 4, 9), new CloseParenthesisToken(")", 4, 22), 
+                new PrintLnToken("println", 4, 1), new OpenParenthesisToken("(", 4, 8), new StringToken("\"Hello world\"", 4, 9), new CloseParenthesisToken(")", 4, 22), 
                             new SemiColonToken(";", 4, 23),
             ];
 
