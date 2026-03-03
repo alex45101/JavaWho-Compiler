@@ -46,6 +46,7 @@ namespace JavaWhoCompiler
     public sealed record MethodToken(string Value) : IToken;
     public sealed record ReturnToken(string Value) : IToken;
     public sealed record ExtendsToken(string Value) : IToken;
+    public sealed record PrintLnToken(string Value) : IToken;
     #endregion
 
     #region Punctuation
@@ -83,6 +84,7 @@ namespace JavaWhoCompiler
             [@"\Gmethod\b"] = value => new MethodToken(value),
             [@"\Greturn\b"] = value => new ReturnToken(value),
             [@"\Gextends\b"] = value => new ExtendsToken(value),
+            [@"\Gprintln\b"] = value => new PrintLnToken(value),
 
             [@"\G[a-zA-Z_][a-zA-Z0-9_]*"] = value => new IdentifierToken(value),
 

@@ -144,6 +144,140 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Statement")]
+        public void PrintLnStmtNoArgumentsTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println();");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+            Assert.Null(println.Argument);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
+        public void PrintLnStmtIdentifierArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println(x);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+            Assert.IsType<IdentifiedNode>(println.Argument);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
+        public void PrintLnStmtIntArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println(5);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+
+            var intLiteral = Assert.IsType<IntLiteral>(println.Argument);
+            Assert.Equal(5, intLiteral.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
+        public void PrintLnStmtTrueArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println(true);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+
+            var boolLiteral = Assert.IsType<BooleanLiteral>(println.Argument);
+            Assert.True(boolLiteral.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
+        public void PrintLnStmtFalseArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println(false);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+
+            var boolLiteral = Assert.IsType<BooleanLiteral>(println.Argument);
+            Assert.False(boolLiteral.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
+        public void PrintLnStmtExpressionArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("println(x + 5);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var println = Assert.IsType<PrintLnStatement>(expressionStmt.Expression);
+
+            Assert.Equal("println", println.Name);
+            Assert.Null(println.Target);
+
+            var expressionArg = Assert.IsType<BinaryExpression>(println.Argument);
+            Assert.Equal(OperatorType.Add, expressionArg.OperatorType);
+        }
+
+        [Fact]
+        [Trait("Category", "Statement")]
         public void VardecStmtTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int x;");
