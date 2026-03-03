@@ -753,6 +753,64 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
+        public void SimpleNewObjectExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("new MyClass(x, y);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
+
+            Assert.Equal(new IdentifiedNode("MyClass"), newObjectExpression.ClassName);
+            Assert.Equal(2, newObjectExpression.Arguments.Count);
+            Assert.Equal(new IdentifiedNode("x"), newObjectExpression.Arguments[0]);
+            Assert.Equal(new IdentifiedNode("y"), newObjectExpression.Arguments[1]);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ComplexNewObjectExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("new MyClass(new OtherClass(z), y + x < 2);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
+
+            Assert.Equal(new IdentifiedNode("MyClass"), newObjectExpression.ClassName);
+            Assert.Equal(2, newObjectExpression.Arguments.Count);
+
+            NewObjectExpression nestedNewObject = Assert.IsType<NewObjectExpression>(newObjectExpression.Arguments[0]);
+            
+            Assert.Equal(new IdentifiedNode("OtherClass"), nestedNewObject.ClassName);
+            Assert.Single(nestedNewObject.Arguments);
+            Assert.Equal(new IdentifiedNode("z"), nestedNewObject.Arguments[0]);
+
+            Assert.Equal(new BinaryExpression(
+                        new BinaryExpression(
+                            new IdentifiedNode("y"),
+                            OperatorType.Add,
+                            new IdentifiedNode("x")
+                            ),
+                        OperatorType.LessThan,
+                        new IntLiteral(2)
+                        ),
+                    newObjectExpression.Arguments[1]);
+        }
+
+
+        [Fact]
         [Trait("Category", "If")]
         public void NestedIfStatementsTest()
         {
