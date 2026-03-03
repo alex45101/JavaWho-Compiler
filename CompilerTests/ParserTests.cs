@@ -288,9 +288,9 @@ namespace CompilerTests
             Assert.Empty(program.Classes);
             Assert.Single(program.Statements);
 
-            var vardecStatement = Assert.IsType<VariableDeclarationStatement>(program.Statements[0]);
+            var vardecStatement = Assert.IsType<VariableDeclaration>(program.Statements[0]);
 
-            var expected = new VariableDeclarationStatement(
+            var expected = new VariableDeclaration(
                     new IdentifiedNode("Int"),
                     new IdentifiedNode("x")
                     );
@@ -521,7 +521,7 @@ namespace CompilerTests
             var blockStatement = Assert.IsType<BlockStatement>(program.Statements[0]);
 
             List<AST> expectedStmts = [
-                        new VariableDeclarationStatement(
+                        new VariableDeclaration(
                                 new IdentifiedNode("Int"),
                                 new IdentifiedNode("x")
                                 ),
@@ -560,7 +560,7 @@ namespace CompilerTests
 
 
             List<AST> expected = [
-                        new VariableDeclarationStatement(
+                        new VariableDeclaration(
                                 new IdentifiedNode("Int"),
                                 new IdentifiedNode("x")
                                 ),
@@ -1897,11 +1897,11 @@ namespace CompilerTests
                         new IdentifiedNode("MyClass"),
                         null,
                         [
-                            new VariableDeclarationStatement(
+                            new VariableDeclaration(
                                 new IdentifiedNode("Int"),
                                 new IdentifiedNode("z")
                                 ),
-                            new VariableDeclarationStatement(
+                            new VariableDeclaration(
                                 new IdentifiedNode("String"),
                                 new IdentifiedNode("a")
                                 )
@@ -2212,7 +2212,7 @@ namespace CompilerTests
                             ],
                             null,
                             [
-                                new VariableDeclarationStatement(
+                                new VariableDeclaration(
                                     new IdentifiedNode("Int"),
                                     new IdentifiedNode("z")
                                     ),
@@ -2294,7 +2294,7 @@ namespace CompilerTests
                                 new IdentifiedNode("y")
                             ],
                             [
-                                new VariableDeclarationStatement(
+                                new VariableDeclaration(
                                     new IdentifiedNode("Int"),
                                     new IdentifiedNode("z")
                                     ),

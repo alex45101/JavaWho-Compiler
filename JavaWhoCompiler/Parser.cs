@@ -27,7 +27,7 @@
     
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
-    public sealed record VariableDeclarationStatement(IdentifiedNode Type, IdentifiedNode Var) : AST;
+    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
     public sealed record AssignmentStatement(IdentifiedNode Var, AST Val) : AST;
     public sealed record WhileStatement(AST Guard, AST Statement) : AST;
     public sealed record BreakStatement() : AST;
@@ -41,8 +41,6 @@
     public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements) : AST;
     public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions) : AST;
 
-    //misc
-    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
 
 
     public class ParserException(string message) : Exception(message);
@@ -106,7 +104,7 @@
                 IfToken => ParseIfStatement(),
                 OpenCurlyBracketToken => ParseBlockStatement(),
                 IdentifierToken => PeekNext() switch {
-                    IdentifierToken => ParseVardecStatement(),
+                    IdentifierToken => ParseVariableDeclarationStatement(),
                     AssignmentOperatorToken => ParseAssignStatement(),
 
                     // no token ahead of identifier
@@ -198,19 +196,13 @@
             return new BlockStatement(stmts);
         }
 
-        private AST ParseVardecStatement() {
+        private AST ParseVariableDeclarationStatement() {
             
-            string typeIdent = Expect<IdentifierToken>().Value;
-
-            
-            string varIdent = Expect<IdentifierToken>().Value;
+            var vardec = ParseVariableDeclaration();
 
             Expect<SemiColonToken>();
             
-            return new VariableDeclarationStatement(
-                    new IdentifiedNode(typeIdent), 
-                    new IdentifiedNode(varIdent)
-                    );
+            return vardec;
         }
 
         private AST ParseAssignStatement() {
@@ -386,7 +378,6 @@
         }
 
         private AST ParseVariableDeclaration() {
-            // IdentifiedNode Type, IdentifiedNode Var
             string typeIdent = Expect<IdentifierToken>().Value;
             string varIdent = Expect<IdentifierToken>().Value;
 
@@ -494,7 +485,7 @@
             List<AST> vardecs = [];
             // vardecs continue until constructor
             while(!Check<InitToken>()) {
-                vardecs.Add(ParseVardecStatement());
+                vardecs.Add(ParseVariableDeclarationStatement());
             }
 
             AST constructor = ParseConstructor();
