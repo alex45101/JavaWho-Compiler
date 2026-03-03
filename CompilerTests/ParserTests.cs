@@ -2317,5 +2317,90 @@ namespace CompilerTests
 
             Assert.Throws<ParserException>(() => Parser.Parse(tokens));
         }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void MultipleClassesCountTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class OtherClass {
+                        init() {}
+                    }
+
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            super(x, y);
+
+                            Int z;
+                            z = x;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Equal(2, program.Classes.Count);
+            Assert.Empty(program.Statements);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void MultipleClassesAndStatementsCountTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class OtherClass {
+                        init() {}
+                    }
+
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            super(x, y);
+
+                            Int z;
+                            z = x;
+                        }
+                    }
+
+                    OtherClass c;
+                    String s;
+                    s = "test string";
+                    println(s);
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Equal(2, program.Classes.Count);
+            Assert.Equal(4, program.Statements.Count);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void CantMisplaceClassAndStatementTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class OtherClass {
+                        init() {}
+                    }
+
+                    OtherClass c;
+                    String s;
+
+                    class MyClass extends OtherClass {
+                        init(Int x, String y) {
+                            super(x, y);
+
+                            Int z;
+                            z = x;
+                        }
+                    }
+
+                    s = "test string";
+                    println(s);
+                    """);
+
+            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
+
+        }
     }
 }
