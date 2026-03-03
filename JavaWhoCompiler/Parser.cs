@@ -24,6 +24,7 @@
     public sealed record PrimaryExpression(string Value) : AST;
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
     public record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
+    public sealed record NewObjectExpression(IdentifiedNode ClassName, List<AST> Arguments): AST;
     
     //statements
     public sealed record ExpressionStatement(AST Expression) : AST;
@@ -340,10 +341,25 @@
                 NumberToken => new IntLiteral((Consume() as NumberToken).Number),
                 TrueToken or FalseToken => new BooleanLiteral(Consume().Value == "true"),
                 ThisToken => ConsumeAndReturn(new ThisExpression()),
+                NewToken => ParseNewObjectExpression(),
                 _ => throw new ParserException($"Unexpected token {CurrentToken.GetType().Name}")
             };
 
             return primaryNode;
+        }
+
+        private AST ParseNewObjectExpression() {
+            Expect<NewToken>();
+
+            string className = Expect<IdentifierToken>().Value;
+
+            Expect<OpenParenthesisToken>();
+
+            List<AST> args = CommaExpression();
+
+            Expect<CloseParenthesisToken>();
+
+            return new NewObjectExpression(new IdentifiedNode(className), args);
         }
 
         private AST MethodCallExpression(AST Target)
