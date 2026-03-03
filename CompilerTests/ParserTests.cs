@@ -1,5 +1,4 @@
 ﻿using JavaWhoCompiler;
-using System.Runtime.ExceptionServices;
 
 namespace CompilerTests
 {
