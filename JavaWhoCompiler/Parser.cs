@@ -222,6 +222,12 @@
         }
 
         private AST ParseExpressionStatement() {
+            //if (Check<OpenParenthesisToken>())
+            //{
+            //    Consume();
+            //    ParseExpressionStatement();
+            //}
+
             AST exp = ParseExpression();
 
             Expect<SemiColonToken>();

@@ -753,6 +753,223 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Expression")]
+        public void SimpleParenthesizedLiteralTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(42);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            IntLiteral literal = Assert.IsType<IntLiteral>(expStmt.Expression);
+
+            Assert.Equal(42, literal.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ParenthesesOverridePrecedenceTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(2 + 3) * 4;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IntLiteral(2),
+                    OperatorType.Add,
+                    new IntLiteral(3)
+                ),
+                OperatorType.Multiply,
+                new IntLiteral(4)
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void NestedParenthesesInExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(e + (a + b) * c) / d;");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("e"),
+                    OperatorType.Add,
+                    new BinaryExpression(
+                        new BinaryExpression(
+                            new IdentifiedNode("a"),
+                            OperatorType.Add,
+                            new IdentifiedNode("b")
+                        ),
+                        OperatorType.Multiply,
+                        new IdentifiedNode("c")
+                    )
+                ),
+                OperatorType.Divide,
+                new IdentifiedNode("d")
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void MultipleParenthesizedGroupsTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(a + b) * (c - d);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.Add,
+                    new IdentifiedNode("b")
+                ),
+                OperatorType.Multiply,
+                new BinaryExpression(
+                    new IdentifiedNode("c"),
+                    OperatorType.Subtract,
+                    new IdentifiedNode("d")
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void DeeplyNestedParenthesesTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(x + (y * (z + 1)));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("x"),
+                OperatorType.Add,
+                new BinaryExpression(
+                    new IdentifiedNode("y"),
+                    OperatorType.Multiply,
+                    new BinaryExpression(
+                        new IdentifiedNode("z"),
+                        OperatorType.Add,
+                        new IntLiteral(1)
+                    )
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ParenthesesInComparisonTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("(a + b) < (c + d);");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new BinaryExpression(
+                    new IdentifiedNode("a"),
+                    OperatorType.Add,
+                    new IdentifiedNode("b")
+                ),
+                OperatorType.LessThan,
+                new BinaryExpression(
+                    new IdentifiedNode("c"),
+                    OperatorType.Add,
+                    new IdentifiedNode("d")
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void ComplexNestedParenthesesWithDivisionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("a * ((b + c) / (d - e));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("a"),
+                OperatorType.Multiply,
+                new BinaryExpression(
+                    new BinaryExpression(
+                        new IdentifiedNode("b"),
+                        OperatorType.Add,
+                        new IdentifiedNode("c")
+                    ),
+                    OperatorType.Divide,
+                    new BinaryExpression(
+                        new IdentifiedNode("d"),
+                        OperatorType.Subtract,
+                        new IdentifiedNode("e")
+                    )
+                )
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
+        [Trait("Category", "Expression")]
+        public void DoubleParenthesesTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("((x + 5));");
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+
+            var expected = new BinaryExpression(
+                new IdentifiedNode("x"),
+                OperatorType.Add,
+                new IntLiteral(5)
+            );
+
+            Assert.Equal(expected, expStmt.Expression);
+        }
+
+        [Fact]
         [Trait("Category", "If")]
         public void NestedIfStatementsTest()
         {
