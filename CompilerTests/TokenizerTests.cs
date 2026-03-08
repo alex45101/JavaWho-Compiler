@@ -405,23 +405,23 @@ namespace CompilerTests
         public void ClassDefExampleTest() {
             var tokens = Tokenizer.Tokenize("class Bear extends Animal { init() {} method speak() Void { return println(0 == 5); }");
             List<IToken> expected = [
-                new ClassToken("class", 0, 0),  new IdentifierToken("Bear", 0, 0), new ExtendsToken("extends", 0, 0),  new IdentifierToken("Animal", 0, 0),
-                     new OpenCurlyBracketToken("{", 0, 0),
+                new ClassToken("class", new Position(0, 0)),  new IdentifierToken("Bear", new Position(0, 0)), new ExtendsToken("extends", new Position(0, 0)),  new IdentifierToken("Animal", new Position(0, 0)),
+                     new OpenCurlyBracketToken("{", new Position(0, 0)),
 
-                new InitToken("init", 0, 0), new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
-                 new OpenCurlyBracketToken("{", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
+                new InitToken("init", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)),
+                 new OpenCurlyBracketToken("{", new Position(0, 0)), new CloseCurlyBracketToken("}", new Position(0, 0)),
 
-                new MethodToken("method", 0, 0),  new IdentifierToken("speak", 0, 0), 
-                    new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
-                     new VoidTypeToken("Void", 0, 0),  new OpenCurlyBracketToken("{", 0, 0),
+                new MethodToken("method", new Position(0, 0)),  new IdentifierToken("speak", new Position(0, 0)), 
+                    new OpenParenthesisToken("(", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)),
+                     new VoidTypeToken("Void", new Position(0, 0)),  new OpenCurlyBracketToken("{", new Position(0, 0)),
 
-                new ReturnToken("return", 0, 0), 
-                    new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0), new NumberToken("0", 0, 0), 
-                     new EqualsOperatorToken("==", 0, 0),  new NumberToken("5", 0, 0),
-                    new CloseParenthesisToken(")", 0, 0),
-                    new SemiColonToken(";", 0, 0),
+                new ReturnToken("return", new Position(0, 0)), 
+                    new PrintLnToken("println", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)), new NumberToken("0", new Position(0, 0)), 
+                     new EqualsOperatorToken("==", new Position(0, 0)),  new NumberToken("5", new Position(0, 0)),
+                    new CloseParenthesisToken(")", new Position(0, 0)),
+                    new SemiColonToken(";", new Position(0, 0)),
 
-                new CloseCurlyBracketToken("}", 0, 0),
+                new CloseCurlyBracketToken("}", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -431,20 +431,20 @@ namespace CompilerTests
         public void ClassDefCompactExampleTest() {
             var tokens = Tokenizer.Tokenize("class Bear extends Animal{init(){}method speak()Void{return println(0==5);}");
             List<IToken> expected = [
-                new ClassToken("class", 0, 0),  new IdentifierToken("Bear", 0, 0), 
-                    new ExtendsToken("extends", 0, 0),  new IdentifierToken("Animal", 0, 0),
-                    new OpenCurlyBracketToken("{", 0, 0),
-                new InitToken("init", 0, 0), new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
-                new OpenCurlyBracketToken("{", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
-                new MethodToken("method", 0, 0),  new IdentifierToken("speak", 0, 0), 
-                    new OpenParenthesisToken("(", 0, 0), new CloseParenthesisToken(")", 0, 0),
-                    new VoidTypeToken("Void", 0, 0), new OpenCurlyBracketToken("{", 0, 0),
-                new ReturnToken("return", 0, 0), 
-                    new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                    new NumberToken("0", 0, 0), new EqualsOperatorToken("==", 0, 0), new NumberToken("5", 0, 0),
-                    new CloseParenthesisToken(")", 0, 0),
-                    new SemiColonToken(";", 0, 0),
-                new CloseCurlyBracketToken("}", 0, 0),
+                new ClassToken("class", new Position(0, 0)),  new IdentifierToken("Bear", new Position(0, 0)), 
+                    new ExtendsToken("extends", new Position(0, 0)),  new IdentifierToken("Animal", new Position(0, 0)),
+                    new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new InitToken("init", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)),
+                new OpenCurlyBracketToken("{", new Position(0, 0)), new CloseCurlyBracketToken("}", new Position(0, 0)),
+                new MethodToken("method", new Position(0, 0)),  new IdentifierToken("speak", new Position(0, 0)), 
+                    new OpenParenthesisToken("(", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)),
+                    new VoidTypeToken("Void", new Position(0, 0)), new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new ReturnToken("return", new Position(0, 0)), 
+                    new PrintLnToken("println", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                    new NumberToken("0", new Position(0, 0)), new EqualsOperatorToken("==", new Position(0, 0)), new NumberToken("5", new Position(0, 0)),
+                    new CloseParenthesisToken(")", new Position(0, 0)),
+                    new SemiColonToken(";", new Position(0, 0)),
+                new CloseCurlyBracketToken("}", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -455,23 +455,23 @@ namespace CompilerTests
         public void CallsAndMathOperatorsExampleTest() {
             var tokens = Tokenizer.Tokenize("Int x; x = 5; Int y; y = 3; Int z; z = math_util.square(x + 3); Int a; a = z * x / y - x;");
             List<IToken> expected = [
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("x", 0, 0),  new AssignmentOperatorToken("=", 0, 0),  new NumberToken("5", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("y", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("y", 0, 0),  new AssignmentOperatorToken("=", 0, 0),  new NumberToken("3", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("z", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("z", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("math_util", 0, 0), new DotToken(".", 0, 0), new IdentifierToken("square", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                        new IdentifierToken("x", 0, 0),  
-                        new AddOperatorToken("+", 0, 0), 
-                        new NumberToken("3", 0, 0),
-                    new CloseParenthesisToken(")", 0, 0),
-                new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("a", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("a", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("z", 0, 0),  new MultiplyOperatorToken("*", 0, 0),  new IdentifierToken("x", 0, 0),
-                     new DivideOperatorToken("/", 0, 0),  new IdentifierToken("y", 0, 0), 
-                    new SubtractOperatorToken("-", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)),  new NumberToken("5", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("y", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("y", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)),  new NumberToken("3", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("z", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("z", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("math_util", new Position(0, 0)), new DotToken(".", new Position(0, 0)), new IdentifierToken("square", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                        new IdentifierToken("x", new Position(0, 0)),  
+                        new AddOperatorToken("+", new Position(0, 0)), 
+                        new NumberToken("3", new Position(0, 0)),
+                    new CloseParenthesisToken(")", new Position(0, 0)),
+                new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("a", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("a", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("z", new Position(0, 0)),  new MultiplyOperatorToken("*", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)),
+                     new DivideOperatorToken("/", new Position(0, 0)),  new IdentifierToken("y", new Position(0, 0)), 
+                    new SubtractOperatorToken("-", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -481,23 +481,23 @@ namespace CompilerTests
         public void CallsAndMathOperatorsCompactExampleTest() {
             var tokens = Tokenizer.Tokenize("Int x;x=5;Int y;y=3;Int z;z=math_util.square(x+3);Int a;a=z*x/y-x;");
             List<IToken> expected = [
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("x", 0, 0),  new AssignmentOperatorToken("=", 0, 0),  new NumberToken("5", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("y", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("y", 0, 0),  new AssignmentOperatorToken("=", 0, 0),  new NumberToken("3", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("z", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("z", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("math_util", 0, 0), new DotToken(".", 0, 0), new IdentifierToken("square", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                        new IdentifierToken("x", 0, 0),  
-                        new AddOperatorToken("+", 0, 0), 
-                        new NumberToken("3", 0, 0),
-                    new CloseParenthesisToken(")", 0, 0),
-                new SemiColonToken(";", 0, 0),
-                new IdentifierToken("Int", 0, 0),  new IdentifierToken("a", 0, 0), new SemiColonToken(";", 0, 0),
-                new IdentifierToken("a", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("z", 0, 0),  new MultiplyOperatorToken("*", 0, 0),  new IdentifierToken("x", 0, 0),
-                     new DivideOperatorToken("/", 0, 0),  new IdentifierToken("y", 0, 0), 
-                    new SubtractOperatorToken("-", 0, 0),  new IdentifierToken("x", 0, 0), new SemiColonToken(";", 0, 0),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)),  new NumberToken("5", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("y", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("y", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)),  new NumberToken("3", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("z", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("z", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("math_util", new Position(0, 0)), new DotToken(".", new Position(0, 0)), new IdentifierToken("square", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                        new IdentifierToken("x", new Position(0, 0)),  
+                        new AddOperatorToken("+", new Position(0, 0)), 
+                        new NumberToken("3", new Position(0, 0)),
+                    new CloseParenthesisToken(")", new Position(0, 0)),
+                new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("Int", new Position(0, 0)),  new IdentifierToken("a", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                new IdentifierToken("a", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("z", new Position(0, 0)),  new MultiplyOperatorToken("*", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)),
+                     new DivideOperatorToken("/", new Position(0, 0)),  new IdentifierToken("y", new Position(0, 0)), 
+                    new SubtractOperatorToken("-", new Position(0, 0)),  new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -507,19 +507,19 @@ namespace CompilerTests
         public void IfElseExampleTest() {
             var tokens = Tokenizer.Tokenize("if(x < 7) { println(\"hello world\")} else { x = x + 1; }");
             List<IToken> expected = [
-                new IfToken("if", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                new IdentifierToken("x", 0, 0),  new LessThanOperatorToken("<", 0, 0),
-                     new NumberToken("7", 0, 0),
-                new CloseParenthesisToken(")", 0, 0),
-                new OpenCurlyBracketToken("{", 0, 0),
-                new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                    new StringToken("\"hello world\"", 0, 0), new CloseParenthesisToken(")", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
-                new ElseToken("else", 0, 0),
-                new OpenCurlyBracketToken("{", 0, 0),
-                new IdentifierToken("x", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("x", 0, 0),  new AddOperatorToken("+", 0, 0),
-                     new NumberToken("1", 0, 0), new SemiColonToken(";", 0, 0),
-                     new CloseCurlyBracketToken("}", 0, 0),
+                new IfToken("if", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)),  new LessThanOperatorToken("<", new Position(0, 0)),
+                     new NumberToken("7", new Position(0, 0)),
+                new CloseParenthesisToken(")", new Position(0, 0)),
+                new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new PrintLnToken("println", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                    new StringToken("\"hello world\"", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)), new CloseCurlyBracketToken("}", new Position(0, 0)),
+                new ElseToken("else", new Position(0, 0)),
+                new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("x", new Position(0, 0)),  new AddOperatorToken("+", new Position(0, 0)),
+                     new NumberToken("1", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                     new CloseCurlyBracketToken("}", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -529,18 +529,18 @@ namespace CompilerTests
         public void IfElseCompactExampleTest() {
             var tokens = Tokenizer.Tokenize("if(x<7){println(\"hello world\")}else{x=x+1;}");
             List<IToken> expected = [
-                new IfToken("if", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                new IdentifierToken("x", 0, 0), new LessThanOperatorToken("<", 0, 0), new NumberToken("7", 0, 0),
-                new CloseParenthesisToken(")", 0, 0),
-                new OpenCurlyBracketToken("{", 0, 0),
-                new PrintLnToken("println", 0, 0), new OpenParenthesisToken("(", 0, 0),
-                    new StringToken("\"hello world\"", 0, 0), new CloseParenthesisToken(")", 0, 0), new CloseCurlyBracketToken("}", 0, 0),
-                new ElseToken("else", 0, 0),
-                new OpenCurlyBracketToken("{", 0, 0),
-                new IdentifierToken("x", 0, 0),  new AssignmentOperatorToken("=", 0, 0), 
-                    new IdentifierToken("x", 0, 0),  new AddOperatorToken("+", 0, 0),
-                     new NumberToken("1", 0, 0), new SemiColonToken(";", 0, 0),
-                     new CloseCurlyBracketToken("}", 0, 0),
+                new IfToken("if", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)), new LessThanOperatorToken("<", new Position(0, 0)), new NumberToken("7", new Position(0, 0)),
+                new CloseParenthesisToken(")", new Position(0, 0)),
+                new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new PrintLnToken("println", new Position(0, 0)), new OpenParenthesisToken("(", new Position(0, 0)),
+                    new StringToken("\"hello world\"", new Position(0, 0)), new CloseParenthesisToken(")", new Position(0, 0)), new CloseCurlyBracketToken("}", new Position(0, 0)),
+                new ElseToken("else", new Position(0, 0)),
+                new OpenCurlyBracketToken("{", new Position(0, 0)),
+                new IdentifierToken("x", new Position(0, 0)),  new AssignmentOperatorToken("=", new Position(0, 0)), 
+                    new IdentifierToken("x", new Position(0, 0)),  new AddOperatorToken("+", new Position(0, 0)),
+                     new NumberToken("1", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0)),
+                     new CloseCurlyBracketToken("}", new Position(0, 0)),
             ];
 
             AssertTokenListEqualIgnoreLinePos(expected, tokens);
@@ -564,11 +564,11 @@ namespace CompilerTests
         public void LineNumPosTest(string code) {
             var tokens = Tokenizer.Tokenize(code);
             List<IToken> expected = [
-                new IdentifierToken("x", 1, 1), new AssignmentOperatorToken("=", 1, 3), new NumberToken("5", 1, 5), new SemiColonToken(";", 1, 6),
-                new IdentifierToken("x", 2, 1), new AddOperatorToken("+", 2, 3), new NumberToken("2", 2, 5), new SemiColonToken(";", 2, 6),
+                new IdentifierToken("x", new Position(1, 1)), new AssignmentOperatorToken("=", new Position(1, 3)), new NumberToken("5", new Position(1, 5)), new SemiColonToken(";", new Position(1, 6)),
+                new IdentifierToken("x", new Position(2, 1)), new AddOperatorToken("+", new Position(2, 3)), new NumberToken("2", new Position(2, 5)), new SemiColonToken(";", new Position(2, 6)),
 
-                new PrintLnToken("println", 4, 1), new OpenParenthesisToken("(", 4, 8), new StringToken("\"Hello world\"", 4, 9), new CloseParenthesisToken(")", 4, 22), 
-                            new SemiColonToken(";", 4, 23),
+                new PrintLnToken("println", new Position(4, 1)), new OpenParenthesisToken("(", new Position(4, 8)), new StringToken("\"Hello world\"", new Position(4, 9)), new CloseParenthesisToken(")", new Position(4, 22)), 
+                            new SemiColonToken(";", new Position(4, 23)),
             ];
 
             AssertTokenListEqual(expected, tokens);
