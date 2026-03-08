@@ -8,58 +8,58 @@ namespace CompilerTests
         {
             yield return new object[] {
                 "a < 5;",
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.LessThan,
-                new IntLiteral(5, new Position(0, 0))
+                new IntLiteral(5, null)
             };
 
             yield return new object[] {
                 "a == 5;",
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.Equal,
-                new IntLiteral(5, new Position(0, 0))
+                new IntLiteral(5, null)
             };
 
             yield return new object[] {
                 "a + 5;",
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.Add,
-                new IntLiteral(5, new Position(0, 0))
+                new IntLiteral(5, null)
             };
 
             yield return new object[] {
                 "a - 5;",
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.Subtract,
-                new IntLiteral(5, new Position(0, 0))
+                new IntLiteral(5, null)
             };
 
             yield return new object[] {
                 "5 == true;",
-                new IntLiteral(5, new Position(0, 0)),
+                new IntLiteral(5, null),
                 OperatorType.Equal,
-                new BooleanLiteral(true, new Position(0, 0))
+                new BooleanLiteral(true, null)
             };
 
             yield return new object[] {
                 "5 != false;",
-                new IntLiteral(5, new Position(0, 0)),
+                new IntLiteral(5, null),
                 OperatorType.NotEqual,
-                new BooleanLiteral(false, new Position(0, 0))
+                new BooleanLiteral(false, null)
             };
 
             yield return new object[] {
                 "a * 5;",
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.Multiply,
-                new IntLiteral(5, new Position(0, 0))
+                new IntLiteral(5, null)
             };
 
             yield return new object[] {
                 "10 / b;",
-                new IntLiteral(10, new Position(0, 0)),
+                new IntLiteral(10, null),
                 OperatorType.Divide,
-                new IdentifiedNode("b", new Position(0, 0))
+                new IdentifiedNode("b", null)
             };
         }
 
@@ -291,9 +291,9 @@ namespace CompilerTests
             var vardecStatement = Assert.IsType<VariableDeclaration>(program.Statements[0]);
 
             var expected = new VariableDeclaration(
-                    new IdentifiedNode("Int", new Position(0, 0)),
-                    new IdentifiedNode("x", new Position(0, 0))
-                    , new Position(0, 0));
+                    new IdentifiedNode("Int", null),
+                    new IdentifiedNode("x", null)
+                    , null);
 
             Assert.True(Parser.ASTsEqual(expected, vardecStatement));
         }
@@ -314,9 +314,9 @@ namespace CompilerTests
             var assignStatement = Assert.IsType<AssignmentStatement>(program.Statements[0]);
 
             var expected = new AssignmentStatement(
-                    new IdentifiedNode("x", new Position(0, 0)),
-                    new IntLiteral(5, new Position(0, 0))
-                    , new Position(0, 0));
+                    new IdentifiedNode("x", null),
+                    new IntLiteral(5, null)
+                    , null);
 
             Assert.True(Parser.ASTsEqual(expected, assignStatement));
         }
@@ -338,19 +338,19 @@ namespace CompilerTests
 
             var expected = new WhileStatement(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                    , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                    , null),
                 new AssignmentStatement(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     new BinaryExpression(
-                        new IdentifiedNode("x", new Position(0, 0)),
+                        new IdentifiedNode("x", null),
                         OperatorType.Add,
-                        new IntLiteral(1, new Position(0, 0))
-                        , new Position(0, 0))
-                    , new Position(0, 0))
-            , new Position(0, 0));
+                        new IntLiteral(1, null)
+                        , null)
+                    , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, whileStmt));
         }
@@ -405,10 +405,10 @@ namespace CompilerTests
             var returnStmt = Assert.IsType<ReturnStatement>(program.Statements[0]);
 
             var expectedVal = new BinaryExpression(
-                    new IntLiteral(5, new Position(0, 0)),
+                    new IntLiteral(5, null),
                     OperatorType.Add,
-                    new IntLiteral(8, new Position(0, 0))
-                    , new Position(0, 0));
+                    new IntLiteral(8, null)
+                    , null);
 
             Assert.True(Parser.ASTsEqual(expectedVal, returnStmt.Val));
         }
@@ -431,15 +431,15 @@ namespace CompilerTests
             var expected =
                 new IfStatement(
                     new BinaryExpression(
-                        new IdentifiedNode("x", new Position(0, 0)),
+                        new IdentifiedNode("x", null),
                         OperatorType.NotEqual,
-                        new IntLiteral(5, new Position(0, 0))
-                        , new Position(0, 0)),
+                        new IntLiteral(5, null)
+                        , null),
                     new ReturnStatement(
-                        new IdentifiedNode("v", new Position(0, 0))
-                    , new Position(0, 0)),
+                        new IdentifiedNode("v", null)
+                    , null),
                     null
-                , new Position(0, 0));
+                , null);
 
             Assert.True(Parser.ASTsEqual(expected, ifStatement));
         }
@@ -467,17 +467,17 @@ namespace CompilerTests
             var expected =
                 new IfStatement(
                     new BinaryExpression(
-                        new IdentifiedNode("x", new Position(0, 0)),
+                        new IdentifiedNode("x", null),
                         OperatorType.NotEqual,
-                        new IntLiteral(5, new Position(0, 0))
-                        , new Position(0, 0)),
+                        new IntLiteral(5, null)
+                        , null),
                     new ReturnStatement(
-                        new IdentifiedNode("v", new Position(0, 0))
-                    , new Position(0, 0)),
+                        new IdentifiedNode("v", null)
+                    , null),
                     new ReturnStatement(
-                        new IdentifiedNode("x", new Position(0, 0))
-                        , new Position(0, 0))
-                , new Position(0, 0));
+                        new IdentifiedNode("x", null)
+                        , null)
+                , null);
 
             Assert.True(Parser.ASTsEqual(expected, ifStatement));
         }
@@ -522,17 +522,17 @@ namespace CompilerTests
 
             List<AST> expectedStmts = [
                         new VariableDeclaration(
-                                new IdentifiedNode("Int", new Position(0, 0)),
-                                new IdentifiedNode("x", new Position(0, 0))
-                                , new Position(0, 0)),
+                                new IdentifiedNode("Int", null),
+                                new IdentifiedNode("x", null)
+                                , null),
                         new AssignmentStatement(
-                            new IdentifiedNode("x", new Position(0, 0)),
+                            new IdentifiedNode("x", null),
                             new BinaryExpression(
-                                new IntLiteral(5, new Position(0, 0)),
+                                new IntLiteral(5, null),
                                 OperatorType.Add,
-                                new IntLiteral(2, new Position(0, 0))
-                            , new Position(0, 0))
-                        , new Position(0, 0))
+                                new IntLiteral(2, null)
+                            , null)
+                        , null)
             ];
 
             Parser.ASTListsEqual(expectedStmts, blockStatement.Statements);
@@ -556,17 +556,17 @@ namespace CompilerTests
 
             List<AST> expected = [
                         new VariableDeclaration(
-                                new IdentifiedNode("Int", new Position(0, 0)),
-                                new IdentifiedNode("x", new Position(0, 0))
-                                , new Position(0, 0)),
+                                new IdentifiedNode("Int", null),
+                                new IdentifiedNode("x", null)
+                                , null),
                         new AssignmentStatement(
-                            new IdentifiedNode("x", new Position(0, 0)),
+                            new IdentifiedNode("x", null),
                             new BinaryExpression(
-                                new IntLiteral(5, new Position(0, 0)),
+                                new IntLiteral(5, null),
                                 OperatorType.Add,
-                                new IntLiteral(2, new Position(0, 0))
-                            , new Position(0, 0))
-                        , new Position(0, 0)),
+                                new IntLiteral(2, null)
+                            , null)
+                        , null),
             ];
 
             Assert.True(Parser.ASTListsEqual(expected, program.Statements));
@@ -585,14 +585,14 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
-                new IntLiteral(2, new Position(0, 0)),
+                new IntLiteral(2, null),
                 OperatorType.Add,
                 new BinaryExpression(
-                    new IntLiteral(3, new Position(0, 0)),
+                    new IntLiteral(3, null),
                     OperatorType.Multiply,
-                    new IntLiteral(4, new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                    new IntLiteral(4, null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -611,17 +611,17 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IdentifiedNode("a", new Position(0, 0)),
+                    new IdentifiedNode("a", null),
                     OperatorType.Add,
-                    new IntLiteral(2, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(2, null)
+                , null),
                 OperatorType.LessThan,
                 new BinaryExpression(
-                    new IdentifiedNode("b", new Position(0, 0)),
+                    new IdentifiedNode("b", null),
                     OperatorType.Add,
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                    new IntLiteral(3, null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -640,17 +640,17 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IdentifiedNode("a", new Position(0, 0)),
+                    new IdentifiedNode("a", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 OperatorType.Equal,
                 new BinaryExpression(
-                    new IdentifiedNode("b", new Position(0, 0)),
+                    new IdentifiedNode("b", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                    new IntLiteral(10, null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -670,20 +670,20 @@ namespace CompilerTests
             var expected = new BinaryExpression(
                 new BinaryExpression(
                     new BinaryExpression(
-                        new IdentifiedNode("a", new Position(0, 0)),
+                        new IdentifiedNode("a", null),
                         OperatorType.Multiply,
-                        new IntLiteral(2, new Position(0, 0))
-                    , new Position(0, 0)),
+                        new IntLiteral(2, null)
+                    , null),
                     OperatorType.Add,
                     new BinaryExpression(
-                        new IdentifiedNode("b", new Position(0, 0)),
+                        new IdentifiedNode("b", null),
                         OperatorType.Divide,
-                        new IntLiteral(3, new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0)),
+                        new IntLiteral(3, null)
+                    , null)
+                , null),
                 OperatorType.Subtract,
-                new IntLiteral(4, new Position(0, 0))
-            , new Position(0, 0));
+                new IntLiteral(4, null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -757,10 +757,10 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
 
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", new Position(0, 0)), newObjectExpression.ClassName));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
             Assert.Equal(2, newObjectExpression.Arguments.Count);
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("x", new Position(0, 0)), newObjectExpression.Arguments[0]));
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("y", new Position(0, 0)), newObjectExpression.Arguments[1]));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("x", null), newObjectExpression.Arguments[0]));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("y", null), newObjectExpression.Arguments[1]));
         }
 
         [Fact]
@@ -778,24 +778,24 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
 
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", new Position(0, 0)), newObjectExpression.ClassName));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
             Assert.Equal(2, newObjectExpression.Arguments.Count);
 
             NewObjectExpression nestedNewObject = Assert.IsType<NewObjectExpression>(newObjectExpression.Arguments[0]);
             
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("OtherClass", new Position(0, 0)), nestedNewObject.ClassName));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("OtherClass", null), nestedNewObject.ClassName));
             Assert.Single(nestedNewObject.Arguments);
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("z", new Position(0, 0)), nestedNewObject.Arguments[0]));
+            Assert.True(Parser.ASTsEqual(new IdentifiedNode("z", null), nestedNewObject.Arguments[0]));
 
             Assert.True(Parser.ASTsEqual(new BinaryExpression(
                         new BinaryExpression(
-                            new IdentifiedNode("y", new Position(0, 0)),
+                            new IdentifiedNode("y", null),
                             OperatorType.Add,
-                            new IdentifiedNode("x", new Position(0, 0))
-                            , new Position(0, 0)),
+                            new IdentifiedNode("x", null)
+                            , null),
                         OperatorType.LessThan,
-                        new IntLiteral(2, new Position(0, 0))
-                        , new Position(0, 0)),
+                        new IntLiteral(2, null)
+                        , null),
                     newObjectExpression.Arguments[1]));
         }
 
@@ -831,13 +831,13 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IntLiteral(2, new Position(0, 0)),
+                    new IntLiteral(2, null),
                     OperatorType.Add,
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(3, null)
+                , null),
                 OperatorType.Multiply,
-                new IntLiteral(4, new Position(0, 0))
-            , new Position(0, 0));
+                new IntLiteral(4, null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -856,21 +856,21 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IdentifiedNode("e", new Position(0, 0)),
+                    new IdentifiedNode("e", null),
                     OperatorType.Add,
                     new BinaryExpression(
                         new BinaryExpression(
-                            new IdentifiedNode("a", new Position(0, 0)),
+                            new IdentifiedNode("a", null),
                             OperatorType.Add,
-                            new IdentifiedNode("b", new Position(0, 0))
-                        , new Position(0, 0)),
+                            new IdentifiedNode("b", null)
+                        , null),
                         OperatorType.Multiply,
-                        new IdentifiedNode("c", new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0)),
+                        new IdentifiedNode("c", null)
+                    , null)
+                , null),
                 OperatorType.Divide,
-                new IdentifiedNode("d", new Position(0, 0))
-            , new Position(0, 0));
+                new IdentifiedNode("d", null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -889,17 +889,17 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IdentifiedNode("a", new Position(0, 0)),
+                    new IdentifiedNode("a", null),
                     OperatorType.Add,
-                    new IdentifiedNode("b", new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("b", null)
+                , null),
                 OperatorType.Multiply,
                 new BinaryExpression(
-                    new IdentifiedNode("c", new Position(0, 0)),
+                    new IdentifiedNode("c", null),
                     OperatorType.Subtract,
-                    new IdentifiedNode("d", new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                    new IdentifiedNode("d", null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -917,18 +917,18 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
-                new IdentifiedNode("x", new Position(0, 0)),
+                new IdentifiedNode("x", null),
                 OperatorType.Add,
                 new BinaryExpression(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     OperatorType.Multiply,
                     new BinaryExpression(
-                        new IdentifiedNode("z", new Position(0, 0)),
+                        new IdentifiedNode("z", null),
                         OperatorType.Add,
-                        new IntLiteral(1, new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                        new IntLiteral(1, null)
+                    , null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -947,17 +947,17 @@ namespace CompilerTests
 
             var expected = new BinaryExpression(
                 new BinaryExpression(
-                    new IdentifiedNode("a", new Position(0, 0)),
+                    new IdentifiedNode("a", null),
                     OperatorType.Add,
-                    new IdentifiedNode("b", new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("b", null)
+                , null),
                 OperatorType.LessThan,
                 new BinaryExpression(
-                    new IdentifiedNode("c", new Position(0, 0)),
+                    new IdentifiedNode("c", null),
                     OperatorType.Add,
-                    new IdentifiedNode("d", new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                    new IdentifiedNode("d", null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -975,22 +975,22 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
-                new IdentifiedNode("a", new Position(0, 0)),
+                new IdentifiedNode("a", null),
                 OperatorType.Multiply,
                 new BinaryExpression(
                     new BinaryExpression(
-                        new IdentifiedNode("b", new Position(0, 0)),
+                        new IdentifiedNode("b", null),
                         OperatorType.Add,
-                        new IdentifiedNode("c", new Position(0, 0))
-                    , new Position(0, 0)),
+                        new IdentifiedNode("c", null)
+                    , null),
                     OperatorType.Divide,
                     new BinaryExpression(
-                        new IdentifiedNode("d", new Position(0, 0)),
+                        new IdentifiedNode("d", null),
                         OperatorType.Subtract,
-                        new IdentifiedNode("e", new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0))
-            , new Position(0, 0));
+                        new IdentifiedNode("e", null)
+                    , null)
+                , null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -1008,10 +1008,10 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
 
             var expected = new BinaryExpression(
-                new IdentifiedNode("x", new Position(0, 0)),
+                new IdentifiedNode("x", null),
                 OperatorType.Add,
-                new IntLiteral(5, new Position(0, 0))
-            , new Position(0, 0));
+                new IntLiteral(5, null)
+            , null);
 
             Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
         }
@@ -1036,27 +1036,27 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 outerIf.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(10, null)
+                , null),
                 innerIf.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("x", new Position(0, 0)),
-                    new IntLiteral(1, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("x", null),
+                    new IntLiteral(1, null)
+                , null),
                 innerIf.IfBody
             ));
         }
@@ -1082,19 +1082,19 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 outerWhile.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(10, null)
+                , null),
                 innerWhile.Guard
             ));
 
@@ -1102,13 +1102,13 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     new BinaryExpression(
-                        new IdentifiedNode("y", new Position(0, 0)),
+                        new IdentifiedNode("y", null),
                         OperatorType.Add,
-                        new IntLiteral(1, new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0)),
+                        new IntLiteral(1, null)
+                    , null)
+                , null),
                 innerWhileBody
             ));
         }
@@ -1134,10 +1134,10 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 whileStmt.Guard
             ));
 
@@ -1147,25 +1147,25 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     new BinaryExpression(
-                        new IdentifiedNode("x", new Position(0, 0)),
+                        new IdentifiedNode("x", null),
                         OperatorType.Add,
-                        new IntLiteral(1, new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0)),
+                        new IntLiteral(1, null)
+                    , null)
+                , null),
                 block.Statements[0]
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     new BinaryExpression(
-                        new IdentifiedNode("y", new Position(0, 0)),
+                        new IdentifiedNode("y", null),
                         OperatorType.Add,
-                        new IntLiteral(2, new Position(0, 0))
-                    , new Position(0, 0))
-                , new Position(0, 0)),
+                        new IntLiteral(2, null)
+                    , null)
+                , null),
                 block.Statements[1]
             ));
         }
@@ -1191,10 +1191,10 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.Equal,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 ifStmt.Guard
             ));
 
@@ -1204,17 +1204,17 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("x", new Position(0, 0)),
-                    new IntLiteral(0, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("x", null),
+                    new IntLiteral(0, null)
+                , null),
                 block.Statements[0]
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
-                    new IntLiteral(0, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(0, null)
+                , null),
                 block.Statements[1]
             ));
 
@@ -1270,37 +1270,37 @@ namespace CompilerTests
             var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
             var expectedGuard = new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0));
+                    new IntLiteral(5, null)
+                , null);
             Assert.True(Parser.ASTsEqual(expectedGuard, outerIf.Guard));
 
             var expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
-                    new IntLiteral(1, new Position(0, 0))
-                , new Position(0, 0));
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(1, null)
+                , null);
             Assert.True(Parser.ASTsEqual(expectedIfBody, outerIf.IfBody));
 
             var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
 
             expectedGuard = new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0));
+                    new IntLiteral(10, null)
+                , null);
             Assert.True(Parser.ASTsEqual(expectedGuard, elseIfStmt.Guard));
 
             expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
-                    new IntLiteral(2, new Position(0, 0))
-                , new Position(0, 0));
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(2, null)
+                , null);
             Assert.True(Parser.ASTsEqual(expectedIfBody, elseIfStmt.IfBody));
 
             expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", new Position(0, 0)),
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0));
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(3, null)
+                , null);
             Assert.True(Parser.ASTsEqual(expectedIfBody, elseIfStmt.ElseBody));
         }
 
@@ -1333,44 +1333,44 @@ namespace CompilerTests
             var fourthIf = Assert.IsType<IfStatement>(thirdIf.ElseBody);
 
             Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", new Position(0, 0)), OperatorType.Equal, new IntLiteral(1, new Position(0, 0)), new Position(0, 0)),
+                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(1, null), null),
                 firstIf.Guard
             ));
             Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", new Position(0, 0)), OperatorType.Equal, new IntLiteral(2, new Position(0, 0)), new Position(0, 0)),
+                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(2, null), null),
                 secondIf.Guard
             ));
             Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", new Position(0, 0)), OperatorType.Equal, new IntLiteral(3, new Position(0, 0)), new Position(0, 0)),
+                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(3, null), null),
                 thirdIf.Guard
             ));
             Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", new Position(0, 0)), OperatorType.Equal, new IntLiteral(4, new Position(0, 0)), new Position(0, 0)),
+                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(4, null), null),
                 fourthIf.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(10, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(10, null), null),
                 firstIf.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(20, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(20, null), null),
                 secondIf.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(30, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(30, null), null),
                 thirdIf.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(40, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(40, null), null),
                 fourthIf.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(50, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(50, null), null),
                 fourthIf.ElseBody
             ));
         }
@@ -1404,11 +1404,11 @@ namespace CompilerTests
             Assert.Equal(2, ifBlock.Statements.Count);
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(1, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(1, null), null),
                 ifBlock.Statements[0]
             ));
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", new Position(0, 0)), new IntLiteral(1, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(1, null), null),
                 ifBlock.Statements[1]
             ));
 
@@ -1418,11 +1418,11 @@ namespace CompilerTests
             Assert.Equal(2, elseIfBlock.Statements.Count);
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(2, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(2, null), null),
                 elseIfBlock.Statements[0]
             ));
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", new Position(0, 0)), new IntLiteral(2, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(2, null), null),
                 elseIfBlock.Statements[1]
             ));
 
@@ -1431,11 +1431,11 @@ namespace CompilerTests
             Assert.Equal(2, finalElseBlock.Statements.Count);
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(3, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(3, null), null),
                 finalElseBlock.Statements[0]
             ));
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", new Position(0, 0)), new IntLiteral(3, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(3, null), null),
                 finalElseBlock.Statements[1]
             ));
         }
@@ -1464,7 +1464,7 @@ namespace CompilerTests
             var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(1, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(1, null), null),
                 outerIf.IfBody
             ));
 
@@ -1476,20 +1476,20 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("z", new Position(0, 0)),
+                    new IdentifiedNode("z", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(10, null)
+                , null),
                 nestedIf.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(2, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(2, null), null),
                 nestedIf.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", new Position(0, 0)), new IntLiteral(3, new Position(0, 0)), new Position(0, 0)),
+                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(3, null), null),
                 nestedIf.ElseBody
             ));
         }
@@ -1522,10 +1522,10 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(5, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(5, null)
+                , null),
                 outerIf.Guard
             ));
 
@@ -1537,26 +1537,26 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     OperatorType.LessThan,
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(3, null)
+                , null),
                 nestedIfInIfBlock.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("z", new Position(0, 0)),
-                    new IntLiteral(1, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("z", null),
+                    new IntLiteral(1, null)
+                , null),
                 nestedIfInIfBlock.IfBody
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("z", new Position(0, 0)),
-                    new IntLiteral(2, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("z", null),
+                    new IntLiteral(2, null)
+                , null),
                 nestedIfInIfBlock.ElseBody
             ));
 
@@ -1564,10 +1564,10 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("x", new Position(0, 0)),
+                    new IdentifiedNode("x", null),
                     OperatorType.LessThan,
-                    new IntLiteral(10, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(10, null)
+                , null),
                 elseIfStmt.Guard
             ));
 
@@ -1579,18 +1579,18 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new BinaryExpression(
-                    new IdentifiedNode("y", new Position(0, 0)),
+                    new IdentifiedNode("y", null),
                     OperatorType.LessThan,
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IntLiteral(3, null)
+                , null),
                 nestedIfInElseIfBlock.Guard
             ));
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("z", new Position(0, 0)),
-                    new IntLiteral(3, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("z", null),
+                    new IntLiteral(3, null)
+                , null),
                 nestedIfInElseIfBlock.IfBody
             ));
 
@@ -1602,9 +1602,9 @@ namespace CompilerTests
 
             Assert.True(Parser.ASTsEqual(
                 new AssignmentStatement(
-                    new IdentifiedNode("z", new Position(0, 0)),
-                    new IntLiteral(4, new Position(0, 0))
-                , new Position(0, 0)),
+                    new IdentifiedNode("z", null),
+                    new IntLiteral(4, null)
+                , null),
                 finalElseBlock.Statements[0]
             ));
         }
@@ -2038,34 +2038,34 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
                         null,
                         [],
                         new Constructor(
                             [],
                             null,
                             []
-                            , new Position(0, 0)),
+                            , null),
                         [
                             new MethodDefinition(
-                                new IdentifiedNode("test", new Position(0, 0)),
+                                new IdentifiedNode("test", null),
                                 [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                                 ],
                                 null,
                                 new BlockStatement([
-                                    new ReturnStatement(null, new Position(0, 0))
-                                ], new Position(0, 0))
-                            , new Position(0, 0))
+                                    new ReturnStatement(null, null)
+                                ], null)
+                            , null)
                         ]
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }
@@ -2094,43 +2094,43 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
                         null,
                         [
                             new VariableDeclaration(
-                                new IdentifiedNode("Int", new Position(0, 0)),
-                                new IdentifiedNode("z", new Position(0, 0))
-                                , new Position(0, 0)),
+                                new IdentifiedNode("Int", null),
+                                new IdentifiedNode("z", null)
+                                , null),
                             new VariableDeclaration(
-                                new IdentifiedNode("String", new Position(0, 0)),
-                                new IdentifiedNode("a", new Position(0, 0))
-                                , new Position(0, 0))
+                                new IdentifiedNode("String", null),
+                                new IdentifiedNode("a", null)
+                                , null)
                         ],
                         new Constructor(
                             [],
                             null,
                             []
-                            , new Position(0, 0)),
+                            , null),
                         [
                             new MethodDefinition(
-                                new IdentifiedNode("test", new Position(0, 0)),
+                                new IdentifiedNode("test", null),
                                 [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                                 ],
                                 null,
                                 new BlockStatement([
-                                    new ReturnStatement(null, new Position(0, 0))
-                                ], new Position(0, 0))
-                            , new Position(0, 0))
+                                    new ReturnStatement(null, null)
+                                ], null)
+                            , null)
                         ]
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }
@@ -2176,34 +2176,34 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
-                        new IdentifiedNode("OtherClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
+                        new IdentifiedNode("OtherClass", null),
                         [],
                         new Constructor(
                             [],
                             null,
                             []
-                            , new Position(0, 0)),
+                            , null),
                         [
                             new MethodDefinition(
-                                new IdentifiedNode("test", new Position(0, 0)),
+                                new IdentifiedNode("test", null),
                                 [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                                 ],
                                 null,
                                 new BlockStatement([
-                                    new ReturnStatement(null, new Position(0, 0))
-                                ], new Position(0, 0))
-                            , new Position(0, 0))
+                                    new ReturnStatement(null, null)
+                                ], null)
+                            , null)
                         ]
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }
@@ -2234,53 +2234,53 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
-                        new IdentifiedNode("OtherClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
+                        new IdentifiedNode("OtherClass", null),
                         [],
                         new Constructor(
                             [],
                             null,
                             []
-                            , new Position(0, 0)),
+                            , null),
                         [
                             new MethodDefinition(
-                                new IdentifiedNode("test1", new Position(0, 0)),
+                                new IdentifiedNode("test1", null),
                                 [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                                 ],
                                 null,
                                 new BlockStatement([
-                                    new ReturnStatement(null, new Position(0, 0))
-                                ], new Position(0, 0))
-                            , new Position(0, 0)),
+                                    new ReturnStatement(null, null)
+                                ], null)
+                            , null),
                             new MethodDefinition(
-                                new IdentifiedNode("test2", new Position(0, 0)),
+                                new IdentifiedNode("test2", null),
                                 [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                                 ],
-                                new IdentifiedNode("Boolean", new Position(0, 0)),
+                                new IdentifiedNode("Boolean", null),
                                 new BlockStatement([
                                     new ReturnStatement(
-                                        new BooleanLiteral(true, new Position(0, 0))
-                                        , new Position(0, 0))
-                                ], new Position(0, 0))
-                            , new Position(0, 0))
+                                        new BooleanLiteral(true, null)
+                                        , null)
+                                ], null)
+                            , null)
                         ]
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }
@@ -2324,34 +2324,34 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
-                        new IdentifiedNode("OtherClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
+                        new IdentifiedNode("OtherClass", null),
                         [],
                         new Constructor(
                             [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                             ],
                             null,
                             [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("z", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("z", null)
+                                    , null),
                                 new AssignmentStatement(
-                                    new IdentifiedNode("z", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0))
+                                    new IdentifiedNode("z", null),
+                                    new IdentifiedNode("x", null)
+                                    , null)
                             ]
-                            , new Position(0, 0)),
+                            , null),
                         []
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }
@@ -2379,37 +2379,37 @@ namespace CompilerTests
 
 
             var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", new Position(0, 0)),
-                        new IdentifiedNode("OtherClass", new Position(0, 0)),
+                        new IdentifiedNode("MyClass", null),
+                        new IdentifiedNode("OtherClass", null),
                         [],
                         new Constructor(
                             [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("x", null)
+                                    , null),
                                 new VariableDeclaration(
-                                    new IdentifiedNode("String", new Position(0, 0)),
-                                    new IdentifiedNode("y", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("y", null)
+                                    , null),
                             ],
                             [
-                                new IdentifiedNode("x", new Position(0, 0)),
-                                new IdentifiedNode("y", new Position(0, 0))
+                                new IdentifiedNode("x", null),
+                                new IdentifiedNode("y", null)
                             ],
                             [
                                 new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(0, 0)),
-                                    new IdentifiedNode("z", new Position(0, 0))
-                                    , new Position(0, 0)),
+                                    new IdentifiedNode("Int", null),
+                                    new IdentifiedNode("z", null)
+                                    , null),
                                 new AssignmentStatement(
-                                    new IdentifiedNode("z", new Position(0, 0)),
-                                    new IdentifiedNode("x", new Position(0, 0))
-                                    , new Position(0, 0))
+                                    new IdentifiedNode("z", null),
+                                    new IdentifiedNode("x", null)
+                                    , null)
                             ]
-                            , new Position(0, 0)),
+                            , null),
                         []
-                        , new Position(0, 0));
+                        , null);
 
             Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
         }

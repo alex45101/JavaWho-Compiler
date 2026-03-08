@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata;
-using JavaWhoCompiler;
+﻿using JavaWhoCompiler;
 
 namespace CompilerTests
 {

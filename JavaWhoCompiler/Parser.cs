@@ -1,6 +1,4 @@
-﻿using System.Text.RegularExpressions;
-
-namespace JavaWhoCompiler
+﻿namespace JavaWhoCompiler
 {
     public enum OperatorType
     {
