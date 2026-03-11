@@ -582,7 +582,8 @@
 
 
         // DEBUG/TESTING
-        public static bool ASTsEqual(AST left, AST right, bool ignorePos=true) {
+        public static bool ASTsEqual(AST left, AST right, bool ignorePos=true)
+        {
             var equal = (left, right) switch {
                 (ProgramNode(var lClasses, var lStatements), 
                  ProgramNode(var rClasses, var rStatements)) => 

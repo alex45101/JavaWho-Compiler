@@ -556,18 +556,18 @@ namespace CompilerTests
         [Theory]
         [InlineData("""
                 x = 5;
-                x + 2;
+                    x + 2;
 
-                println("Hello world");
+                        println("Hello world");
                 """)]
         public void LineNumPosTest(string code) {
             var tokens = Tokenizer.Tokenize(code);
             List<IToken> expected = [
                 new IdentifierToken("x", new Position(1, 1)), new AssignmentOperatorToken("=", new Position(1, 3)), new NumberToken("5", new Position(1, 5)), new SemiColonToken(";", new Position(1, 6)),
-                new IdentifierToken("x", new Position(2, 1)), new AddOperatorToken("+", new Position(2, 3)), new NumberToken("2", new Position(2, 5)), new SemiColonToken(";", new Position(2, 6)),
+                new IdentifierToken("x", new Position(2, 5)), new AddOperatorToken("+", new Position(2, 7)), new NumberToken("2", new Position(2, 9)), new SemiColonToken(";", new Position(2, 10)),
 
-                new PrintLnToken("println", new Position(4, 1)), new OpenParenthesisToken("(", new Position(4, 8)), new StringToken("\"Hello world\"", new Position(4, 9)), new CloseParenthesisToken(")", new Position(4, 22)), 
-                            new SemiColonToken(";", new Position(4, 23)),
+                new PrintLnToken("println", new Position(4, 9)), new OpenParenthesisToken("(", new Position(4, 16)), new StringToken("\"Hello world\"", new Position(4, 17)), new CloseParenthesisToken(")", new Position(4, 30)), 
+                            new SemiColonToken(";", new Position(4, 31)),
             ];
 
             AssertTokenListEqual(expected, tokens);
