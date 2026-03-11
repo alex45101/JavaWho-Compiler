@@ -583,107 +583,104 @@
 
         // DEBUG/TESTING
         public static bool ASTsEqual(AST left, AST right, bool ignorePos=true) {
-            return (left, right) switch {
+            var equal = (left, right) switch {
                 (ProgramNode(var lClasses, var lStatements), 
                  ProgramNode(var rClasses, var rStatements)) => 
-                    ASTListsEqual(lClasses, rClasses) && ASTListsEqual(lStatements, rStatements),
+                    ASTListsEqual(lClasses, rClasses, ignorePos) && ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (IntLiteral(var lVal, var lPos), IntLiteral(var rVal, var rPos)) => lVal == rVal && (ignorePos || lPos == rPos),
+                (IntLiteral(var lVal, _), IntLiteral(var rVal, _)) => lVal == rVal,
 
-                (StringLiteral(var lVal, var lPos), StringLiteral(var rVal, var rPos)) => lVal == rVal && (ignorePos || lPos == rPos),
+                (StringLiteral(var lVal, _), StringLiteral(var rVal, _)) => lVal == rVal,
 
-                (BooleanLiteral(var lVal, var lPos), BooleanLiteral(var rVal, var rPos)) => lVal == rVal && (ignorePos || lPos == rPos),
+                (BooleanLiteral(var lVal, _), BooleanLiteral(var rVal, _)) => lVal == rVal,
 
-                (IdentifiedNode(var lVal, var lPos), IdentifiedNode(var rVal, var rPos)) => lVal == rVal && (ignorePos || lPos == rPos),
+                (IdentifiedNode(var lVal, _), IdentifiedNode(var rVal, _)) => lVal == rVal,
 
-                (ThisExpression(var lPos), ThisExpression(var rPos)) => ignorePos || lPos == rPos,
+                (ThisExpression(_), ThisExpression(_)) => true,
 
-                (BinaryExpression(var lLeft, var lOp, var lRight, var lPos), BinaryExpression(var rLeft, var rOp, var rRight, var rPos)) => 
+                (BinaryExpression(var lLeft, var lOp, var lRight, _), BinaryExpression(var rLeft, var rOp, var rRight, _)) => 
                     lOp == rOp &&
-					 ASTsEqual(lLeft, rLeft) &&
-					 ASTsEqual(lRight, rRight) &&
-					 (ignorePos || lPos == rPos),
+					 ASTsEqual(lLeft, rLeft, ignorePos) &&
+					 ASTsEqual(lRight, rRight, ignorePos),
 
-                (MethodCallExpression(var lName, var lTarget, var lArguments, var lPos), MethodCallExpression(var rName, var rTarget, var rArguments, var rPos)) => 
+                (MethodCallExpression(var lName, var lTarget, var lArguments, _), MethodCallExpression(var rName, var rTarget, var rArguments, _)) => 
                     lName == rName &&
-					 ASTsEqual(lTarget, rTarget) &&
-					 ASTListsEqual(lArguments, rArguments) &&
-					 (ignorePos || lPos == rPos),
+					 ASTsEqual(lTarget, rTarget, ignorePos) &&
+					 ASTListsEqual(lArguments, rArguments, ignorePos),
 
-                (NewObjectExpression(var lClassName, var lArguments, var lPos), NewObjectExpression(var rClassName, var rArguments, var rPos)) => 
+                (NewObjectExpression(var lClassName, var lArguments, _), NewObjectExpression(var rClassName, var rArguments, _)) => 
                     lClassName == rClassName &&
-					 ASTListsEqual(lArguments, rArguments) &&
-					 (ignorePos || lPos == rPos),
+					 ASTListsEqual(lArguments, rArguments, ignorePos),
 
-                (ExpressionStatement(var lExpression, var lPos), ExpressionStatement(var rExpression, var rPos)) => 
-                    ASTsEqual(lExpression, rExpression) &&
-					 (ignorePos || lPos == rPos),
+                (ExpressionStatement(var lExpression, _), ExpressionStatement(var rExpression, _)) => 
+                    ASTsEqual(lExpression, rExpression, ignorePos),
 
-                (VariableDeclaration(var lType, var lVar, var lPos), VariableDeclaration(var rType, var rVar, var rPos)) => 
-                    ASTsEqual(lType, rType) &&
-					 ASTsEqual(lVar, rVar) &&
-					 (ignorePos || lPos == rPos),
+                (VariableDeclaration(var lType, var lVar, _), VariableDeclaration(var rType, var rVar, _)) => 
+                    ASTsEqual(lType, rType, ignorePos) &&
+					 ASTsEqual(lVar, rVar, ignorePos),
 
-                (AssignmentStatement(var lVar, var lVal, var lPos), AssignmentStatement(var rVar, var rVal, var rPos)) => 
-                    ASTsEqual(lVar, rVar) &&
-					 ASTsEqual(lVal, rVal) &&
-					 (ignorePos || lPos == rPos),
+                (AssignmentStatement(var lVar, var lVal, _), AssignmentStatement(var rVar, var rVal, _)) => 
+                    ASTsEqual(lVar, rVar, ignorePos) &&
+					 ASTsEqual(lVal, rVal, ignorePos),
 
-                (WhileStatement(var lGuard, var lStatement, var lPos), WhileStatement(var rGuard, var rStatement, var rPos)) => 
-                    ASTsEqual(lGuard, rGuard) &&
-					 ASTsEqual(lStatement, rStatement) &&
-					 (ignorePos || lPos == rPos),
+                (WhileStatement(var lGuard, var lStatement, _), WhileStatement(var rGuard, var rStatement, _)) => 
+                    ASTsEqual(lGuard, rGuard, ignorePos) &&
+					 ASTsEqual(lStatement, rStatement, ignorePos),
 
-                (BreakStatement(var lPos), BreakStatement(var rPos)) => ignorePos || lPos == rPos,
+                (BreakStatement(_), BreakStatement(_)) => true,
 
-                (ReturnStatement(var lVal, var lPos), ReturnStatement(var rVal, var rPos)) => 
-                    ASTsEqual(lVal, rVal) &&
-					 (ignorePos || lPos == rPos),
+                (ReturnStatement(var lVal, _), ReturnStatement(var rVal, _)) => 
+                    ASTsEqual(lVal, rVal, ignorePos),
 
-                (IfStatement(var lGuard, var lIfBody, var lElseBody, var lPos), IfStatement(var rGuard, var rIfBody, var rElseBody, var rPos)) => 
-                    ASTsEqual(lGuard, rGuard) &&
-					 ASTsEqual(lIfBody, rIfBody) &&
-					 ASTsEqual(lElseBody, rElseBody) &&
-					 (ignorePos || lPos == rPos),
+                (IfStatement(var lGuard, var lIfBody, var lElseBody, _), IfStatement(var rGuard, var rIfBody, var rElseBody, _)) => 
+                    ASTsEqual(lGuard, rGuard, ignorePos) &&
+					 ASTsEqual(lIfBody, rIfBody, ignorePos) &&
+					 ASTsEqual(lElseBody, rElseBody, ignorePos),
 
-                (BlockStatement(var lStatements, var lPos), BlockStatement(var rStatements, var rPos)) => 
-                    ASTListsEqual(lStatements, rStatements) &&
-					 (ignorePos || lPos == rPos),
+                (BlockStatement(var lStatements, _), BlockStatement(var rStatements, _)) => 
+                    ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (MethodDefinition(var lName, var lParameters, var lReturnType, var lBody, var lPos), MethodDefinition(var rName, var rParameters, var rReturnType, var rBody, var rPos)) => 
-                    ASTsEqual(lName, rName) &&
-					 ASTListsEqual(lParameters, rParameters) &&
-					 ASTsEqual(lReturnType, rReturnType) &&
-					 ASTsEqual(lBody, rBody) &&
-					 (ignorePos || lPos == rPos),
+                (MethodDefinition(var lName, var lParameters, var lReturnType, var lBody, _), MethodDefinition(var rName, var rParameters, var rReturnType, var rBody, _)) => 
+                    ASTsEqual(lName, rName, ignorePos) &&
+					 ASTListsEqual(lParameters, rParameters, ignorePos) &&
+					 ASTsEqual(lReturnType, rReturnType, ignorePos) &&
+					 ASTsEqual(lBody, rBody, ignorePos),
 
-                (Constructor(var lParameters, var lSuperArguments, var lStatements, var lPos), Constructor(var rParameters, var rSuperArguments, var rStatements, var rPos)) => 
-                    ASTListsEqual(lParameters, rParameters) &&
-					 ASTListsEqual(lSuperArguments, rSuperArguments) &&
-					 ASTListsEqual(lStatements, rStatements) &&
-					 (ignorePos || lPos == rPos),
+                (Constructor(var lParameters, var lSuperArguments, var lStatements, _), Constructor(var rParameters, var rSuperArguments, var rStatements, _)) => 
+                    ASTListsEqual(lParameters, rParameters, ignorePos) &&
+					 ASTListsEqual(lSuperArguments, rSuperArguments, ignorePos) &&
+					 ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (ClassDefinition(var lName, var lExtendsName, var lVardecs, var lConstructor, var lMethodDefs, var lPos), ClassDefinition(var rName, var rExtendsName, var rVardecs, var rConstructor, var rMethodDefs, var rPos)) => 
-                    ASTsEqual(lName, rName) &&
-					 ASTsEqual(lExtendsName, rExtendsName) &&
-					 ASTListsEqual(lVardecs, rVardecs) &&
-					 ASTsEqual(lConstructor, rConstructor) &&
-					 ASTListsEqual(lMethodDefs, rMethodDefs) &&
-					 (ignorePos || lPos == rPos),
+                (ClassDefinition(var lName, var lExtendsName, var lVardecs, var lConstructor, var lMethodDefs, _), ClassDefinition(var rName, var rExtendsName, var rVardecs, var rConstructor, var rMethodDefs, _)) => 
+                    ASTsEqual(lName, rName, ignorePos) &&
+					 ASTsEqual(lExtendsName, rExtendsName, ignorePos) &&
+					 ASTListsEqual(lVardecs, rVardecs, ignorePos) &&
+					 ASTsEqual(lConstructor, rConstructor, ignorePos) &&
+					 ASTListsEqual(lMethodDefs, rMethodDefs, ignorePos),
 
                 (null, null) => true,
                 _ => false
             };
+
+            if(!equal) {
+                Console.WriteLine($"{left} != {right}\n");
+                return false;
+            } else if(!ignorePos && left.Position != right.Position) {
+                Console.WriteLine($"Positions differ: {left.Position} != {right.Position}\n");
+                return false;
+            }
+
+            return true;
         }
 
-        public static bool ASTListsEqual<T>(List<T> left, List<T> right) 
+        public static bool ASTListsEqual<T>(List<T> left, List<T> right, bool ignorePos=true) 
             where T: AST
         {
             if(left is null && right is null) return true;
             if(left is null || right is null) return false;
             
             return left.Count == right.Count &&
-                left.Index().All(index => ASTsEqual(index.Item, right[index.Index]));
+                left.Index().All(index => ASTsEqual(index.Item, right[index.Index], ignorePos));
         }
     }
 }

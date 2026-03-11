@@ -2561,5 +2561,139 @@ namespace CompilerTests
             Assert.Throws<ParserException>(() => Parser.Parse(tokens));
 
         }
+
+        [Fact]
+        [Trait("Category", "Position")]
+        public void BasicASTPositionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+
+                    Int x;
+                    
+                    x = 5;
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            var expected = new ProgramNode([], [
+                    new VariableDeclaration(
+                        new IdentifiedNode("Int", new Position(2, 1)),
+                        new IdentifiedNode("x", new Position(2, 5)),
+                        new Position(2, 1)
+                        ),
+                    new AssignmentStatement(
+                        new IdentifiedNode("x", new Position(4, 1)),
+                        new IntLiteral(5, new Position(4, 5)),
+                        new Position(4, 1)
+                        )
+            ]);
+
+            Assert.True(Parser.ASTsEqual(expected, root, false));
+        }
+
+        [Fact]
+        [Trait("Category", "Position")]
+        public void ClassASTPositionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Test extends Tester {
+                        Int y;
+                        init() { super(); }
+
+                        method run(Int x) Void {
+                            println(x);
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            var expected = new ProgramNode([
+                new ClassDefinition(
+                    new IdentifiedNode("Test", new Position(1, 7)),
+                    new IdentifiedNode("Tester", new Position(1, 20)),
+                    [
+                    new VariableDeclaration(
+                        new IdentifiedNode("Int", new Position(2, 5)),
+                        new IdentifiedNode("y", new Position(2, 9)),
+                        new Position(2, 5)
+                        )
+                    ],
+                    new Constructor(
+                        [],
+                        [],
+                        [],
+                        new Position(3, 5)
+                        ),
+                    [
+                        new MethodDefinition(
+                            new IdentifiedNode("run", new Position(5, 12)),
+                            [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("Int", new Position(5, 16)),
+                                    new IdentifiedNode("x", new Position(5, 20)),
+                                    new Position(5, 16)
+                                    )
+                            ],
+                            null,
+                            new BlockStatement([
+                                new ExpressionStatement(
+                                    new PrintLnStatement(
+                                        new IdentifiedNode("x", new Position(6, 17)),
+                                        new Position(6, 9)
+                                        ),
+                                    new Position(6, 9)
+                                    )
+                                ],
+                                new Position(5, 28)
+                                ),
+                            new Position(5, 5)
+                            )
+                    ],
+                    new Position(1, 1)
+                    )
+            ], []);
+
+            Assert.True(Parser.ASTsEqual(expected, root, true));
+        }
+
+        [Fact]
+        [Trait("Category", "Position")]
+        public void IndentedASTPositionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int noIndent;
+                        String someIndent;
+                            someIndent = "very indented";
+                    someIndent = "back to normal";
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            var expected = new ProgramNode([], [
+                new VariableDeclaration(
+                    new IdentifiedNode("Int", new Position(1, 1)),
+                    new IdentifiedNode("noIndent", new Position(1, 5)),
+                    new Position(1, 1)
+                    ),
+                new VariableDeclaration(
+                    new IdentifiedNode("String", new Position(2, 5)),
+                    new IdentifiedNode("someIndent", new Position(2, 12)),
+                    new Position(2, 5)
+                    ),
+                new AssignmentStatement(
+                    new IdentifiedNode("someIndent", new Position(3, 9)),
+                    new StringLiteral("\"very indented\"", new Position(3, 22)),
+                    new Position(3, 9)
+                    ),
+                new AssignmentStatement(
+                    new IdentifiedNode("someIndent", new Position(4, 1)),
+                    new StringLiteral("\"back to normal\"", new Position(4, 14)),
+                    new Position(4, 1)
+                    ),
+            ]);
+
+            Assert.True(Parser.ASTsEqual(expected, root, true));
+        }
     }
 }
