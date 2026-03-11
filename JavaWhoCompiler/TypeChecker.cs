@@ -85,7 +85,7 @@ namespace JavaWhoCompiler
 
         private void EnterScope()
         {
-            scope = new Scope(scope.Parent);
+            scope = new Scope(scope);
         }
 
         private void ExitScope()
@@ -97,7 +97,7 @@ namespace JavaWhoCompiler
         {
             return node switch 
             { 
-                IntLiteral => "int",
+                IntLiteral => "Int",
                 StringLiteral => "String",
                 BooleanLiteral => "Boolean",
                 _ => scope.LookUp(node.ToString())

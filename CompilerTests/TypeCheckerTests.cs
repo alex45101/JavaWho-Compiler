@@ -13,7 +13,7 @@ namespace CompilerTests
         [Fact]
         public void IntAssignmentTest()
         {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("int a; a = 5;");
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int a; a = 5;");
             AST root = Parser.Parse(tokens);
 
             TypeChecker.CheckType(root);
