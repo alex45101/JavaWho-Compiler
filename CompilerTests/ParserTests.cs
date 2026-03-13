@@ -782,7 +782,7 @@ namespace CompilerTests
             Assert.Equal(2, newObjectExpression.Arguments.Count);
 
             NewObjectExpression nestedNewObject = Assert.IsType<NewObjectExpression>(newObjectExpression.Arguments[0]);
-            
+
             Assert.True(Parser.ASTsEqual(new IdentifiedNode("OtherClass", null), nestedNewObject.ClassName));
             Assert.Single(nestedNewObject.Arguments);
             Assert.True(Parser.ASTsEqual(new IdentifiedNode("z", null), nestedNewObject.Arguments[0]));
@@ -2569,7 +2569,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
 
                     Int x;
-                    
+
                     x = 5;
                     """);
 
@@ -2654,7 +2654,7 @@ namespace CompilerTests
                     )
             ], []);
 
-            Assert.True(Parser.ASTsEqual(expected, root, true));
+            Assert.True(Parser.ASTsEqual(expected, root, false));
         }
 
         [Fact]
@@ -2693,7 +2693,7 @@ namespace CompilerTests
                     ),
             ]);
 
-            Assert.True(Parser.ASTsEqual(expected, root, true));
+            Assert.True(Parser.ASTsEqual(expected, root, false));
         }
     }
 }

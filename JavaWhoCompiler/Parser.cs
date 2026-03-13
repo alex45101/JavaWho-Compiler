@@ -1,4 +1,6 @@
-﻿namespace JavaWhoCompiler
+﻿using System.Diagnostics;
+
+namespace JavaWhoCompiler
 {
     public enum OperatorType
     {
@@ -584,75 +586,100 @@
         // DEBUG/TESTING
         public static bool ASTsEqual(AST left, AST right, bool ignorePos=true)
         {
-            var equal = (left, right) switch {
-                (ProgramNode(var lClasses, var lStatements), 
-                 ProgramNode(var rClasses, var rStatements)) => 
+            bool equal = (left, right) switch {
+                (ProgramNode(List<AST> lClasses, List<AST> lStatements), 
+                 ProgramNode(List<AST> rClasses, List<AST> rStatements)) => 
                     ASTListsEqual(lClasses, rClasses, ignorePos) && ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (IntLiteral(var lVal, _), IntLiteral(var rVal, _)) => lVal == rVal,
+                (IntLiteral(int lVal, _), 
+                 IntLiteral(int rVal, _)) => lVal == rVal,
 
-                (StringLiteral(var lVal, _), StringLiteral(var rVal, _)) => lVal == rVal,
+                (StringLiteral(string lVal, _), 
+                 StringLiteral(string rVal, _)) => lVal == rVal,
 
-                (BooleanLiteral(var lVal, _), BooleanLiteral(var rVal, _)) => lVal == rVal,
+                (BooleanLiteral(bool lVal, _), 
+                 BooleanLiteral(bool rVal, _)) => lVal == rVal,
 
-                (IdentifiedNode(var lVal, _), IdentifiedNode(var rVal, _)) => lVal == rVal,
+                (IdentifiedNode(string lVal, _), 
+                 IdentifiedNode(string rVal, _)) => lVal == rVal,
 
-                (ThisExpression(_), ThisExpression(_)) => true,
+                (ThisExpression, 
+                 ThisExpression) => true,
 
-                (BinaryExpression(var lLeft, var lOp, var lRight, _), BinaryExpression(var rLeft, var rOp, var rRight, _)) => 
+                (BinaryExpression(AST lLeft, OperatorType lOp, AST lRight, _), 
+                 BinaryExpression(AST rLeft, OperatorType rOp, AST rRight, _)) => 
                     lOp == rOp &&
 					 ASTsEqual(lLeft, rLeft, ignorePos) &&
 					 ASTsEqual(lRight, rRight, ignorePos),
 
-                (MethodCallExpression(var lName, var lTarget, var lArguments, _), MethodCallExpression(var rName, var rTarget, var rArguments, _)) => 
+                // target is null in println calls
+                (MethodCallExpression(string lName, var lTarget, List<AST> lArguments, _), 
+                 MethodCallExpression(string rName, var rTarget, List<AST> rArguments, _)) => 
                     lName == rName &&
 					 ASTsEqual(lTarget, rTarget, ignorePos) &&
 					 ASTListsEqual(lArguments, rArguments, ignorePos),
 
-                (NewObjectExpression(var lClassName, var lArguments, _), NewObjectExpression(var rClassName, var rArguments, _)) => 
+                (NewObjectExpression(AST lClassName, List<AST> lArguments, _), 
+                 NewObjectExpression(AST rClassName, List<AST> rArguments, _)) => 
                     lClassName == rClassName &&
 					 ASTListsEqual(lArguments, rArguments, ignorePos),
 
-                (ExpressionStatement(var lExpression, _), ExpressionStatement(var rExpression, _)) => 
+                (ExpressionStatement(AST lExpression, _), 
+                 ExpressionStatement(AST rExpression, _)) => 
                     ASTsEqual(lExpression, rExpression, ignorePos),
 
-                (VariableDeclaration(var lType, var lVar, _), VariableDeclaration(var rType, var rVar, _)) => 
+                (VariableDeclaration(AST lType, AST lVar, _), 
+                 VariableDeclaration(AST rType, AST rVar, _)) => 
                     ASTsEqual(lType, rType, ignorePos) &&
 					 ASTsEqual(lVar, rVar, ignorePos),
 
-                (AssignmentStatement(var lVar, var lVal, _), AssignmentStatement(var rVar, var rVal, _)) => 
+                (AssignmentStatement(AST lVar, AST lVal, _), 
+                 AssignmentStatement(AST rVar, AST rVal, _)) => 
                     ASTsEqual(lVar, rVar, ignorePos) &&
 					 ASTsEqual(lVal, rVal, ignorePos),
 
-                (WhileStatement(var lGuard, var lStatement, _), WhileStatement(var rGuard, var rStatement, _)) => 
+                (WhileStatement(AST lGuard, AST lStatement, _), 
+                 WhileStatement(AST rGuard, AST rStatement, _)) => 
                     ASTsEqual(lGuard, rGuard, ignorePos) &&
 					 ASTsEqual(lStatement, rStatement, ignorePos),
 
-                (BreakStatement(_), BreakStatement(_)) => true,
+                (BreakStatement, 
+                 BreakStatement) => true,
 
-                (ReturnStatement(var lVal, _), ReturnStatement(var rVal, _)) => 
+                // optional value in return
+                (ReturnStatement(var lVal, _), 
+                 ReturnStatement(var rVal, _)) => 
                     ASTsEqual(lVal, rVal, ignorePos),
 
-                (IfStatement(var lGuard, var lIfBody, var lElseBody, _), IfStatement(var rGuard, var rIfBody, var rElseBody, _)) => 
+                // optional else
+                (IfStatement(AST lGuard, AST lIfBody, var lElseBody, _), 
+                 IfStatement(AST rGuard, AST rIfBody, var rElseBody, _)) => 
                     ASTsEqual(lGuard, rGuard, ignorePos) &&
 					 ASTsEqual(lIfBody, rIfBody, ignorePos) &&
 					 ASTsEqual(lElseBody, rElseBody, ignorePos),
 
-                (BlockStatement(var lStatements, _), BlockStatement(var rStatements, _)) => 
+                (BlockStatement(List<AST> lStatements, _), 
+                 BlockStatement(List<AST> rStatements, _)) => 
                     ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (MethodDefinition(var lName, var lParameters, var lReturnType, var lBody, _), MethodDefinition(var rName, var rParameters, var rReturnType, var rBody, _)) => 
+                // returning Void is interpreted as null
+                (MethodDefinition(AST lName, List<AST> lParameters, var lReturnType, AST lBody, _),
+                 MethodDefinition(AST rName, List<AST> rParameters, var rReturnType, AST rBody, _)) => 
                     ASTsEqual(lName, rName, ignorePos) &&
 					 ASTListsEqual(lParameters, rParameters, ignorePos) &&
 					 ASTsEqual(lReturnType, rReturnType, ignorePos) &&
 					 ASTsEqual(lBody, rBody, ignorePos),
 
-                (Constructor(var lParameters, var lSuperArguments, var lStatements, _), Constructor(var rParameters, var rSuperArguments, var rStatements, _)) => 
+                // optional super call
+                (Constructor(List<AST> lParameters, var lSuperArguments, List<AST> lStatements, _), 
+                 Constructor(List<AST> rParameters, var rSuperArguments, List<AST> rStatements, _)) => 
                     ASTListsEqual(lParameters, rParameters, ignorePos) &&
 					 ASTListsEqual(lSuperArguments, rSuperArguments, ignorePos) &&
 					 ASTListsEqual(lStatements, rStatements, ignorePos),
 
-                (ClassDefinition(var lName, var lExtendsName, var lVardecs, var lConstructor, var lMethodDefs, _), ClassDefinition(var rName, var rExtendsName, var rVardecs, var rConstructor, var rMethodDefs, _)) => 
+                // optional extend
+                (ClassDefinition(AST lName, var lExtendsName, List<AST> lVardecs, AST lConstructor, List<AST> lMethodDefs, _), 
+                 ClassDefinition(AST rName, var rExtendsName, List<AST> rVardecs, AST rConstructor, List<AST> rMethodDefs, _)) => 
                     ASTsEqual(lName, rName, ignorePos) &&
 					 ASTsEqual(lExtendsName, rExtendsName, ignorePos) &&
 					 ASTListsEqual(lVardecs, rVardecs, ignorePos) &&
@@ -664,10 +691,13 @@
             };
 
             if(!equal) {
-                Console.WriteLine($"{left} != {right}\n");
+                Debug.WriteLine($"{left} != {right}\n");
                 return false;
-            } else if(!ignorePos && left.Position != right.Position) {
-                Console.WriteLine($"Positions differ: {left.Position} != {right.Position}\n");
+            }
+
+            // left and right could be null here
+            if(!ignorePos && left is not null && left.Position != right.Position) {
+                Debug.WriteLine($"Positions differ: {left.Position} != {right.Position}\n");
                 return false;
             }
 
