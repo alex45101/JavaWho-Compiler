@@ -132,7 +132,7 @@ namespace JavaWhoCompiler
 
         private AST ParseWhileStatement()
         {
-            var startToken = Expect<WhileToken>();
+            IToken startToken = Expect<WhileToken>();
             Expect<OpenParenthesisToken>();
 
             AST guard = ParseExpression();
@@ -146,7 +146,7 @@ namespace JavaWhoCompiler
 
         private AST ParseBreakStatement()
         {
-            var startToken = Expect<BreakToken>();
+            IToken startToken = Expect<BreakToken>();
             Expect<SemiColonToken>();
 
             return new BreakStatement(startToken.Position);
@@ -154,7 +154,7 @@ namespace JavaWhoCompiler
 
         private AST ParseReturnStatement()
         {
-            var startToken = Expect<ReturnToken>();
+            IToken startToken = Expect<ReturnToken>();
 
             AST val = null;
 
@@ -170,7 +170,7 @@ namespace JavaWhoCompiler
 
         private AST ParseIfStatement()
         {
-            var startToken = Expect<IfToken>();
+            IToken startToken = Expect<IfToken>();
             Expect<OpenParenthesisToken>();
 
             AST guard = ParseExpression();
@@ -196,7 +196,7 @@ namespace JavaWhoCompiler
 
         private AST ParseBlockStatement()
         {
-            var startToken = Expect<OpenCurlyBracketToken>();
+            IToken startToken = Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
             while (CurrentToken is not CloseCurlyBracketToken)
@@ -213,7 +213,7 @@ namespace JavaWhoCompiler
         private AST ParseVariableDeclarationStatement()
         {
 
-            var vardec = ParseVariableDeclaration();
+            AST vardec = ParseVariableDeclaration();
 
             Expect<SemiColonToken>();
 
@@ -223,7 +223,7 @@ namespace JavaWhoCompiler
         private AST ParseAssignStatement()
         {
 
-            var startToken = Expect<IdentifierToken>();
+            IToken startToken = Expect<IdentifierToken>();
 
             Expect<AssignmentOperatorToken>();
 
@@ -325,7 +325,7 @@ namespace JavaWhoCompiler
         {
             if (Check<PrintLnToken>())
             {
-                var startToken = Consume();
+                IToken startToken = Consume();
                 Expect<OpenParenthesisToken>();
 
                 List<AST> arguments = CommaExpression();
@@ -373,7 +373,7 @@ namespace JavaWhoCompiler
 
         private AST ParseNewObjectExpression()
         {
-            var startToken = Expect<NewToken>();
+            IToken startToken = Expect<NewToken>();
 
             string className = Expect<IdentifierToken>().Value;
 
@@ -398,7 +398,7 @@ namespace JavaWhoCompiler
 
         private AST MethodCallExpression(AST Target)
         {
-            var token = Expect<IdentifierToken>();
+            IToken token = Expect<IdentifierToken>();
             Expect<OpenParenthesisToken>();
 
             List<AST> arguments = CommaExpression();
@@ -429,8 +429,8 @@ namespace JavaWhoCompiler
 
         private AST ParseVariableDeclaration()
         {
-            var typeToken = Expect<IdentifierToken>();
-            var varToken = Expect<IdentifierToken>();
+            IToken typeToken = Expect<IdentifierToken>();
+            IToken varToken = Expect<IdentifierToken>();
 
             return new VariableDeclaration(
                     new IdentifiedNode(typeToken.Value, typeToken.Position),
@@ -456,9 +456,9 @@ namespace JavaWhoCompiler
 
         private AST ParseMethodDefinition()
         {
-            var startToken = Expect<MethodToken>();
+            IToken startToken = Expect<MethodToken>();
 
-            var methodNameToken = Expect<IdentifierToken>();
+            IToken methodNameToken = Expect<IdentifierToken>();
 
             Expect<OpenParenthesisToken>();
 
@@ -474,7 +474,7 @@ namespace JavaWhoCompiler
             }
             else
             {
-                var retTypeToken = Expect<IdentifierToken>();
+                IToken retTypeToken = Expect<IdentifierToken>();
                 returnType = new IdentifiedNode(
                                 retTypeToken.Value,
                                 retTypeToken.Position
@@ -494,7 +494,7 @@ namespace JavaWhoCompiler
 
         private AST ParseConstructor()
         {
-            var startToken = Expect<InitToken>();
+            IToken startToken = Expect<InitToken>();
 
             Expect<OpenParenthesisToken>();
 
@@ -534,15 +534,15 @@ namespace JavaWhoCompiler
 
         private AST ParseClassDefinition()
         {
-            var startToken = Expect<ClassToken>();
+            IToken startToken = Expect<ClassToken>();
 
-            var classNameToken = Expect<IdentifierToken>();
+            IToken classNameToken = Expect<IdentifierToken>();
 
             IdentifiedNode extendsName = null;
             if (Check<ExtendsToken>())
             {
                 Consume();
-                var extendsToken = Expect<IdentifierToken>();
+                IToken extendsToken = Expect<IdentifierToken>();
                 extendsName = new IdentifiedNode(
                     extendsToken.Value,
                     extendsToken.Position
