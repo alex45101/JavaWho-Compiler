@@ -377,6 +377,28 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void OpenCurlyBracketTokenTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("{");
+
+            IToken token = tokens.First();
+
+            Assert.Equal("{", token.Value);
+            Assert.IsType<OpenCurlyBracketToken>(token);
+        }
+
+        [Fact]
+        public void CloseCurlyBracketTokenTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("}");
+
+            IToken token = tokens.First();
+
+            Assert.Equal("}", token.Value);
+            Assert.IsType<CloseCurlyBracketToken>(token);
+        }
+
+        [Fact]
         public void ClassDefExampleTest() {
             var tokens = Tokenizer.Tokenize("class Bear extends Animal { init() {} method speak() Void { return println(0 == 5); }");
             Assert.Equal([
