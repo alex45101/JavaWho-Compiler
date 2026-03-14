@@ -1894,6 +1894,61 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Method")]
+        public void MethodCallWithChainedMethodCallArgumentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.process(helper.getManager().getValue());");
+
+            AST root = Parser.Parse(tokens);
+
+            var program = Assert.IsType<ProgramNode>(root);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
+
+            Assert.Equal("process", methodCall.Name);
+            Assert.Single(methodCall.Arguments);
+
+            var nestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[0]);
+            Assert.Equal("getValue", nestedCall.Name);
+
+            var innerCall = Assert.IsType<MethodCallExpression>(nestedCall.Target);
+            Assert.Equal("getManager", innerCall.Name);
+
+            var innerTarget = Assert.IsType<IdentifiedNode>(innerCall.Target);
+            Assert.Equal("helper", innerTarget.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Method")]
+        public void MethodCallWithMixedComplexArgumentsTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(x + 5, helper.getValue(), true, 42);");
+
+            AST root = Parser.Parse(tokens);
+
+            var program = Assert.IsType<ProgramNode>(root);
+
+            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
+            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
+
+            Assert.Equal("calculate", methodCall.Name);
+            Assert.Equal(4, methodCall.Arguments.Count);
+
+            var firstArg = Assert.IsType<BinaryExpression>(methodCall.Arguments[0]);
+            Assert.Equal(OperatorType.Add, firstArg.OperatorType);
+
+            var secondArg = Assert.IsType<MethodCallExpression>(methodCall.Arguments[1]);
+            Assert.Equal("getValue", secondArg.Name);
+
+            var thirdArg = Assert.IsType<BooleanLiteral>(methodCall.Arguments[2]);
+            Assert.True(thirdArg.Value);
+
+            var fourthArg = Assert.IsType<IntLiteral>(methodCall.Arguments[3]);
+            Assert.Equal(42, fourthArg.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Method")]
         public void ChainedMethodCallWithArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.first(5).second(x).third(true);");
