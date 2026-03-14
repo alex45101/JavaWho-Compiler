@@ -13,36 +13,226 @@ namespace JavaWhoCompiler
         NotEqual
     }
 
-    public abstract record AST(Position Position);
-    public sealed record ProgramNode(List<AST> Classes, List<AST> Statements) : AST(new Position(1, 1));
+    public abstract record AST(Position Position)
+    {
+        public bool Equal(AST other, bool ignorePos = true)
+        {
+            if (other is null)
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
 
-    public sealed record IntLiteral(int Value, Position Position) : AST(Position);
-    public sealed record StringLiteral(string Value, Position Position) : AST(Position);
-    public sealed record BooleanLiteral(bool Value, Position Position) : AST(Position);
-    public sealed record IdentifiedNode(string Value, Position Position) : AST(Position);
+            if (GetType() != other.GetType())
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
+
+            bool equal = EqualCore(other, ignorePos);
+
+            if (!equal)
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
+
+            if (!ignorePos && Position != other.Position)
+            {
+                Debug.WriteLine($"Positions differ: {Position} != {other.Position}\n");
+                return false;
+            }
+
+            return true;
+        }
+
+        protected abstract bool EqualCore(AST other, bool ignorePos);
+
+        public static bool NodesEqual(AST left, AST right, bool ignorePos = true)
+        {
+            if (left is null && right is null) return true;
+            if (left is null || right is null)
+            {
+                Debug.WriteLine($"{left} != {right}\n");
+                return false;
+            }
+
+            return left.Equal(right, ignorePos);
+        }
+
+        public static bool ASTListsEqual<T>(List<T> left, List<T> right, bool ignorePos = true)
+            where T : AST
+        {
+            if (left is null && right is null) return true;
+            if (left is null || right is null) return false;
+
+            return left.Count == right.Count &&
+                left.Index().All(index => NodesEqual(index.Item, right[index.Index], ignorePos));
+        }
+    }
+
+    public sealed record ProgramNode(List<AST> Classes, List<AST> Statements) : AST(new Position(1, 1))
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ProgramNode right &&
+            ASTListsEqual(Classes, right.Classes, ignorePos) &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
+    public sealed record IntLiteral(int Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IntLiteral right && Value == right.Value;
+    }
+
+    public sealed record StringLiteral(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is StringLiteral right && Value == right.Value;
+    }
+
+    public sealed record BooleanLiteral(bool Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BooleanLiteral right && Value == right.Value;
+    }
+
+    public sealed record IdentifiedNode(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IdentifiedNode right && Value == right.Value;
+    }
 
     //expressions
-    public sealed record ThisExpression(Position Position) : AST(Position);
-    public sealed record PrimaryExpression(string Value, Position Position) : AST(Position);
-    public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right, Position Position) : AST(Position);
-    public record MethodCallExpression(string Name, AST Target, List<AST> Arguments, Position Position) : AST(Position);
-    public sealed record NewObjectExpression(IdentifiedNode ClassName, List<AST> Arguments, Position Position): AST(Position);
+    public sealed record ThisExpression(Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) => other is ThisExpression;
+    }
+
+    public sealed record PrimaryExpression(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is PrimaryExpression right && Value == right.Value;
+    }
+
+    public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BinaryExpression right &&
+            OperatorType == right.OperatorType &&
+            NodesEqual(Left, right.Left, ignorePos) &&
+            NodesEqual(Right, right.Right, ignorePos);
+    }
+
+    public record MethodCallExpression(string Name, AST Target, List<AST> Arguments, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is MethodCallExpression right &&
+            Name == right.Name &&
+            NodesEqual(Target, right.Target, ignorePos) &&
+            ASTListsEqual(Arguments, right.Arguments, ignorePos);
+    }
+
+    public sealed record NewObjectExpression(IdentifiedNode ClassName, List<AST> Arguments, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is NewObjectExpression right &&
+            NodesEqual(ClassName, right.ClassName, ignorePos) &&
+            ASTListsEqual(Arguments, right.Arguments, ignorePos);
+    }
 
     //statements
-    public sealed record ExpressionStatement(AST Expression, Position Position) : AST(Position);
-    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var, Position Position) : AST(Position);
-    public sealed record AssignmentStatement(IdentifiedNode Var, AST Val, Position Position) : AST(Position);
-    public sealed record WhileStatement(AST Guard, AST Statement, Position Position) : AST(Position);
-    public sealed record BreakStatement(Position Position) : AST(Position);
-    public sealed record ReturnStatement(AST Val, Position Position) : AST(Position);
-    public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody, Position Position) : AST(Position);
-    public sealed record BlockStatement(List<AST> Statements, Position Position) : AST(Position);
+    public sealed record ExpressionStatement(AST Expression, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ExpressionStatement right &&
+            NodesEqual(Expression, right.Expression, ignorePos);
+    }
+
+    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is VariableDeclaration right &&
+            NodesEqual(Type, right.Type, ignorePos) &&
+            NodesEqual(Var, right.Var, ignorePos);
+    }
+
+    public sealed record AssignmentStatement(IdentifiedNode Var, AST Val, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is AssignmentStatement right &&
+            NodesEqual(Var, right.Var, ignorePos) &&
+            NodesEqual(Val, right.Val, ignorePos);
+    }
+
+    public sealed record WhileStatement(AST Guard, AST Statement, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is WhileStatement right &&
+            NodesEqual(Guard, right.Guard, ignorePos) &&
+            NodesEqual(Statement, right.Statement, ignorePos);
+    }
+
+    public sealed record BreakStatement(Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) => other is BreakStatement;
+    }
+
+    public sealed record ReturnStatement(AST Val, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ReturnStatement right &&
+            NodesEqual(Val, right.Val, ignorePos);
+    }
+
+    public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IfStatement right &&
+            NodesEqual(Guard, right.Guard, ignorePos) &&
+            NodesEqual(IfBody, right.IfBody, ignorePos) &&
+            NodesEqual(ElseBody, right.ElseBody, ignorePos);
+    }
+
+    public sealed record BlockStatement(List<AST> Statements, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BlockStatement right &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
     public sealed record PrintLnStatement(AST Argument, Position Position) : MethodCallExpression("println", null, [Argument], Position);
 
     //class
-    public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body, Position Position) : AST(Position);
-    public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements, Position Position) : AST(Position);
-    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions, Position Position) : AST(Position);
+    public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is MethodDefinition right &&
+            NodesEqual(Name, right.Name, ignorePos) &&
+            ASTListsEqual(Parameters, right.Parameters, ignorePos) &&
+            NodesEqual(ReturnType, right.ReturnType, ignorePos) &&
+            NodesEqual(Body, right.Body, ignorePos);
+    }
+
+    public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is Constructor right &&
+            ASTListsEqual(Parameters, right.Parameters, ignorePos) &&
+            ASTListsEqual(SuperArguments, right.SuperArguments, ignorePos) &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
+    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ClassDefinition right &&
+            NodesEqual(Name, right.Name, ignorePos) &&
+            NodesEqual(ExtendsName, right.ExtendsName, ignorePos) &&
+            ASTListsEqual(VariableDeclarations, right.VariableDeclarations, ignorePos) &&
+            NodesEqual(Constructor, right.Constructor, ignorePos) &&
+            ASTListsEqual(MethodDefinitions, right.MethodDefinitions, ignorePos);
+    }
 
 
 
@@ -445,8 +635,7 @@ namespace JavaWhoCompiler
 
             List<AST> vardecs = [ParseVariableDeclaration()];
 
-            while (Check<CommaToken>())
-            {
+            while (Check<CommaToken>()) {
                 Consume();
                 vardecs.Add(ParseVariableDeclaration());
             }
@@ -580,138 +769,6 @@ namespace JavaWhoCompiler
                     methodDefs,
                     startToken.Position
                     );
-        }
-
-
-        // DEBUG/TESTING
-        public static bool ASTsEqual(AST left, AST right, bool ignorePos=true)
-        {
-            bool equal = (left, right) switch {
-                (ProgramNode(List<AST> lClasses, List<AST> lStatements), 
-                 ProgramNode(List<AST> rClasses, List<AST> rStatements)) => 
-                    ASTListsEqual(lClasses, rClasses, ignorePos) && ASTListsEqual(lStatements, rStatements, ignorePos),
-
-                (IntLiteral(int lVal, _), 
-                 IntLiteral(int rVal, _)) => lVal == rVal,
-
-                (StringLiteral(string lVal, _), 
-                 StringLiteral(string rVal, _)) => lVal == rVal,
-
-                (BooleanLiteral(bool lVal, _), 
-                 BooleanLiteral(bool rVal, _)) => lVal == rVal,
-
-                (IdentifiedNode(string lVal, _), 
-                 IdentifiedNode(string rVal, _)) => lVal == rVal,
-
-                (ThisExpression, 
-                 ThisExpression) => true,
-
-                (BinaryExpression(AST lLeft, OperatorType lOp, AST lRight, _), 
-                 BinaryExpression(AST rLeft, OperatorType rOp, AST rRight, _)) => 
-                    lOp == rOp &&
-					 ASTsEqual(lLeft, rLeft, ignorePos) &&
-					 ASTsEqual(lRight, rRight, ignorePos),
-
-                // target is null in println calls
-                (MethodCallExpression(string lName, var lTarget, List<AST> lArguments, _), 
-                 MethodCallExpression(string rName, var rTarget, List<AST> rArguments, _)) => 
-                    lName == rName &&
-					 ASTsEqual(lTarget, rTarget, ignorePos) &&
-					 ASTListsEqual(lArguments, rArguments, ignorePos),
-
-                (NewObjectExpression(AST lClassName, List<AST> lArguments, _), 
-                 NewObjectExpression(AST rClassName, List<AST> rArguments, _)) => 
-                    lClassName == rClassName &&
-					 ASTListsEqual(lArguments, rArguments, ignorePos),
-
-                (ExpressionStatement(AST lExpression, _), 
-                 ExpressionStatement(AST rExpression, _)) => 
-                    ASTsEqual(lExpression, rExpression, ignorePos),
-
-                (VariableDeclaration(AST lType, AST lVar, _), 
-                 VariableDeclaration(AST rType, AST rVar, _)) => 
-                    ASTsEqual(lType, rType, ignorePos) &&
-					 ASTsEqual(lVar, rVar, ignorePos),
-
-                (AssignmentStatement(AST lVar, AST lVal, _), 
-                 AssignmentStatement(AST rVar, AST rVal, _)) => 
-                    ASTsEqual(lVar, rVar, ignorePos) &&
-					 ASTsEqual(lVal, rVal, ignorePos),
-
-                (WhileStatement(AST lGuard, AST lStatement, _), 
-                 WhileStatement(AST rGuard, AST rStatement, _)) => 
-                    ASTsEqual(lGuard, rGuard, ignorePos) &&
-					 ASTsEqual(lStatement, rStatement, ignorePos),
-
-                (BreakStatement, 
-                 BreakStatement) => true,
-
-                // optional value in return
-                (ReturnStatement(var lVal, _), 
-                 ReturnStatement(var rVal, _)) => 
-                    ASTsEqual(lVal, rVal, ignorePos),
-
-                // optional else
-                (IfStatement(AST lGuard, AST lIfBody, var lElseBody, _), 
-                 IfStatement(AST rGuard, AST rIfBody, var rElseBody, _)) => 
-                    ASTsEqual(lGuard, rGuard, ignorePos) &&
-					 ASTsEqual(lIfBody, rIfBody, ignorePos) &&
-					 ASTsEqual(lElseBody, rElseBody, ignorePos),
-
-                (BlockStatement(List<AST> lStatements, _), 
-                 BlockStatement(List<AST> rStatements, _)) => 
-                    ASTListsEqual(lStatements, rStatements, ignorePos),
-
-                // returning Void is interpreted as null
-                (MethodDefinition(AST lName, List<AST> lParameters, var lReturnType, AST lBody, _),
-                 MethodDefinition(AST rName, List<AST> rParameters, var rReturnType, AST rBody, _)) => 
-                    ASTsEqual(lName, rName, ignorePos) &&
-					 ASTListsEqual(lParameters, rParameters, ignorePos) &&
-					 ASTsEqual(lReturnType, rReturnType, ignorePos) &&
-					 ASTsEqual(lBody, rBody, ignorePos),
-
-                // optional super call
-                (Constructor(List<AST> lParameters, var lSuperArguments, List<AST> lStatements, _), 
-                 Constructor(List<AST> rParameters, var rSuperArguments, List<AST> rStatements, _)) => 
-                    ASTListsEqual(lParameters, rParameters, ignorePos) &&
-					 ASTListsEqual(lSuperArguments, rSuperArguments, ignorePos) &&
-					 ASTListsEqual(lStatements, rStatements, ignorePos),
-
-                // optional extend
-                (ClassDefinition(AST lName, var lExtendsName, List<AST> lVardecs, AST lConstructor, List<AST> lMethodDefs, _), 
-                 ClassDefinition(AST rName, var rExtendsName, List<AST> rVardecs, AST rConstructor, List<AST> rMethodDefs, _)) => 
-                    ASTsEqual(lName, rName, ignorePos) &&
-					 ASTsEqual(lExtendsName, rExtendsName, ignorePos) &&
-					 ASTListsEqual(lVardecs, rVardecs, ignorePos) &&
-					 ASTsEqual(lConstructor, rConstructor, ignorePos) &&
-					 ASTListsEqual(lMethodDefs, rMethodDefs, ignorePos),
-
-                (null, null) => true,
-                _ => false
-            };
-
-            if(!equal) {
-                Debug.WriteLine($"{left} != {right}\n");
-                return false;
-            }
-
-            // left and right could be null here
-            if(!ignorePos && left is not null && left.Position != right.Position) {
-                Debug.WriteLine($"Positions differ: {left.Position} != {right.Position}\n");
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool ASTListsEqual<T>(List<T> left, List<T> right, bool ignorePos=true) 
-            where T: AST
-        {
-            if(left is null && right is null) return true;
-            if(left is null || right is null) return false;
-            
-            return left.Count == right.Count &&
-                left.Index().All(index => ASTsEqual(index.Item, right[index.Index], ignorePos));
         }
     }
 }

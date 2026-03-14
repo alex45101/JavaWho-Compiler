@@ -118,8 +118,8 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             BinaryExpression binaryExpression = Assert.IsType<BinaryExpression>(expStmt.Expression);
 
-            Assert.True(Parser.ASTsEqual(expectedLeft, binaryExpression.Left));
-            Assert.True(Parser.ASTsEqual(expectedRight, binaryExpression.Right));
+            Assert.True(expectedLeft.Equal(binaryExpression.Left));
+            Assert.True(expectedRight.Equal(binaryExpression.Right));
             Assert.Equal(expectedOperator, binaryExpression.OperatorType);
         }
 
@@ -295,7 +295,7 @@ namespace CompilerTests
                     new IdentifiedNode("x", null)
                     , null);
 
-            Assert.True(Parser.ASTsEqual(expected, vardecStatement));
+            Assert.True(expected.Equal(vardecStatement));
         }
 
         [Fact]
@@ -318,7 +318,7 @@ namespace CompilerTests
                     new IntLiteral(5, null)
                     , null);
 
-            Assert.True(Parser.ASTsEqual(expected, assignStatement));
+            Assert.True(expected.Equal(assignStatement));
         }
 
         [Fact]
@@ -352,7 +352,7 @@ namespace CompilerTests
                     , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, whileStmt));
+            Assert.True(expected.Equal(whileStmt));
         }
 
         [Fact]
@@ -410,7 +410,7 @@ namespace CompilerTests
                     new IntLiteral(8, null)
                     , null);
 
-            Assert.True(Parser.ASTsEqual(expectedVal, returnStmt.Val));
+            Assert.True(expectedVal.Equal(returnStmt.Val));
         }
 
         [Fact]
@@ -441,7 +441,7 @@ namespace CompilerTests
                     null
                 , null);
 
-            Assert.True(Parser.ASTsEqual(expected, ifStatement));
+            Assert.True(expected.Equal(ifStatement));
         }
 
         [Fact]
@@ -479,7 +479,7 @@ namespace CompilerTests
                         , null)
                 , null);
 
-            Assert.True(Parser.ASTsEqual(expected, ifStatement));
+            Assert.True(expected.Equal(ifStatement));
         }
 
         [Fact]
@@ -535,7 +535,7 @@ namespace CompilerTests
                         , null)
             ];
 
-            Parser.ASTListsEqual(expectedStmts, blockStatement.Statements);
+            AST.ASTListsEqual(expectedStmts, blockStatement.Statements);
         }
 
         [Fact]
@@ -569,7 +569,7 @@ namespace CompilerTests
                         , null),
             ];
 
-            Assert.True(Parser.ASTListsEqual(expected, program.Statements));
+            Assert.True(AST.ASTListsEqual(expected, program.Statements));
         }
 
         [Fact]
@@ -594,7 +594,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -623,7 +623,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -652,7 +652,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -685,7 +685,7 @@ namespace CompilerTests
                 new IntLiteral(4, null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -757,10 +757,10 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
 
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
             Assert.Equal(2, newObjectExpression.Arguments.Count);
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("x", null), newObjectExpression.Arguments[0]));
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("y", null), newObjectExpression.Arguments[1]));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("x", null), newObjectExpression.Arguments[0]));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("y", null), newObjectExpression.Arguments[1]));
         }
 
         [Fact]
@@ -778,16 +778,16 @@ namespace CompilerTests
             ExpressionStatement expStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             NewObjectExpression newObjectExpression = Assert.IsType<NewObjectExpression>(expStmt.Expression);
 
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("MyClass", null), newObjectExpression.ClassName));
             Assert.Equal(2, newObjectExpression.Arguments.Count);
 
             NewObjectExpression nestedNewObject = Assert.IsType<NewObjectExpression>(newObjectExpression.Arguments[0]);
 
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("OtherClass", null), nestedNewObject.ClassName));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("OtherClass", null), nestedNewObject.ClassName));
             Assert.Single(nestedNewObject.Arguments);
-            Assert.True(Parser.ASTsEqual(new IdentifiedNode("z", null), nestedNewObject.Arguments[0]));
+            Assert.True(AST.NodesEqual(new IdentifiedNode("z", null), nestedNewObject.Arguments[0]));
 
-            Assert.True(Parser.ASTsEqual(new BinaryExpression(
+            Assert.True(AST.NodesEqual(new BinaryExpression(
                         new BinaryExpression(
                             new IdentifiedNode("y", null),
                             OperatorType.Add,
@@ -839,7 +839,7 @@ namespace CompilerTests
                 new IntLiteral(4, null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -872,7 +872,7 @@ namespace CompilerTests
                 new IdentifiedNode("d", null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -901,7 +901,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -930,7 +930,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -959,7 +959,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -992,7 +992,7 @@ namespace CompilerTests
                 , null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
 
         [Fact]
@@ -1013,7 +1013,7 @@ namespace CompilerTests
                 new IntLiteral(5, null)
             , null);
 
-            Assert.True(Parser.ASTsEqual(expected, expStmt.Expression));
+            Assert.True(expected.Equal(expStmt.Expression));
         }
         [Fact]
         [Trait("Category", "If")]
@@ -1034,7 +1034,7 @@ namespace CompilerTests
             var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
             var innerIf = Assert.IsType<IfStatement>(outerIf.IfBody);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.LessThan,
@@ -1043,7 +1043,7 @@ namespace CompilerTests
                 outerIf.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("y", null),
                     OperatorType.LessThan,
@@ -1052,7 +1052,7 @@ namespace CompilerTests
                 innerIf.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("x", null),
                     new IntLiteral(1, null)
@@ -1080,7 +1080,7 @@ namespace CompilerTests
             var outerWhile = Assert.IsType<WhileStatement>(program.Statements[0]);
             var innerWhile = Assert.IsType<WhileStatement>(outerWhile.Statement);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.LessThan,
@@ -1089,7 +1089,7 @@ namespace CompilerTests
                 outerWhile.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("y", null),
                     OperatorType.LessThan,
@@ -1100,7 +1100,7 @@ namespace CompilerTests
 
             var innerWhileBody = Assert.IsType<AssignmentStatement>(innerWhile.Statement);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("y", null),
                     new BinaryExpression(
@@ -1132,7 +1132,7 @@ namespace CompilerTests
 
             var whileStmt = Assert.IsType<WhileStatement>(program.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.LessThan,
@@ -1145,7 +1145,7 @@ namespace CompilerTests
 
             Assert.Equal(2, block.Statements.Count);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("x", null),
                     new BinaryExpression(
@@ -1157,7 +1157,7 @@ namespace CompilerTests
                 block.Statements[0]
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("y", null),
                     new BinaryExpression(
@@ -1189,7 +1189,7 @@ namespace CompilerTests
 
             var ifStmt = Assert.IsType<IfStatement>(program.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.Equal,
@@ -1202,7 +1202,7 @@ namespace CompilerTests
 
             Assert.Equal(2, block.Statements.Count);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("x", null),
                     new IntLiteral(0, null)
@@ -1210,7 +1210,7 @@ namespace CompilerTests
                 block.Statements[0]
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("y", null),
                     new IntLiteral(0, null)
@@ -1226,13 +1226,13 @@ namespace CompilerTests
         public void IfElseWithBlockBodiesTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(x == 5) {
-                    x = 0;
-                } else {
-                    x = 1;
-                    y = 2;
-                }
-                """);
+                    if(x == 5) {
+                        x = 0;
+                    } else {
+                        x = 1;
+                        y = 2;
+                    }
+                    """);
 
             AST root = Parser.Parse(tokens);
 
@@ -1240,204 +1240,12 @@ namespace CompilerTests
 
             Assert.Single(program.Statements);
 
-            var ifStmt = Assert.IsType<IfStatement>(program.Statements[0]);
-            var ifBlock = Assert.IsType<BlockStatement>(ifStmt.IfBody);
-            var elseBlock = Assert.IsType<BlockStatement>(ifStmt.ElseBody);
+            var ifStatement = Assert.IsType<IfStatement>(program.Statements[0]);
+            var ifBlock = Assert.IsType<BlockStatement>(ifStatement.IfBody);
+            var elseBlock = Assert.IsType<BlockStatement>(ifStatement.ElseBody);
 
             Assert.Single(ifBlock.Statements);
             Assert.Equal(2, elseBlock.Statements.Count);
-        }
-
-        [Fact]
-        [Trait("Category", "If")]
-        public void ElseIfStatementTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(x < 5)
-                    y = 1;
-                else if(x < 10)
-                    y = 2;
-                else
-                    y = 3;
-                """);
-
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Single(program.Statements);
-
-            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
-
-            var expectedGuard = new BinaryExpression(
-                    new IdentifiedNode("x", null),
-                    OperatorType.LessThan,
-                    new IntLiteral(5, null)
-                , null);
-            Assert.True(Parser.ASTsEqual(expectedGuard, outerIf.Guard));
-
-            var expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", null),
-                    new IntLiteral(1, null)
-                , null);
-            Assert.True(Parser.ASTsEqual(expectedIfBody, outerIf.IfBody));
-
-            var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
-
-            expectedGuard = new BinaryExpression(
-                    new IdentifiedNode("x", null),
-                    OperatorType.LessThan,
-                    new IntLiteral(10, null)
-                , null);
-            Assert.True(Parser.ASTsEqual(expectedGuard, elseIfStmt.Guard));
-
-            expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", null),
-                    new IntLiteral(2, null)
-                , null);
-            Assert.True(Parser.ASTsEqual(expectedIfBody, elseIfStmt.IfBody));
-
-            expectedIfBody = new AssignmentStatement(
-                    new IdentifiedNode("y", null),
-                    new IntLiteral(3, null)
-                , null);
-            Assert.True(Parser.ASTsEqual(expectedIfBody, elseIfStmt.ElseBody));
-        }
-
-        [Fact]
-        [Trait("Category", "If")]
-        public void MultipleElseIfStatementsTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(x == 1)
-                    y = 10;
-                else if(x == 2)
-                    y = 20;
-                else if(x == 3)
-                    y = 30;
-                else if(x == 4)
-                    y = 40;
-                else
-                    y = 50;
-                """);
-
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Single(program.Statements);
-
-            var firstIf = Assert.IsType<IfStatement>(program.Statements[0]);
-            var secondIf = Assert.IsType<IfStatement>(firstIf.ElseBody);
-            var thirdIf = Assert.IsType<IfStatement>(secondIf.ElseBody);
-            var fourthIf = Assert.IsType<IfStatement>(thirdIf.ElseBody);
-
-            Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(1, null), null),
-                firstIf.Guard
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(2, null), null),
-                secondIf.Guard
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(3, null), null),
-                thirdIf.Guard
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new BinaryExpression(new IdentifiedNode("x", null), OperatorType.Equal, new IntLiteral(4, null), null),
-                fourthIf.Guard
-            ));
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(10, null), null),
-                firstIf.IfBody
-            ));
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(20, null), null),
-                secondIf.IfBody
-            ));
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(30, null), null),
-                thirdIf.IfBody
-            ));
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(40, null), null),
-                fourthIf.IfBody
-            ));
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(50, null), null),
-                fourthIf.ElseBody
-            ));
-        }
-
-        [Fact]
-        [Trait("Category", "If")]
-        public void ElseIfWithBlocksTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(x < 5) {
-                    y = 1;
-                    z = 1;
-                } else if(x < 10) {
-                    y = 2;
-                    z = 2;
-                } else {
-                    y = 3;
-                    z = 3;
-                }
-                """);
-
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Single(program.Statements);
-
-            var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
-            var ifBlock = Assert.IsType<BlockStatement>(outerIf.IfBody);
-
-            Assert.Equal(2, ifBlock.Statements.Count);
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(1, null), null),
-                ifBlock.Statements[0]
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(1, null), null),
-                ifBlock.Statements[1]
-            ));
-
-            var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
-            var elseIfBlock = Assert.IsType<BlockStatement>(elseIfStmt.IfBody);
-
-            Assert.Equal(2, elseIfBlock.Statements.Count);
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(2, null), null),
-                elseIfBlock.Statements[0]
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(2, null), null),
-                elseIfBlock.Statements[1]
-            ));
-
-            var finalElseBlock = Assert.IsType<BlockStatement>(elseIfStmt.ElseBody);
-
-            Assert.Equal(2, finalElseBlock.Statements.Count);
-
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(3, null), null),
-                finalElseBlock.Statements[0]
-            ));
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("z", null), new IntLiteral(3, null), null),
-                finalElseBlock.Statements[1]
-            ));
         }
 
         [Fact]
@@ -1463,9 +1271,13 @@ namespace CompilerTests
 
             var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(1, null), null),
-                outerIf.IfBody
+            Assert.True(AST.NodesEqual(
+                new BinaryExpression(
+                    new IdentifiedNode("x", null),
+                    OperatorType.LessThan,
+                    new IntLiteral(5, null)
+                , null),
+                outerIf.Guard
             ));
 
             var elseBlock = Assert.IsType<BlockStatement>(outerIf.ElseBody);
@@ -1474,7 +1286,7 @@ namespace CompilerTests
 
             var nestedIf = Assert.IsType<IfStatement>(elseBlock.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("z", null),
                     OperatorType.LessThan,
@@ -1483,13 +1295,19 @@ namespace CompilerTests
                 nestedIf.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(2, null), null),
+            Assert.True(AST.NodesEqual(
+                new AssignmentStatement(
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(2, null)
+                , null),
                 nestedIf.IfBody
             ));
 
-            Assert.True(Parser.ASTsEqual(
-                new AssignmentStatement(new IdentifiedNode("y", null), new IntLiteral(3, null), null),
+            Assert.True(AST.NodesEqual(
+                new AssignmentStatement(
+                    new IdentifiedNode("y", null),
+                    new IntLiteral(3, null)
+                , null),
                 nestedIf.ElseBody
             ));
         }
@@ -1520,7 +1338,7 @@ namespace CompilerTests
 
             var outerIf = Assert.IsType<IfStatement>(program.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.LessThan,
@@ -1535,7 +1353,7 @@ namespace CompilerTests
 
             var nestedIfInIfBlock = Assert.IsType<IfStatement>(ifBlock.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("y", null),
                     OperatorType.LessThan,
@@ -1544,7 +1362,7 @@ namespace CompilerTests
                 nestedIfInIfBlock.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("z", null),
                     new IntLiteral(1, null)
@@ -1552,7 +1370,7 @@ namespace CompilerTests
                 nestedIfInIfBlock.IfBody
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("z", null),
                     new IntLiteral(2, null)
@@ -1562,7 +1380,7 @@ namespace CompilerTests
 
             var elseIfStmt = Assert.IsType<IfStatement>(outerIf.ElseBody);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("x", null),
                     OperatorType.LessThan,
@@ -1577,7 +1395,7 @@ namespace CompilerTests
 
             var nestedIfInElseIfBlock = Assert.IsType<IfStatement>(elseIfBlock.Statements[0]);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new BinaryExpression(
                     new IdentifiedNode("y", null),
                     OperatorType.LessThan,
@@ -1586,7 +1404,7 @@ namespace CompilerTests
                 nestedIfInElseIfBlock.Guard
             ));
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("z", null),
                     new IntLiteral(3, null)
@@ -1600,7 +1418,7 @@ namespace CompilerTests
 
             Assert.Single(finalElseBlock.Statements);
 
-            Assert.True(Parser.ASTsEqual(
+            Assert.True(AST.NodesEqual(
                 new AssignmentStatement(
                     new IdentifiedNode("z", null),
                     new IntLiteral(4, null)
@@ -1757,6 +1575,8 @@ namespace CompilerTests
 
             var program = Assert.IsType<ProgramNode>(root);
 
+            Assert.Single(program.Statements);
+
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
@@ -1783,6 +1603,8 @@ namespace CompilerTests
 
             var program = Assert.IsType<ProgramNode>(root);
 
+            Assert.Single(program.Statements);
+
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
@@ -1808,6 +1630,8 @@ namespace CompilerTests
             AST root = Parser.Parse(tokens);
 
             var program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
@@ -1856,6 +1680,8 @@ namespace CompilerTests
 
             var program = Assert.IsType<ProgramNode>(root);
 
+            Assert.Single(program.Statements);
+
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
 
@@ -1875,61 +1701,6 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Method")]
-        public void MethodCallWithChainedMethodCallArgumentTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.process(helper.getManager().getValue());");
-
-            AST root = Parser.Parse(tokens);
-
-            var program = Assert.IsType<ProgramNode>(root);
-
-            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
-
-            Assert.Equal("process", methodCall.Name);
-            Assert.Single(methodCall.Arguments);
-
-            var nestedCall = Assert.IsType<MethodCallExpression>(methodCall.Arguments[0]);
-            Assert.Equal("getValue", nestedCall.Name);
-
-            var innerCall = Assert.IsType<MethodCallExpression>(nestedCall.Target);
-            Assert.Equal("getManager", innerCall.Name);
-
-            var innerTarget = Assert.IsType<IdentifiedNode>(innerCall.Target);
-            Assert.Equal("helper", innerTarget.Value);
-        }
-
-        [Fact]
-        [Trait("Category", "Method")]
-        public void MethodCallWithMixedComplexArgumentsTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.calculate(x + 5, helper.getValue(), true, 42);");
-
-            AST root = Parser.Parse(tokens);
-
-            var program = Assert.IsType<ProgramNode>(root);
-
-            var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
-            var methodCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
-
-            Assert.Equal("calculate", methodCall.Name);
-            Assert.Equal(4, methodCall.Arguments.Count);
-
-            var firstArg = Assert.IsType<BinaryExpression>(methodCall.Arguments[0]);
-            Assert.Equal(OperatorType.Add, firstArg.OperatorType);
-
-            var secondArg = Assert.IsType<MethodCallExpression>(methodCall.Arguments[1]);
-            Assert.Equal("getValue", secondArg.Name);
-
-            var thirdArg = Assert.IsType<BooleanLiteral>(methodCall.Arguments[2]);
-            Assert.True(thirdArg.Value);
-
-            var fourthArg = Assert.IsType<IntLiteral>(methodCall.Arguments[3]);
-            Assert.Equal(42, fourthArg.Value);
-        }
-
-        [Fact]
-        [Trait("Category", "Method")]
         public void ChainedMethodCallWithArgumentsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("obj.first(5).second(x).third(true);");
@@ -1937,6 +1708,8 @@ namespace CompilerTests
             AST root = Parser.Parse(tokens);
 
             var program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Statements);
 
             var expressionStmt = Assert.IsType<ExpressionStatement>(program.Statements[0]);
             var finalCall = Assert.IsType<MethodCallExpression>(expressionStmt.Expression);
@@ -2018,14 +1791,11 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefTest()
+        public void SimpleClassDefTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
                         init() {}
-                        method test(Int x, String y) Void {
-                            return;
-                        }
                     }
                     """);
 
@@ -2036,52 +1806,50 @@ namespace CompilerTests
             Assert.Single(program.Classes);
             Assert.Empty(program.Statements);
 
-
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        null,
-                        [],
-                        new Constructor(
-                            [],
-                            null,
-                            []
-                            , null),
-                        [
-                            new MethodDefinition(
-                                new IdentifiedNode("test", null),
-                                [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                                ],
-                                null,
-                                new BlockStatement([
-                                    new ReturnStatement(null, null)
-                                ], null)
-                            , null)
-                        ]
-                        , null);
-
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            Assert.Null(classDef.ExtendsName);
+            Assert.Empty(classDef.VariableDeclarations);
+            Assert.NotNull(classDef.Constructor);
+            Assert.Empty(classDef.MethodDefinitions);
         }
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefVardecTest()
+        public void ClassDefWithSuperClassTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends BaseClass {
+                        init() {}
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            var superClass = Assert.IsType<IdentifiedNode>(classDef.ExtendsName);
+            Assert.Equal("BaseClass", superClass.Value);
+            Assert.Empty(classDef.VariableDeclarations);
+            Assert.NotNull(classDef.Constructor);
+            Assert.Empty(classDef.MethodDefinitions);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefWithFieldTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyClass {
-                        Int z;
-                        String a;
+                        Int x;
+                        String y;
+
                         init() {}
-                        method test(Int x, String y) Void {
-                            return;
-                        }
                     }
                     """);
 
@@ -2092,77 +1860,34 @@ namespace CompilerTests
             Assert.Single(program.Classes);
             Assert.Empty(program.Statements);
 
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            Assert.Null(classDef.ExtendsName);
 
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        null,
-                        [
-                            new VariableDeclaration(
-                                new IdentifiedNode("Int", null),
-                                new IdentifiedNode("z", null)
-                                , null),
-                            new VariableDeclaration(
-                                new IdentifiedNode("String", null),
-                                new IdentifiedNode("a", null)
-                                , null)
-                        ],
-                        new Constructor(
-                            [],
-                            null,
-                            []
-                            , null),
-                        [
-                            new MethodDefinition(
-                                new IdentifiedNode("test", null),
-                                [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                                ],
-                                null,
-                                new BlockStatement([
-                                    new ReturnStatement(null, null)
-                                ], null)
-                            , null)
-                        ]
-                        , null);
+            Assert.Equal(2, classDef.VariableDeclarations.Count);
 
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
+            var field1 = Assert.IsType<VariableDeclaration>(classDef.VariableDeclarations[0]);
+            Assert.Equal("Int", field1.Type.Value);
+            Assert.Equal("x", field1.Var.Value);
+
+            var field2 = Assert.IsType<VariableDeclaration>(classDef.VariableDeclarations[1]);
+            Assert.Equal("String", field2.Type.Value);
+            Assert.Equal("y", field2.Var.Value);
+
+            Assert.Empty(classDef.MethodDefinitions);
         }
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassVardecNoSemicolonTest()
+        public void ClassDefWithMethodTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        Int a
-
-                        init(Int x, String y) {}
-
-                        method test1(Int x, String y) {
-                            return;
-                        }
-                    }
-                    """);
-
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefExtendTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
+                    class MyClass {
+                        Int x;
                         init() {}
-                        method test(Int x, String y) Void {
-                            return;
+
+                        method test(Int a) Void {
+                            x = a;
                         }
                     }
                     """);
@@ -2174,53 +1899,97 @@ namespace CompilerTests
             Assert.Single(program.Classes);
             Assert.Empty(program.Statements);
 
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            Assert.Null(classDef.ExtendsName);
+            Assert.Single(classDef.VariableDeclarations);
+            Assert.Single(classDef.MethodDefinitions);
 
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        new IdentifiedNode("OtherClass", null),
-                        [],
-                        new Constructor(
-                            [],
-                            null,
-                            []
-                            , null),
-                        [
-                            new MethodDefinition(
-                                new IdentifiedNode("test", null),
-                                [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                                ],
-                                null,
-                                new BlockStatement([
-                                    new ReturnStatement(null, null)
-                                ], null)
-                            , null)
-                        ]
-                        , null);
+            var methodDef = Assert.IsType<MethodDefinition>(classDef.MethodDefinitions[0]);
+            Assert.Equal("test", methodDef.Name.Value);
 
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
+            var param = Assert.IsType<VariableDeclaration>(methodDef.Parameters[0]);
+            Assert.Equal("Int", param.Type.Value);
+            Assert.Equal("a", param.Var.Value);
         }
 
         [Fact]
         [Trait("Category", "Class")]
-        public void ClassDefMultMethodsTest()
+        public void ClassDefConstructorTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
+                    class MyClass {
+                        Int x;
+
+                        init(Int value) {
+                            x = value;
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            Assert.Null(classDef.ExtendsName);
+            Assert.Single(classDef.VariableDeclarations);
+            Assert.Empty(classDef.MethodDefinitions);
+
+            var constructor = Assert.IsType<Constructor>(classDef.Constructor);
+            Assert.Equal(1, constructor.Parameters.Count);
+
+            var param = Assert.IsType<VariableDeclaration>(constructor.Parameters[0]);
+            Assert.Equal("Int", param.Type.Value);
+            Assert.Equal("value", param.Var.Value);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ClassDefWithSuperClassConstructorCallTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyClass extends BaseClass {
+                        init(Int value) {
+                            super(value);
+                        }
+                    }
+                    """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Single(program.Classes);
+            Assert.Empty(program.Statements);
+
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            Assert.Equal("BaseClass", classDef.ExtendsName.Value);
+            Assert.Empty(classDef.VariableDeclarations);
+            Assert.Empty(classDef.MethodDefinitions);
+
+            var constructor = Assert.IsType<Constructor>(classDef.Constructor);
+            Assert.Single(constructor.Parameters);
+            Assert.Single(constructor.SuperArguments);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void MultipleClassesTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class BaseClass {
                         init() {}
-                        method test1(Int x, String y) Void {
-                            return;
-                        }
+                    }
 
-                        method test2(Int x, String y) Boolean {
-                            return true;
+                    class MyClass extends BaseClass {
+                        init(Int value) {
+                            super(value);
                         }
                     }
                     """);
@@ -2229,471 +1998,74 @@ namespace CompilerTests
 
             ProgramNode program = Assert.IsType<ProgramNode>(root);
 
-            Assert.Single(program.Classes);
+            Assert.Equal(2, program.Classes.Count);
             Assert.Empty(program.Statements);
 
+            var baseClassDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("BaseClass", baseClassDef.Name.Value);
+            Assert.Null(baseClassDef.ExtendsName);
+            Assert.Empty(baseClassDef.VariableDeclarations);
+            Assert.Empty(baseClassDef.MethodDefinitions);
+            Assert.NotNull(baseClassDef.Constructor);
 
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        new IdentifiedNode("OtherClass", null),
-                        [],
-                        new Constructor(
-                            [],
-                            null,
-                            []
-                            , null),
-                        [
-                            new MethodDefinition(
-                                new IdentifiedNode("test1", null),
-                                [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                                ],
-                                null,
-                                new BlockStatement([
-                                    new ReturnStatement(null, null)
-                                ], null)
-                            , null),
-                            new MethodDefinition(
-                                new IdentifiedNode("test2", null),
-                                [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                                ],
-                                new IdentifiedNode("Boolean", null),
-                                new BlockStatement([
-                                    new ReturnStatement(
-                                        new BooleanLiteral(true, null)
-                                        , null)
-                                ], null)
-                            , null)
-                        ]
-                        , null);
-
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[1]);
+            Assert.Equal("MyClass", classDef.Name.Value);
+            var superClass = Assert.IsType<IdentifiedNode>(classDef.ExtendsName);
+            Assert.Equal("BaseClass", superClass.Value);
+            Assert.Empty(classDef.VariableDeclarations);
+            Assert.Empty(classDef.MethodDefinitions);
+            Assert.NotNull(classDef.Constructor);
         }
 
         [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefMethodNoRetTypeTest()
+        [Trait("Category", "Position")]
+        public void ASTPositioningTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {}
-
-                        method test1(Int x, String y) {
-                            return;
-                        }
-                    }
-                    """);
-
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefConstructorNoSuperTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            Int z;
-                            z = x;
-                        }
-                    }
-                    """);
-
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Single(program.Classes);
-            Assert.Empty(program.Statements);
-
-
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        new IdentifiedNode("OtherClass", null),
-                        [],
-                        new Constructor(
-                            [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                            ],
-                            null,
-                            [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("z", null)
-                                    , null),
-                                new AssignmentStatement(
-                                    new IdentifiedNode("z", null),
-                                    new IdentifiedNode("x", null)
-                                    , null)
-                            ]
-                            , null),
-                        []
-                        , null);
-
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefConstructorSuperTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            super(x, y);
-                            Int z;
-                            z = x;
-                        }
-                    }
-                    """);
-
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Single(program.Classes);
-            Assert.Empty(program.Statements);
-
-
-            var expClassDef = new ClassDefinition(
-                        new IdentifiedNode("MyClass", null),
-                        new IdentifiedNode("OtherClass", null),
-                        [],
-                        new Constructor(
-                            [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("x", null)
-                                    , null),
-                                new VariableDeclaration(
-                                    new IdentifiedNode("String", null),
-                                    new IdentifiedNode("y", null)
-                                    , null),
-                            ],
-                            [
-                                new IdentifiedNode("x", null),
-                                new IdentifiedNode("y", null)
-                            ],
-                            [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", null),
-                                    new IdentifiedNode("z", null)
-                                    , null),
-                                new AssignmentStatement(
-                                    new IdentifiedNode("z", null),
-                                    new IdentifiedNode("x", null)
-                                    , null)
-                            ]
-                            , null),
-                        []
-                        , null);
-
-            Assert.True(Parser.ASTsEqual(expClassDef, program.Classes[0]));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefConstructorBadSuperTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            Int z;
-                            z = x;
-
-                            super(x, y);
-                        }
-                    }
-                    """);
-
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefMultConstructorTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            Int z;
-                            z = x;
-                        }
-                        init(Int a, String y) {
-                            Int z;
-                            z = x;
-                        }
-                    }
-                    """);
-
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void ClassDefOutOfOrderTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyClass extends OtherClass {
-                        method b(String s) String {
-                            return s;
-                        }
-
-                        init(Int x, String y) {
-                            Int z;
-                            z = x;
-                        }
-
+                    class TestClass {
                         Int a;
-                    }
-                    """);
+                        String b;
 
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void MultipleClassesCountTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class OtherClass {
-                        init() {}
-                    }
-
-                    class MyClass extends OtherClass {
                         init(Int x, String y) {
-                            super(x, y);
+                            a = x;
+                            b = y;
+                        }
 
-                            Int z;
-                            z = x;
+                        method display() Void {
+                            println(a);
+                            println(b);
                         }
                     }
                     """);
 
             AST root = Parser.Parse(tokens);
 
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
+            var program = Assert.IsType<ProgramNode>(root);
+            var classDef = Assert.IsType<ClassDefinition>(program.Classes[0]);
+            Assert.Equal("TestClass", classDef.Name.Value);
 
-            Assert.Equal(2, program.Classes.Count);
-            Assert.Empty(program.Statements);
-        }
+            var fieldA = Assert.IsType<VariableDeclaration>(classDef.VariableDeclarations[0]);
+            Assert.Equal("Int", fieldA.Type.Value);
+            Assert.Equal("a", fieldA.Var.Value);
 
-        [Fact]
-        [Trait("Category", "Class")]
-        public void MultipleClassesAndStatementsCountTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class OtherClass {
-                        init() {}
-                    }
+            var fieldB = Assert.IsType<VariableDeclaration>(classDef.VariableDeclarations[1]);
+            Assert.Equal("String", fieldB.Type.Value);
+            Assert.Equal("b", fieldB.Var.Value);
 
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            super(x, y);
+            var constructor = Assert.IsType<Constructor>(classDef.Constructor);
+            Assert.Equal(2, constructor.Parameters.Count);
 
-                            Int z;
-                            z = x;
-                        }
-                    }
+            var paramX = Assert.IsType<VariableDeclaration>(constructor.Parameters[0]);
+            Assert.Equal("Int", paramX.Type.Value);
+            Assert.Equal("x", paramX.Var.Value);
 
-                    OtherClass c;
-                    String s;
-                    s = "test string";
-                    println(s);
-                    """);
+            var paramY = Assert.IsType<VariableDeclaration>(constructor.Parameters[1]);
+            Assert.Equal("String", paramY.Type.Value);
+            Assert.Equal("y", paramY.Var.Value);
 
-            AST root = Parser.Parse(tokens);
-
-            ProgramNode program = Assert.IsType<ProgramNode>(root);
-
-            Assert.Equal(2, program.Classes.Count);
-            Assert.Equal(4, program.Statements.Count);
-        }
-
-        [Fact]
-        [Trait("Category", "Class")]
-        public void CantMisplaceClassAndStatementTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class OtherClass {
-                        init() {}
-                    }
-
-                    OtherClass c;
-                    String s;
-
-                    class MyClass extends OtherClass {
-                        init(Int x, String y) {
-                            super(x, y);
-
-                            Int z;
-                            z = x;
-                        }
-                    }
-
-                    s = "test string";
-                    println(s);
-                    """);
-
-            Assert.Throws<ParserException>(() => Parser.Parse(tokens));
-
-        }
-
-        [Fact]
-        [Trait("Category", "Position")]
-        public void BasicASTPositionTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-
-                    Int x;
-
-                    x = 5;
-                    """);
-
-            AST root = Parser.Parse(tokens);
-
-            var expected = new ProgramNode([], [
-                    new VariableDeclaration(
-                        new IdentifiedNode("Int", new Position(2, 1)),
-                        new IdentifiedNode("x", new Position(2, 5)),
-                        new Position(2, 1)
-                        ),
-                    new AssignmentStatement(
-                        new IdentifiedNode("x", new Position(4, 1)),
-                        new IntLiteral(5, new Position(4, 5)),
-                        new Position(4, 1)
-                        )
-            ]);
-
-            Assert.True(Parser.ASTsEqual(expected, root, false));
-        }
-
-        [Fact]
-        [Trait("Category", "Position")]
-        public void ClassASTPositionTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class Test extends Tester {
-                        Int y;
-                        init() { super(); }
-
-                        method run(Int x) Void {
-                            println(x);
-                        }
-                    }
-                    """);
-
-            AST root = Parser.Parse(tokens);
-
-            var expected = new ProgramNode([
-                new ClassDefinition(
-                    new IdentifiedNode("Test", new Position(1, 7)),
-                    new IdentifiedNode("Tester", new Position(1, 20)),
-                    [
-                    new VariableDeclaration(
-                        new IdentifiedNode("Int", new Position(2, 5)),
-                        new IdentifiedNode("y", new Position(2, 9)),
-                        new Position(2, 5)
-                        )
-                    ],
-                    new Constructor(
-                        [],
-                        [],
-                        [],
-                        new Position(3, 5)
-                        ),
-                    [
-                        new MethodDefinition(
-                            new IdentifiedNode("run", new Position(5, 12)),
-                            [
-                                new VariableDeclaration(
-                                    new IdentifiedNode("Int", new Position(5, 16)),
-                                    new IdentifiedNode("x", new Position(5, 20)),
-                                    new Position(5, 16)
-                                    )
-                            ],
-                            null,
-                            new BlockStatement([
-                                new ExpressionStatement(
-                                    new PrintLnStatement(
-                                        new IdentifiedNode("x", new Position(6, 17)),
-                                        new Position(6, 9)
-                                        ),
-                                    new Position(6, 9)
-                                    )
-                                ],
-                                new Position(5, 28)
-                                ),
-                            new Position(5, 5)
-                            )
-                    ],
-                    new Position(1, 1)
-                    )
-            ], []);
-
-            Assert.True(Parser.ASTsEqual(expected, root, false));
-        }
-
-        [Fact]
-        [Trait("Category", "Position")]
-        public void IndentedASTPositionTest()
-        {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    Int noIndent;
-                        String someIndent;
-                            someIndent = "very indented";
-                    someIndent = "back to normal";
-                    """);
-
-            AST root = Parser.Parse(tokens);
-
-            var expected = new ProgramNode([], [
-                new VariableDeclaration(
-                    new IdentifiedNode("Int", new Position(1, 1)),
-                    new IdentifiedNode("noIndent", new Position(1, 5)),
-                    new Position(1, 1)
-                    ),
-                new VariableDeclaration(
-                    new IdentifiedNode("String", new Position(2, 5)),
-                    new IdentifiedNode("someIndent", new Position(2, 12)),
-                    new Position(2, 5)
-                    ),
-                new AssignmentStatement(
-                    new IdentifiedNode("someIndent", new Position(3, 9)),
-                    new StringLiteral("\"very indented\"", new Position(3, 22)),
-                    new Position(3, 9)
-                    ),
-                new AssignmentStatement(
-                    new IdentifiedNode("someIndent", new Position(4, 1)),
-                    new StringLiteral("\"back to normal\"", new Position(4, 14)),
-                    new Position(4, 1)
-                    ),
-            ]);
-
-            Assert.True(Parser.ASTsEqual(expected, root, false));
+            var methodDisplay = Assert.IsType<MethodDefinition>(classDef.MethodDefinitions[0]);
+            Assert.Equal("display", methodDisplay.Name.Value);
+            Assert.Empty(methodDisplay.Parameters);
         }
     }
 }
