@@ -251,10 +251,11 @@ namespace JavaWhoCompiler
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
         private IToken Expect<T>() where T : IToken
         {
-            if(IsEnd) 
+            if (IsEnd)
             {
                 throw new ParserException($"Expected {typeof(T)} but reached end of file");
-            } else if (!Check<T>())
+            }
+            else if (!Check<T>())
             {
                 throw new ParserException($"{CurrentToken.Position.Line}:{CurrentToken.Position.Column}: Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
             }
@@ -541,7 +542,8 @@ namespace JavaWhoCompiler
 
         private AST ParsePrimaryExpression()
         {
-            if(IsEnd) {
+            if (IsEnd)
+            {
                 throw new ParserException("Expected primary expression but reached end of file");
             }
 
@@ -635,7 +637,8 @@ namespace JavaWhoCompiler
 
             List<AST> vardecs = [ParseVariableDeclaration()];
 
-            while (Check<CommaToken>()) {
+            while (Check<CommaToken>())
+            {
                 Consume();
                 vardecs.Add(ParseVariableDeclaration());
             }
