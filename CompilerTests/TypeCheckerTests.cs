@@ -36,5 +36,20 @@ namespace CompilerTests
 
             TypeChecker.CheckType(root);
         }
+
+        [Fact]
+        public void ClassAssignmentTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+                    }
+                    MyType a;
+                    a = new MyType();
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
     }
 }

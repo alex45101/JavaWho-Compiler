@@ -37,9 +37,37 @@ namespace JavaWhoCompiler
         }
     }
 
+    public class MethodSignature {
+
+    }
+
+    public class ClassType(
+        string className,
+        ClassType extendingClassType,
+        List<VariableDeclaration> variableDeclarations,
+        Constructor constructor,
+        List<MethodSignature> methodSignatures
+        ) {
+        string ClassName { get; } = className;
+        ClassType ExtendingClassType { get; } = extendingClassType;
+        List<VariableDeclaration> VariableDeclarations { get; } = variableDeclarations;
+        Constructor Constructor { get; } = constructor;
+        List<MethodSignature> MethodSignatures { get; } = methodSignatures;
+        
+        public bool IsSubtypeOf(ClassType classType) {
+            if(classType.ClassName == ClassName) return true;
+
+            if(ExtendingClassType is null) return false;
+
+            return ExtendingClassType.IsSubtypeOf(classType);
+        }
+
+    }
+
     public class TypeChecker
     {
         private Scope scope = new(null);
+        private Dictionary<string, ClassType> ClassTypes = new();
 
         public static void CheckType(AST node)
         { 
@@ -47,13 +75,70 @@ namespace JavaWhoCompiler
 
             typeChecker.CheckTypeHelper(node);
         }
-        
+
+
+        private void CheckClassType(ClassType classType) {
+            throw new NotImplementedException();
+        }
+
+        private ClassType ConvertAndCheckClassType(string className, 
+                                                   Dictionary<string, ClassDefinition> definedClasses) 
+        {
+            if(ClassTypes.GetValueOrDefault(className, null) is ClassType classType) {
+                // already defined this ClassType
+                return classType;
+            }
+
+            ClassDefinition classDefinition = null;
+            if(!definedClasses.TryGetValue(className, out classDefinition)) {
+                throw new TypeException($"Class {className} is not defined");
+            }
+
+
+            ClassType extendingClassType = null;
+            if(classDefinition.ExtendsName.Value is string extendsName) {
+                if(!ClassTypes.ContainsKey(extendsName)) {
+                    throw new TypeException($"Inherited class {extendsName} is not defined");
+                }
+
+                extendingClassType = ConvertAndCheckClassType(extendsName, definedClasses);
+            }
+
+
+            return null;
+        }
+
+        private void TypeCheckClasses(List<AST> classes) {
+            Dictionary<string, ClassDefinition> DefinedClasses = new();
+
+            // first pass: add classes to dictionary
+            foreach(ClassDefinition classdef in classes) {
+                if(DefinedClasses.ContainsKey(classdef.Name.Value)) {
+                    throw new TypeException($"Class {classdef.Name.Value} defined more than once");
+                }
+
+                DefinedClasses.Add(classdef.Name.Value, classdef);
+                ClassTypes.Add(classdef.Name.Value, null);
+            }
+
+            // second pass: convert and check validity of class
+            foreach(ClassDefinition classdef in classes) {
+                if(ClassTypes.GetValueOrDefault(classdef.Name.Value, null) is not null) {
+                     // already defined
+                     continue;
+                }
+
+                ClassTypes.Add(classdef.Name.Value, ConvertAndCheckClassType(classdef.Name.Value, DefinedClasses));
+
+            }
+        }
+
         private void CheckTypeHelper(AST node)
         {   
             switch (node)
             {
                 case ProgramNode prog:
-                    //todo add classes
+                    TypeCheckClasses(prog.Classes);
 
                     foreach (AST statement in prog.Statements)
                     {
@@ -81,6 +166,9 @@ namespace JavaWhoCompiler
                 default:
                     throw new TypeException($"Type is not supported: {node.GetType()}");
             }
+        }
+
+        private void CheckClass(ClassDefinition classdef) {
         }
 
         private void EnterScope()
