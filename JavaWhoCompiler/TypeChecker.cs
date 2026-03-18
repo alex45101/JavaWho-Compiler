@@ -245,7 +245,7 @@ namespace JavaWhoCompiler
 
         public TypeList ConstructorTypes { get; private set; }
 
-        public bool isChecked = false;
+        private bool isChecked = false;
 
 
         public ClassType(
@@ -277,10 +277,8 @@ namespace JavaWhoCompiler
             this.variableDeclarations = variableDeclarations;
             this.methodDefinitions = methodDefinitions;
 
-            // InitializeLocalFields(variableDeclarations);
 
             this.constructor = (Constructor)constructor;
-            // InitializeMethodSignatures(methodDefinitions);
         }
         
         public override bool CanBeAssignedTo(TypeBase other) {
@@ -324,6 +322,13 @@ namespace JavaWhoCompiler
             isChecked = true;
         }
 
+        private void InitializeConstructor(TypeMap typeMap) {
+            ConstructorTypes = new TypeList(
+                constructor.Parameters.Select(param => 
+                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToList()
+            );
+        }
+
         private void MergeMatchingParentMethodSet(HashSet<MethodSignature> parentMethodSet, HashSet<MethodSignature> localMethodSet) {
             // local class has matching method name to parent
             foreach(MethodSignature parentMethodSignature in parentMethodSet) {
@@ -341,13 +346,6 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void InitializeConstructor(TypeMap typeMap) {
-            ConstructorTypes = new TypeList(
-                constructor.Parameters.Select(param => 
-                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToList()
-            );
-        }
-
         private void InheritMethods() {
             if(ParentClassType is null) return;
 
@@ -358,34 +356,6 @@ namespace JavaWhoCompiler
                     // local class doesn't have any matching method names to parent
                     MethodSignatures.Add(parentMethodName, parentMethodSet);
                 }
-            }
-        }
-
-        // private void InitializeLocalFields(List<AST> variableDeclarations) {
-        //     foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
-        //         if(CanAccessField(variableDeclaration.Var.Value)) {
-        //             throw new TypeException($"Redelcaration of field {variableDeclaration.Var.Value}");
-        //         }
-        //
-        //         LocalClassFields.Add(
-        //                 variableDeclaration.Var.Value,
-        //                 variableDeclaration.Type.Value
-        //                 );
-        //     }
-        // }
-
-        private void InitializeFields(TypeMap typeMap) {
-            Fields = ParentClassType is not null ? new(ParentClassType.Fields) : new();
-
-            foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
-                if(Fields.ContainsKey(variableDeclaration.Var.Value)) {
-                    throw new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}");
-                }
-
-                Fields.Add(
-                        variableDeclaration.Var.Value,
-                        typeMap.GetType(variableDeclaration.Type.Value)
-                        );
             }
         }
 
@@ -403,15 +373,36 @@ namespace JavaWhoCompiler
                         ),
                         newMethodReturnType
                 );
-                
+
                 if(MethodSignatures.TryGetValue(newMethodSignature.Name, out HashSet<MethodSignature> methodSetWithSameName)) {
+
                     if(methodSetWithSameName.Contains(newMethodSignature)) {
                         // exact signature match, local redeclaration
                         throw new TypeException($"Redeclaration of method {newMethodSignature}");
                     }
+
+                    methodSetWithSameName.Add(newMethodSignature);
+                } else {
+                    MethodSignatures.Add(newMethodSignature.Name, new HashSet<MethodSignature>([newMethodSignature]));
                 }
             }
         }
+
+        private void InitializeFields(TypeMap typeMap) {
+            Fields = ParentClassType is not null ? new(ParentClassType.Fields) : new();
+
+            foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
+                if(Fields.ContainsKey(variableDeclaration.Var.Value)) {
+                    throw new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}");
+                }
+
+                Fields.Add(
+                        variableDeclaration.Var.Value,
+                        typeMap.GetType(variableDeclaration.Type.Value)
+                        );
+            }
+        }
+
     }
 
     public class TypeChecker

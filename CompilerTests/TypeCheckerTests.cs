@@ -1,4 +1,5 @@
-﻿using JavaWhoCompiler;
+﻿using System.Reflection.Metadata;
+using JavaWhoCompiler;
 
 namespace CompilerTests
 {
@@ -122,7 +123,7 @@ namespace CompilerTests
 
                     class OtherType {
                         init() {}
-                        
+
                         method b(Int y) Int {
                             Int x;
                             x = y;
@@ -167,28 +168,18 @@ namespace CompilerTests
         }
 
         [Fact]
-        public void OverridingClassDefTest() {
+        public void OverridingMethodWithCovarianceTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyType {
-                        init(Int x, Int y) {}
-                    }
-
-                    class SubType extends MyType {
-                        init() {
-                            super(5, 0);
-                        }
-                    }
-
                     class TestType {
-                        init(MyType m) {}
+                        init(Int x) {}
 
-                        method a(MyType m) Void {}
+                        method a(Boolean y) Object { return new Object(); }
                     }
 
                     class SubTestType extends TestType {
-                        init(SubType s) { super(s); }
+                        init() { super(5); }
 
-                        method a(MyType m) Void {}
+                        method a(Boolean z) String { return "hello world"; }
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -197,13 +188,32 @@ namespace CompilerTests
         }
 
         [Fact]
-        public void InvalidOverridingClassDefTest() {
+        public void OverridingMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class TestType {
+                        init(Int x) {}
+
+                        method a(Boolean y) Void { }
+                    }
+
+                    class SubTestType extends TestType {
+                        init() { super(5); }
+
+                        method a(Boolean z) Void { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void InvalidOverridingMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class TestType {
                         init() {}
 
                         method a(Int x) Void {}
-                        method a(Int x) Int { return x; }
                     }
 
                     class SubTestType extends TestType {
@@ -214,7 +224,7 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
         }
 
         [Fact]
