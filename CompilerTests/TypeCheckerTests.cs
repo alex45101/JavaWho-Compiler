@@ -56,9 +56,9 @@ namespace CompilerTests
                         init(Int x, Int y) {}
                     }
 
-                    class SubType {
+                    class SubType extends MyType {
                         init() {
-                            super("5", 0);
+                            super(5, 0);
                         }
                     }
                     """);

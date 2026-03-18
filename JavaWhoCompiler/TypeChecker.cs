@@ -40,6 +40,10 @@ namespace JavaWhoCompiler
 
         public abstract bool CanBeAssignedTo(TypeBase other);
 
+        public override string ToString() {
+            return Name;
+        }
+
 
         // primitives
         public static PrimitiveType IntPrimitive = new("Int");
@@ -438,6 +442,7 @@ namespace JavaWhoCompiler
 
                 workingTree.Add(className);
                 CreateClassType(extendsName, definedClasses, workingTree);
+                extendingClassType = Types.GetType(extendsName);
             }
 
             Types.DefineType(
@@ -614,7 +619,7 @@ namespace JavaWhoCompiler
 
                 TypeList superCallTypes = GetExpressionTypeList(superArguments);
                 if(!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes)) {
-                    throw new TypeException($"Super call arguments in class ${classType.Name} are not compatible with parent class constructor");
+                    throw new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class constructor");
                 }
             }
 
