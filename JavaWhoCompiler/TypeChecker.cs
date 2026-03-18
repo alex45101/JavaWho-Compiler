@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections;
 
 namespace JavaWhoCompiler
 {
@@ -48,6 +46,12 @@ namespace JavaWhoCompiler
         public static PrimitiveType BooleanPrimitive = new("Boolean");
         public static PrimitiveType VoidPrimitive = new("Void");
 
+        public static HashSet<PrimitiveType> Primitives = new([
+                IntPrimitive,
+                BooleanPrimitive,
+                VoidPrimitive,
+        ]);
+
         // built ins
         public static ClassType ObjectBuiltIn = new(
                 "Object",
@@ -70,6 +74,71 @@ namespace JavaWhoCompiler
         public override bool CanBeAssignedTo(TypeBase other) {
             return Equals(other);
         }
+    }
+
+
+    public class TypeMap : IEnumerable<TypeBase> {
+        private readonly Dictionary<string, TypeBase> types = new();
+
+        public TypeMap() : this([]) {}
+
+        public TypeMap(IEnumerable<PrimitiveType> primitives) {
+            foreach(PrimitiveType primitive in primitives) {
+                types.Add(primitive.Name, primitive);
+            }
+        }
+
+        public void DefineType(TypeBase classDefinition) {
+            AssertNotDefined(classDefinition.Name);
+
+            types.Add(classDefinition.Name, classDefinition);
+        }
+
+        public bool CanBeAssignedTo(string assigningTypeName, string targetTypeName) {
+            TypeBase targetType =  GetType(targetTypeName);
+            TypeBase assigningType = GetType(assigningTypeName);
+
+            return assigningType.CanBeAssignedTo(targetType);
+        }
+
+        public void AssertCanAssign(string assigningTypeName, string targetTypeName) {
+            if(!CanBeAssignedTo(assigningTypeName, targetTypeName)) {
+                throw new TypeException($"Type {assigningTypeName} cannot be assigned to type {targetTypeName}");
+            }
+        }
+
+        public bool TypeDefined(string type) {
+            return types.ContainsKey(type);
+        }
+
+        public void AssertNotDefined(string type) {
+            if(TypeDefined(type)) {
+                throw new TypeException($"Type {type} is already defined");
+            }
+        }
+
+        public void AssertDefined(string type) {
+            if(!TypeDefined(type)) {
+                throw new TypeException($"Type {type} is not defined");
+            }
+        }
+
+        public TypeBase GetType(string type) { 
+            AssertDefined(type);
+            return types[type];
+        }
+
+        public IEnumerator<TypeBase> GetEnumerator() {
+            foreach((_, TypeBase type) in types)
+            {
+                yield return type;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
     }
 
 
@@ -97,18 +166,23 @@ namespace JavaWhoCompiler
     //     }
     // }
 
-    public sealed record MethodSignature(string Name, List<string> ParamTypes, string ReturnType) {
+    public sealed record MethodSignature(string Name, List<TypeBase> ParamTypes, TypeBase ReturnType) {
         public bool Equals(MethodSignature other) {
             // signatures will be considered unique by (Name + ParamTypes)
             return Name == other.Name &&
                 ParamTypes.SequenceEqual(other.ParamTypes);
         }
 
+        // called when two method signatures are 'equal' (name + param types)
+        public bool CanOverride(MethodSignature other) {
+            return ReturnType.CanBeAssignedTo(other.ReturnType);
+        }
+
         public override int GetHashCode() {
             HashCode hashCode = new();
             hashCode.Add(Name);
 
-            foreach(string paramType in ParamTypes) {
+            foreach(TypeBase paramType in ParamTypes) {
                 hashCode.Add(paramType);
             }
 
@@ -118,24 +192,29 @@ namespace JavaWhoCompiler
 
     public class ClassType : TypeBase
     {
-        ClassType ExtendingClassType { get; }
+        ClassType ParentClassType { get; }
         public Constructor Constructor { get; }
 
-        public HashSet<MethodSignature> MethodSignatures { get; } = new();
+        public Dictionary<string, HashSet<MethodSignature>> MethodSignatures { get; } = new();
 
         // name to type
-        public Dictionary<string, string> LocalClassFields { get; } = new();
+        public Dictionary<string, TypeBase> Fields { get; private set; }
+
+        public bool isChecked = false;
+
+        private List<AST> variableDeclarations;
+        private List<AST> methodDefinitions;
 
 
         public ClassType(
             ClassDefinition classDefinition,
-            ClassType extendingClassType
+            TypeBase parentClassType
             ) 
             : this(classDefinition.Name.Value,
                     classDefinition.VariableDeclarations,
                     classDefinition.Constructor,
                     classDefinition.MethodDefinitions,
-                    extendingClassType) {}
+                    parentClassType) {}
 
 
         public ClassType(
@@ -143,16 +222,23 @@ namespace JavaWhoCompiler
                 List<AST> variableDeclarations,
                 AST constructor,
                 List<AST> methodDefinitions,
-                ClassType extendingClassType
+                TypeBase parentClassType
                 )
                 : base(className)
         {
-            ExtendingClassType = extendingClassType;
+            if(parentClassType is ClassType classType) {
+                ParentClassType = classType;
+            } else if(parentClassType is PrimitiveType primitiveType){
+                throw new TypeException($"Cannot extend class by primitive type ${primitiveType.Name}");
+            }
 
-            InitializeLocalFields(variableDeclarations);
+            this.variableDeclarations = variableDeclarations;
+            this.methodDefinitions = methodDefinitions;
+
+            // InitializeLocalFields(variableDeclarations);
 
             Constructor = (Constructor)constructor;
-            InitializeMethodSignatures(methodDefinitions);
+            // InitializeMethodSignatures(methodDefinitions);
         }
         
         public override bool CanBeAssignedTo(TypeBase other) {
@@ -160,9 +246,9 @@ namespace JavaWhoCompiler
                 case ClassType classType: {
                     if(classType.Name == Name) return true;
 
-                    if(ExtendingClassType is null) return false;
+                    if(ParentClassType is null) return false;
 
-                    return ExtendingClassType.CanBeAssignedTo(classType);
+                    return ParentClassType.CanBeAssignedTo(classType);
                 }
 
                 default:
@@ -171,127 +257,112 @@ namespace JavaWhoCompiler
         }
 
         public bool CanAccessField(string fieldName) {
-            return LocalClassFields.ContainsKey(fieldName) ||
+            return Fields.ContainsKey(fieldName) ||
                    (
-                    ExtendingClassType is not null &&
-                    ExtendingClassType.CanAccessField(fieldName)
+                    ParentClassType is not null &&
+                    ParentClassType.CanAccessField(fieldName)
                    );
         }
 
-        private void InitializeLocalFields(List<AST> variableDeclarations) {
+        public void PopulateWithTypeMap(TypeMap typeMap) {
+            if(isChecked) return;
+
+            // populate parent class first
+            if(ParentClassType is not null) {
+                ParentClassType.PopulateWithTypeMap(typeMap);
+            }
+
+            InitializeFields(typeMap);
+
+            InitializeLocalMethodSignatures(typeMap);
+            InheritMethods();
+
+            isChecked = true;
+        }
+
+        private void MergeMatchingParentMethodSet(HashSet<MethodSignature> parentMethodSet, HashSet<MethodSignature> localMethodSet) {
+            // local class has matching method name to parent
+            foreach(MethodSignature parentMethodSignature in parentMethodSet) {
+                if(localMethodSet.TryGetValue(parentMethodSignature, out MethodSignature localMethodSignature)) {
+                    // a local method is trying to override a parent method
+                    if(!localMethodSignature.CanOverride(parentMethodSignature)) {
+                        throw new TypeException($"Overriding method {localMethodSignature.Name}'s return type " + 
+                                $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
+                                $"return type {parentMethodSignature.ReturnType}");
+                    }
+                } else {
+                    // no override needed, add parent method signature to local set
+                    localMethodSet.Add(parentMethodSignature);
+                }
+            }
+        }
+
+        private void InheritMethods() {
+            if(ParentClassType is null) return;
+
+            foreach((string parentMethodName, HashSet<MethodSignature> parentMethodSet) in ParentClassType.MethodSignatures) {
+                if(MethodSignatures.TryGetValue(parentMethodName, out HashSet<MethodSignature> localMethodSet)) {
+                    MergeMatchingParentMethodSet(parentMethodSet, localMethodSet);
+                } else {
+                    // local class doesn't have any matching method names to parent
+                    MethodSignatures.Add(parentMethodName, parentMethodSet);
+                }
+            }
+        }
+
+        // private void InitializeLocalFields(List<AST> variableDeclarations) {
+        //     foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
+        //         if(CanAccessField(variableDeclaration.Var.Value)) {
+        //             throw new TypeException($"Redelcaration of field {variableDeclaration.Var.Value}");
+        //         }
+        //
+        //         LocalClassFields.Add(
+        //                 variableDeclaration.Var.Value,
+        //                 variableDeclaration.Type.Value
+        //                 );
+        //     }
+        // }
+
+        private void InitializeFields(TypeMap typeMap) {
+            Fields = ParentClassType is not null ? ParentClassType.Fields : new();
+
             foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
-                if(CanAccessField(variableDeclaration.Var.Value)) {
-                    throw new TypeException($"Redelcaration of field {variableDeclaration.Var.Value}");
+                if(Fields.ContainsKey(variableDeclaration.Var.Value)) {
+                    throw new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}");
                 }
 
-                LocalClassFields.Add(
+                Fields.Add(
                         variableDeclaration.Var.Value,
-                        variableDeclaration.Type.Value
+                        typeMap.GetType(variableDeclaration.Type.Value)
                         );
             }
         }
 
-        private void InitializeMethodSignatures(List<AST> methodDefinitions) {
+        private void InitializeLocalMethodSignatures(TypeMap typeMap) {
             foreach(MethodDefinition methodDefinition in methodDefinitions) {
                 MethodSignature newMethodSignature = new MethodSignature(
                     methodDefinition.Name.Value,
-                    methodDefinition.Parameters.Select(vd => ((VariableDeclaration)vd).Type.Value).ToList(),
-                    methodDefinition.ReturnType.Value
+                    methodDefinition.Parameters.Select(vd => typeMap.GetType(((VariableDeclaration)vd).Type.Value)).ToList(),
+                    typeMap.GetType(methodDefinition.ReturnType.Value)
                 );
-
-                if(MethodSignatures.Contains(newMethodSignature)) {
-                    throw new TypeException($"Redeclaration of identical method {newMethodSignature.Name}");
+                
+                if(MethodSignatures.TryGetValue(newMethodSignature.Name, out HashSet<MethodSignature> methodSetWithSameName)) {
+                    if(methodSetWithSameName.Contains(newMethodSignature)) {
+                        // exact signature match, local redeclaration
+                        throw new TypeException($"Redeclaration of method {newMethodSignature}");
+                    }
                 }
-
-                MethodSignatures.Add(newMethodSignature);
             }
-        }
-    }
-
-
-    public class TypeMap {
-        private Dictionary<string, ClassDefinition> types = new();
-
-        public TypeMap() : this([]) {}
-
-        public TypeMap(IEnumerable<string> primitives) {
-            foreach(string primitive in primitives) {
-                types.Add(primitive, null);
-            }
-        }
-
-        public void DefineType(ClassDefinition classDefinition) {
-            AssertNotDefined(classDefinition.Name.Value);
-
-            types.Add(classDefinition.Name.Value, classDefinition);
-        }
-
-        public bool CanBeAssignedTo(string assigningTypeName, string targetTypeName) {
-            ClassDefinition targetType =  GetClassDefinition(targetTypeName);
-            ClassDefinition assigningType = GetClassDefinition(assigningTypeName);
-
-            // both primitives
-            if(targetType is null && assigningType is null) return assigningTypeName == targetTypeName;
-
-            // one primitive one not
-            if(targetType is null || assigningType is null) return false;
-
-
-            // both class types
-            while(assigningType.Name.Value != targetTypeName) {
-                if(assigningType.ExtendsName is null) {
-                    return false;
-                }
-
-                assigningType = GetClassDefinition(assigningType.ExtendsName.Value);
-            }
-
-            return true;
-        }
-
-        public void AssertCanAssign(string assigningTypeName, string targetTypeName) {
-            if(!CanBeAssignedTo(assigningTypeName, targetTypeName)) {
-                throw new TypeException($"Type {assigningTypeName} cannot be assigned to type {targetTypeName}");
-            }
-        }
-
-        public bool TypeDefined(string type) {
-            return types.ContainsKey(type);
-        }
-
-        public void AssertNotDefined(string type) {
-            if(TypeDefined(type)) {
-                throw new TypeException($"Type {type} is already defined");
-            }
-        }
-
-        public void AssertDefined(string type) {
-            if(!TypeDefined(type)) {
-                throw new TypeException($"Type {type} is not defined");
-            }
-        }
-
-        public ClassDefinition GetClassDefinition(string type) { 
-            AssertDefined(type);
-            return types[type];
         }
     }
 
     public class TypeChecker
     {
         private Scope scope = new(null);
-        private Dictionary<string, TypeBase> Types = new();
-
-        private static HashSet<string> Primitives = new([
-                "Int",
-                "Boolean",
-                "Void"
-        ]);
-
-        private TypeMap TypeMap = new(Primitives);
+        private TypeMap Types = new(TypeBase.Primitives);
 
 
-        private ClassType CreateType(
+        private void CreateType(
             string className, 
             Dictionary<string, ClassDefinition> definedClasses,
             HashSet<string> workingTree) 
@@ -301,9 +372,8 @@ namespace JavaWhoCompiler
                 throw new TypeException($"Class {className} is part of an inheritance cycle");
             }
 
-            if(Types.GetValueOrDefault(className, null) is ClassType classType) {
-                // already defined this ClassType
-                return classType;
+            if(Types.TypeDefined(className)) {
+                return;
             }
 
             if(!definedClasses.TryGetValue(className, out ClassDefinition classDefinition)) {
@@ -311,34 +381,36 @@ namespace JavaWhoCompiler
             }
 
 
-            ClassType extendingClassType = null;
+            TypeBase extendingClassType = null;
             if(classDefinition.ExtendsName.Value is string extendsName) {
-                if(!Types.ContainsKey(extendsName)) {
+                if(!Types.TypeDefined(extendsName)) {
                     throw new TypeException($"Inherited class {extendsName} is not defined");
                 }
 
                 workingTree.Add(className);
-                extendingClassType = CreateType(extendsName, definedClasses, workingTree);
+                CreateType(extendsName, definedClasses, workingTree);
             }
 
-            return new(
+            Types.DefineType(
+                new ClassType(
                     classDefinition,
                     extendingClassType
-                    );
+                )
+            );
         }
 
-        private void ValidateClass(ClassType classType) {
-            // ensures fields are valid types
-            foreach((_, string typeName) in classType.LocalClassFields) {
-                if(!Types.ContainsKey(typeName)) {
-                    throw new TypeException($"Type {typeName} is not defined");
-                }
-            }
+        // private void ValidateClass(ClassType classType) {
+        //     // ensures fields are valid types
+        //     foreach((_, string typeName) in classType.LocalClassFields) {
+        //         if(!Types.ContainsKey(typeName)) {
+        //             throw new TypeException($"Type {typeName} is not defined");
+        //         }
+        //     }
+        //
+        //
+        // }
 
-
-        }
-
-        private void TypeCheckClasses(List<AST> classes) {
+        private void CreateAndCheckTypes(List<AST> classes) {
             Dictionary<string, ClassDefinition> definedClasses = new();
 
             // first pass: add classes to dictionary
@@ -348,19 +420,19 @@ namespace JavaWhoCompiler
                 }
 
                 definedClasses.Add(classDefinition.Name.Value, classDefinition);
-                Types.Add(classDefinition.Name.Value, null);
             }
 
             // second pass: convert ClassDefinitions into ClassTypes
             foreach(ClassDefinition classDefinition in classes) {
                 HashSet<string> workingTree = new();
-                Types.Add(classDefinition.Name.Value, CreateType(classDefinition.Name.Value, definedClasses, workingTree));
+                CreateType(classDefinition.Name.Value, definedClasses, workingTree);
+                // Types.Add(classDefinition.Name.Value, CreateType(classDefinition.Name.Value, definedClasses, workingTree));
             }
 
             // third pass: validate class types :(
-            foreach((_, TypeBase type) in Types) {
+            foreach(TypeBase type in Types) {
                 if(type is ClassType classType) {
-                    ValidateClass(classType);
+                    classType.PopulateWithTypeMap(Types);
                 }
             }
 
@@ -378,7 +450,7 @@ namespace JavaWhoCompiler
             switch (node)
             {
                 case ProgramNode prog:
-                    TypeCheckClasses(prog.Classes);
+                    CreateAndCheckTypes(prog.Classes);
 
                     foreach (AST statement in prog.Statements)
                     {
