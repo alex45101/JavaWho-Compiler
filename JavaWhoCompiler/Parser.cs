@@ -1,4 +1,6 @@
-﻿namespace JavaWhoCompiler
+﻿using System.Diagnostics;
+
+namespace JavaWhoCompiler
 {
     public enum OperatorType
     {
@@ -11,36 +13,226 @@
         NotEqual
     }
 
-    public abstract record AST;
-    public sealed record ProgramNode(List<AST> Classes, List<AST> Statements) : AST;
+    public abstract record AST(Position Position)
+    {
+        public bool Equal(AST other, bool ignorePos = true)
+        {
+            if (other is null)
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
 
-    public sealed record IntLiteral(int Value) : AST;
-    public sealed record StringLiteral(string Value) : AST;
-    public sealed record BooleanLiteral(bool Value) : AST;
-    public sealed record IdentifiedNode(string Value) : AST;
+            if (GetType() != other.GetType())
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
+
+            bool equal = EqualCore(other, ignorePos);
+
+            if (!equal)
+            {
+                Debug.WriteLine($"{this} != {other}\n");
+                return false;
+            }
+
+            if (!ignorePos && Position != other.Position)
+            {
+                Debug.WriteLine($"Positions differ: {Position} != {other.Position}\n");
+                return false;
+            }
+
+            return true;
+        }
+
+        protected abstract bool EqualCore(AST other, bool ignorePos);
+
+        public static bool NodesEqual(AST left, AST right, bool ignorePos = true)
+        {
+            if (left is null && right is null) return true;
+            if (left is null || right is null)
+            {
+                Debug.WriteLine($"{left} != {right}\n");
+                return false;
+            }
+
+            return left.Equal(right, ignorePos);
+        }
+
+        public static bool ASTListsEqual<T>(List<T> left, List<T> right, bool ignorePos = true)
+            where T : AST
+        {
+            if (left is null && right is null) return true;
+            if (left is null || right is null) return false;
+
+            return left.Count == right.Count &&
+                left.Index().All(index => NodesEqual(index.Item, right[index.Index], ignorePos));
+        }
+    }
+
+    public sealed record ProgramNode(List<AST> Classes, List<AST> Statements) : AST(new Position(1, 1))
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ProgramNode right &&
+            ASTListsEqual(Classes, right.Classes, ignorePos) &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
+    public sealed record IntLiteral(int Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IntLiteral right && Value == right.Value;
+    }
+
+    public sealed record StringLiteral(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is StringLiteral right && Value == right.Value;
+    }
+
+    public sealed record BooleanLiteral(bool Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BooleanLiteral right && Value == right.Value;
+    }
+
+    public sealed record IdentifiedNode(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IdentifiedNode right && Value == right.Value;
+    }
 
     //expressions
-    public sealed record ThisExpression() : AST;
-    public sealed record PrimaryExpression(string Value) : AST;
-    public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right) : AST;
-    public record MethodCallExpression(string Name, AST Target, List<AST> Arguments) : AST;
-    public sealed record NewObjectExpression(IdentifiedNode ClassName, List<AST> Arguments): AST;
+    public sealed record ThisExpression(Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) => other is ThisExpression;
+    }
+
+    public sealed record PrimaryExpression(string Value, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is PrimaryExpression right && Value == right.Value;
+    }
+
+    public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BinaryExpression right &&
+            OperatorType == right.OperatorType &&
+            NodesEqual(Left, right.Left, ignorePos) &&
+            NodesEqual(Right, right.Right, ignorePos);
+    }
+
+    public record MethodCallExpression(string Name, AST Target, List<AST> Arguments, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is MethodCallExpression right &&
+            Name == right.Name &&
+            NodesEqual(Target, right.Target, ignorePos) &&
+            ASTListsEqual(Arguments, right.Arguments, ignorePos);
+    }
+
+    public sealed record NewObjectExpression(IdentifiedNode ClassName, List<AST> Arguments, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is NewObjectExpression right &&
+            NodesEqual(ClassName, right.ClassName, ignorePos) &&
+            ASTListsEqual(Arguments, right.Arguments, ignorePos);
+    }
 
     //statements
-    public sealed record ExpressionStatement(AST Expression) : AST;
-    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var) : AST;
-    public sealed record AssignmentStatement(IdentifiedNode Var, AST Val) : AST;
-    public sealed record WhileStatement(AST Guard, AST Statement) : AST;
-    public sealed record BreakStatement() : AST;
-    public sealed record ReturnStatement(AST Val) : AST;
-    public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody) : AST;
-    public sealed record BlockStatement(List<AST> Statements) : AST;
-    public sealed record PrintLnStatement(AST Argument) : MethodCallExpression("println", null, [Argument]);
+    public sealed record ExpressionStatement(AST Expression, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ExpressionStatement right &&
+            NodesEqual(Expression, right.Expression, ignorePos);
+    }
+
+    public sealed record VariableDeclaration(IdentifiedNode Type, IdentifiedNode Var, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is VariableDeclaration right &&
+            NodesEqual(Type, right.Type, ignorePos) &&
+            NodesEqual(Var, right.Var, ignorePos);
+    }
+
+    public sealed record AssignmentStatement(IdentifiedNode Var, AST Val, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is AssignmentStatement right &&
+            NodesEqual(Var, right.Var, ignorePos) &&
+            NodesEqual(Val, right.Val, ignorePos);
+    }
+
+    public sealed record WhileStatement(AST Guard, AST Statement, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is WhileStatement right &&
+            NodesEqual(Guard, right.Guard, ignorePos) &&
+            NodesEqual(Statement, right.Statement, ignorePos);
+    }
+
+    public sealed record BreakStatement(Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) => other is BreakStatement;
+    }
+
+    public sealed record ReturnStatement(AST Val, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ReturnStatement right &&
+            NodesEqual(Val, right.Val, ignorePos);
+    }
+
+    public sealed record IfStatement(AST Guard, AST IfBody, AST ElseBody, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is IfStatement right &&
+            NodesEqual(Guard, right.Guard, ignorePos) &&
+            NodesEqual(IfBody, right.IfBody, ignorePos) &&
+            NodesEqual(ElseBody, right.ElseBody, ignorePos);
+    }
+
+    public sealed record BlockStatement(List<AST> Statements, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is BlockStatement right &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
+    public sealed record PrintLnStatement(AST Argument, Position Position) : MethodCallExpression("println", null, [Argument], Position);
 
     //class
-    public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body) : AST;
-    public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements) : AST;
-    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions) : AST;
+    public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is MethodDefinition right &&
+            NodesEqual(Name, right.Name, ignorePos) &&
+            ASTListsEqual(Parameters, right.Parameters, ignorePos) &&
+            NodesEqual(ReturnType, right.ReturnType, ignorePos) &&
+            NodesEqual(Body, right.Body, ignorePos);
+    }
+
+    public sealed record Constructor(List<AST> Parameters, List<AST> SuperArguments, List<AST> Statements, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is Constructor right &&
+            ASTListsEqual(Parameters, right.Parameters, ignorePos) &&
+            ASTListsEqual(SuperArguments, right.SuperArguments, ignorePos) &&
+            ASTListsEqual(Statements, right.Statements, ignorePos);
+    }
+
+    public sealed record ClassDefinition(IdentifiedNode Name, IdentifiedNode ExtendsName, List<AST> VariableDeclarations, AST Constructor, List<AST> MethodDefinitions, Position Position) : AST(Position)
+    {
+        protected override bool EqualCore(AST other, bool ignorePos) =>
+            other is ClassDefinition right &&
+            NodesEqual(Name, right.Name, ignorePos) &&
+            NodesEqual(ExtendsName, right.ExtendsName, ignorePos) &&
+            ASTListsEqual(VariableDeclarations, right.VariableDeclarations, ignorePos) &&
+            NodesEqual(Constructor, right.Constructor, ignorePos) &&
+            ASTListsEqual(MethodDefinitions, right.MethodDefinitions, ignorePos);
+    }
 
 
 
@@ -59,9 +251,13 @@
         private bool Check<T>() where T : IToken => !IsEnd && CurrentToken is T;
         private IToken Expect<T>() where T : IToken
         {
-            if (!Check<T>())
+            if (IsEnd)
             {
-                throw new ParserException($"Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
+                throw new ParserException($"Expected {typeof(T)} but reached end of file");
+            }
+            else if (!Check<T>())
+            {
+                throw new ParserException($"{CurrentToken.Position.Line}:{CurrentToken.Position.Column}: Expected {typeof(T)} but current token is {CurrentToken.GetType()}");
             }
 
             return Consume();
@@ -127,7 +323,7 @@
 
         private AST ParseWhileStatement()
         {
-            Expect<WhileToken>();
+            IToken startToken = Expect<WhileToken>();
             Expect<OpenParenthesisToken>();
 
             AST guard = ParseExpression();
@@ -136,21 +332,20 @@
 
             AST body = ParseStatement();
 
-            return new WhileStatement(guard, body);
+            return new WhileStatement(guard, body, startToken.Position);
         }
 
         private AST ParseBreakStatement()
         {
-            Expect<BreakToken>();
+            IToken startToken = Expect<BreakToken>();
             Expect<SemiColonToken>();
 
-            return new BreakStatement();
+            return new BreakStatement(startToken.Position);
         }
 
         private AST ParseReturnStatement()
         {
-            Expect<ReturnToken>();
-
+            IToken startToken = Expect<ReturnToken>();
 
             AST val = null;
 
@@ -161,12 +356,12 @@
 
             Expect<SemiColonToken>();
 
-            return new ReturnStatement(val);
+            return new ReturnStatement(val, startToken.Position);
         }
 
         private AST ParseIfStatement()
         {
-            Expect<IfToken>();
+            IToken startToken = Expect<IfToken>();
             Expect<OpenParenthesisToken>();
 
             AST guard = ParseExpression();
@@ -180,19 +375,19 @@
             //no else token next then return right away with null elsebody
             if (!Check<ElseToken>())
             {
-                return new IfStatement(guard, ifBody, elseBody);
+                return new IfStatement(guard, ifBody, elseBody, startToken.Position);
             }
 
             Consume(); //eat else token
 
             elseBody = ParseStatement();
 
-            return new IfStatement(guard, ifBody, elseBody);
+            return new IfStatement(guard, ifBody, elseBody, startToken.Position);
         }
 
         private AST ParseBlockStatement()
         {
-            Expect<OpenCurlyBracketToken>();
+            IToken startToken = Expect<OpenCurlyBracketToken>();
 
             List<AST> stmts = [];
             while (CurrentToken is not CloseCurlyBracketToken)
@@ -203,13 +398,13 @@
             // consume closing bracket
             Consume();
 
-            return new BlockStatement(stmts);
+            return new BlockStatement(stmts, startToken.Position);
         }
 
         private AST ParseVariableDeclarationStatement()
         {
 
-            var vardec = ParseVariableDeclaration();
+            AST vardec = ParseVariableDeclaration();
 
             Expect<SemiColonToken>();
 
@@ -219,7 +414,7 @@
         private AST ParseAssignStatement()
         {
 
-            string varIdent = Expect<IdentifierToken>().Value;
+            IToken startToken = Expect<IdentifierToken>();
 
             Expect<AssignmentOperatorToken>();
 
@@ -228,8 +423,9 @@
             Expect<SemiColonToken>();
 
             return new AssignmentStatement(
-                    new IdentifiedNode(varIdent),
-                    value
+                    new IdentifiedNode(startToken.Value, startToken.Position),
+                    value,
+                    startToken.Position
                     );
         }
 
@@ -239,7 +435,7 @@
 
             Expect<SemiColonToken>();
 
-            return new ExpressionStatement(exp);
+            return new ExpressionStatement(exp, exp.Position);
         }
 
         private AST ParseExpression() => ParseEqualityExpression();
@@ -256,7 +452,7 @@
 
                 AST right = ParseCompareExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right, left.Position);
             }
 
             return left;
@@ -274,7 +470,7 @@
 
                 AST right = ParseAddExpression();
 
-                return new BinaryExpression(left, operatorType, right);
+                return new BinaryExpression(left, operatorType, right, left.Position);
             }
 
             return left;
@@ -292,7 +488,7 @@
 
                 AST right = ParseMultiplyExpression();
 
-                left = new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right, left.Position);
             }
 
             return left;
@@ -310,7 +506,7 @@
 
                 AST right = ParseCallExpression();
 
-                left = new BinaryExpression(left, operatorType, right);
+                left = new BinaryExpression(left, operatorType, right, left.Position);
             }
 
             return left;
@@ -320,7 +516,7 @@
         {
             if (Check<PrintLnToken>())
             {
-                Consume();
+                IToken startToken = Consume();
                 Expect<OpenParenthesisToken>();
 
                 List<AST> arguments = CommaExpression();
@@ -329,7 +525,7 @@
 
                 if (arguments.Count > 1) throw new ParserException("Invalid amount of arguments for println");
 
-                return new PrintLnStatement(arguments.FirstOrDefault());
+                return new PrintLnStatement(arguments.FirstOrDefault(), startToken.Position);
             }
 
             AST left = ParsePrimaryExpression();
@@ -346,15 +542,20 @@
 
         private AST ParsePrimaryExpression()
         {
+            if (IsEnd)
+            {
+                throw new ParserException("Expected primary expression but reached end of file");
+            }
 
             AST primaryNode = CurrentToken switch
             {
                 OpenParenthesisToken => ParseParenthesisExpression(),
-                IdentifierToken => new IdentifiedNode(Consume().Value),
-                StringToken => new StringLiteral(Consume().Value),
-                NumberToken => new IntLiteral((Consume() as NumberToken).Number),
-                TrueToken or FalseToken => new BooleanLiteral(Consume().Value == "true"),
-                ThisToken => ConsumeAndReturn(new ThisExpression()),
+                IdentifierToken(string value, Position position) => ConsumeAndReturn(new IdentifiedNode(value, position)),
+                StringToken(string value, Position position) => ConsumeAndReturn(new StringLiteral(value, position)),
+                NumberToken(_, Position position) => new IntLiteral((Consume() as NumberToken).Number, position),
+                TrueToken(_, Position position) => ConsumeAndReturn(new BooleanLiteral(true, position)),
+                FalseToken(_, Position position) => ConsumeAndReturn(new BooleanLiteral(false, position)),
+                ThisToken(_, Position position) => ConsumeAndReturn(new ThisExpression(position)),
                 NewToken => ParseNewObjectExpression(),
                 _ => throw new ParserException($"Unexpected token {CurrentToken.GetType().Name}")
             };
@@ -364,7 +565,7 @@
 
         private AST ParseNewObjectExpression()
         {
-            Expect<NewToken>();
+            IToken startToken = Expect<NewToken>();
 
             string className = Expect<IdentifierToken>().Value;
 
@@ -374,7 +575,7 @@
 
             Expect<CloseParenthesisToken>();
 
-            return new NewObjectExpression(new IdentifiedNode(className), args);
+            return new NewObjectExpression(new IdentifiedNode(className, startToken.Position), args, startToken.Position);
         }
 
         private AST ParseParenthesisExpression()
@@ -389,14 +590,14 @@
 
         private AST MethodCallExpression(AST Target)
         {
-            var token = Expect<IdentifierToken>();
+            IToken token = Expect<IdentifierToken>();
             Expect<OpenParenthesisToken>();
 
             List<AST> arguments = CommaExpression();
 
             Expect<CloseParenthesisToken>();
 
-            return new MethodCallExpression(token.Value, Target, arguments);
+            return new MethodCallExpression(token.Value, Target, arguments, token.Position);
         }
 
         private List<AST> CommaExpression()
@@ -420,12 +621,13 @@
 
         private AST ParseVariableDeclaration()
         {
-            string typeIdent = Expect<IdentifierToken>().Value;
-            string varIdent = Expect<IdentifierToken>().Value;
+            IToken typeToken = Expect<IdentifierToken>();
+            IToken varToken = Expect<IdentifierToken>();
 
             return new VariableDeclaration(
-                    new IdentifiedNode(typeIdent),
-                    new IdentifiedNode(varIdent)
+                    new IdentifiedNode(typeToken.Value, typeToken.Position),
+                    new IdentifiedNode(varToken.Value, varToken.Position),
+                    typeToken.Position
                     );
         }
 
@@ -446,9 +648,9 @@
 
         private AST ParseMethodDefinition()
         {
-            Expect<MethodToken>();
+            IToken startToken = Expect<MethodToken>();
 
-            string methodName = Expect<IdentifierToken>().Value;
+            IToken methodNameToken = Expect<IdentifierToken>();
 
             Expect<OpenParenthesisToken>();
 
@@ -464,24 +666,27 @@
             }
             else
             {
+                IToken retTypeToken = Expect<IdentifierToken>();
                 returnType = new IdentifiedNode(
-                                Expect<IdentifierToken>().Value
+                                retTypeToken.Value,
+                                retTypeToken.Position
                              );
             }
 
             AST body = ParseBlockStatement();
 
             return new MethodDefinition(
-                    new IdentifiedNode(methodName),
+                    new IdentifiedNode(methodNameToken.Value, methodNameToken.Position),
                     parameters,
                     returnType,
-                    body
+                    body,
+                    startToken.Position
                     );
         }
 
         private AST ParseConstructor()
         {
-            Expect<InitToken>();
+            IToken startToken = Expect<InitToken>();
 
             Expect<OpenParenthesisToken>();
 
@@ -514,22 +719,25 @@
             return new Constructor(
                     parameters,
                     superArgs,
-                    statements
+                    statements,
+                    startToken.Position
                     );
         }
 
         private AST ParseClassDefinition()
         {
-            Expect<ClassToken>();
+            IToken startToken = Expect<ClassToken>();
 
-            string className = Expect<IdentifierToken>().Value;
+            IToken classNameToken = Expect<IdentifierToken>();
 
             IdentifiedNode extendsName = null;
             if (Check<ExtendsToken>())
             {
                 Consume();
+                IToken extendsToken = Expect<IdentifierToken>();
                 extendsName = new IdentifiedNode(
-                    Expect<IdentifierToken>().Value
+                    extendsToken.Value,
+                    extendsToken.Position
                 );
             }
 
@@ -554,11 +762,15 @@
             Expect<CloseCurlyBracketToken>();
 
             return new ClassDefinition(
-                    new IdentifiedNode(className),
+                    new IdentifiedNode(
+                        classNameToken.Value,
+                        classNameToken.Position
+                        ),
                     extendsName,
                     vardecs,
                     constructor,
-                    methodDefs
+                    methodDefs,
+                    startToken.Position
                     );
         }
     }
