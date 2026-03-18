@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata;
-using JavaWhoCompiler;
+﻿using JavaWhoCompiler;
 
 namespace CompilerTests
 {
@@ -76,6 +75,24 @@ namespace CompilerTests
                         init() {
                             super(5, 0);
                         }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void SubClassDeclarationBeforeBaseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class SubType extends MyType {
+                        init() {
+                            super(5, 0);
+                        }
+                    }
+
+                    class MyType {
+                        init(Int x, Int y) {}
                     }
                     """);
             AST root = Parser.Parse(tokens);

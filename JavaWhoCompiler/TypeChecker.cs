@@ -130,9 +130,15 @@ namespace JavaWhoCompiler
             }
         }
 
-        public TypeBase GetType(string type) { 
-            AssertDefined(type);
-            return types[type];
+        public TypeBase GetType(string typeName) { 
+            AssertDefined(typeName);
+
+            TypeBase type = types[typeName];
+            if(type is ClassType classType) {
+                classType.PopulateWithTypeMap(this);
+            }
+
+            return type;
         }
 
         public T GetTypeAs<T>(string type) 
@@ -425,17 +431,6 @@ namespace JavaWhoCompiler
             );
         }
 
-        // private void ValidateClass(ClassType classType) {
-        //     // ensures fields are valid types
-        //     foreach((_, string typeName) in classType.LocalClassFields) {
-        //         if(!Types.ContainsKey(typeName)) {
-        //             throw new TypeException($"Type {typeName} is not defined");
-        //         }
-        //     }
-        //
-        //
-        // }
-
         private void CreateAndInitializeClassTypes(List<AST> classes) {
             Dictionary<string, ClassDefinition> definedClasses = new();
 
@@ -452,16 +447,7 @@ namespace JavaWhoCompiler
             foreach(ClassDefinition classDefinition in classes) {
                 HashSet<string> workingTree = new();
                 CreateClassType(classDefinition.Name.Value, definedClasses, workingTree);
-                // Types.Add(classDefinition.Name.Value, CreateType(classDefinition.Name.Value, definedClasses, workingTree));
             }
-
-            // third pass: populate class types with all type info
-            foreach(TypeBase type in Types) {
-                if(type is ClassType classType) {
-                    classType.PopulateWithTypeMap(Types);
-                }
-            }
-
         }
 
         public static void CheckType(AST node)
