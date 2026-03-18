@@ -7,21 +7,21 @@ namespace JavaWhoCompiler
     public class Scope
     {
         public Scope Parent { get; init; }
-        private readonly Dictionary<string, string> lookUp = new();
+        private readonly Dictionary<string, TypeBase> lookUp = new();
 
         public Scope(Scope parent)
         { 
             Parent = parent;
         }
 
-        public void Define(string name, string type)
+        public void Define(string name, TypeBase type)
         {
             lookUp[name] = type;
         }
 
-        public string LookUp(string name)
+        public TypeBase LookUp(string name)
         {
-            if (lookUp.TryGetValue(name, out string value))
+            if (lookUp.TryGetValue(name, out TypeBase value))
             {
                 return value;
             }
@@ -46,11 +46,6 @@ namespace JavaWhoCompiler
         public static PrimitiveType BooleanPrimitive = new("Boolean");
         public static PrimitiveType VoidPrimitive = new("Void");
 
-        public static HashSet<PrimitiveType> Primitives = new([
-                IntPrimitive,
-                BooleanPrimitive,
-                VoidPrimitive,
-        ]);
 
         // built ins
         public static ClassType ObjectBuiltIn = new(
@@ -68,6 +63,14 @@ namespace JavaWhoCompiler
                 [], // methods
                 ObjectBuiltIn // extending class
                 );
+        
+        public static HashSet<TypeBase> Predefined = new([
+                IntPrimitive,
+                BooleanPrimitive,
+                VoidPrimitive,
+                ObjectBuiltIn,
+                StringBuiltIn,
+        ]);
     }
 
     public class PrimitiveType(string name) : TypeBase(name) {
@@ -82,9 +85,9 @@ namespace JavaWhoCompiler
 
         public TypeMap() : this([]) {}
 
-        public TypeMap(IEnumerable<PrimitiveType> primitives) {
-            foreach(PrimitiveType primitive in primitives) {
-                types.Add(primitive.Name, primitive);
+        public TypeMap(IEnumerable<TypeBase> predefined) {
+            foreach(TypeBase type in predefined) {
+                types.Add(type.Name, type);
             }
         }
 
@@ -128,6 +131,16 @@ namespace JavaWhoCompiler
             return types[type];
         }
 
+        public T GetTypeAs<T>(string type) 
+            where T: TypeBase
+        {
+            TypeBase typeObj = GetType(type);
+            return typeObj switch {
+                T classType => classType,
+                _ => throw new TypeException($"Type {type} is not a {typeof(T)} type")
+            };
+        }
+
         public IEnumerator<TypeBase> GetEnumerator() {
             foreach((_, TypeBase type) in types)
             {
@@ -166,11 +179,34 @@ namespace JavaWhoCompiler
     //     }
     // }
 
-    public sealed record MethodSignature(string Name, List<TypeBase> ParamTypes, TypeBase ReturnType) {
+    public sealed record TypeList(List<TypeBase> Types) {
+        public bool AreSubtypesOf(TypeList other) {
+            return Types.Count == other.Types.Count &&
+                Types.Index().All(
+                        indexedType => 
+                        indexedType.Item.CanBeAssignedTo(other.Types[indexedType.Index])
+                        );
+        }
+
+        public bool Equals(TypeList other) {
+            return Types.SequenceEqual(other.Types);
+        }
+
+        public override int GetHashCode() {
+            HashCode hashCode = new();
+            foreach(TypeBase type in Types) {
+                hashCode.Add(type);
+            }
+
+            return hashCode.ToHashCode();
+        }
+    }
+
+    public sealed record MethodSignature(string Name, TypeList ParamTypes, TypeBase ReturnType) {
         public bool Equals(MethodSignature other) {
             // signatures will be considered unique by (Name + ParamTypes)
             return Name == other.Name &&
-                ParamTypes.SequenceEqual(other.ParamTypes);
+                ParamTypes.Equals(other.ParamTypes);
         }
 
         // called when two method signatures are 'equal' (name + param types)
@@ -182,7 +218,7 @@ namespace JavaWhoCompiler
             HashCode hashCode = new();
             hashCode.Add(Name);
 
-            foreach(TypeBase paramType in ParamTypes) {
+            foreach(TypeBase paramType in ParamTypes.Types) {
                 hashCode.Add(paramType);
             }
 
@@ -192,18 +228,20 @@ namespace JavaWhoCompiler
 
     public class ClassType : TypeBase
     {
-        ClassType ParentClassType { get; }
-        public Constructor Constructor { get; }
+        private List<AST> variableDeclarations;
+        private List<AST> methodDefinitions;
+        private Constructor constructor { get; }
+
+
+        public ClassType ParentClassType { get; }
 
         public Dictionary<string, HashSet<MethodSignature>> MethodSignatures { get; } = new();
-
         // name to type
         public Dictionary<string, TypeBase> Fields { get; private set; }
 
-        public bool isChecked = false;
+        public TypeList ConstructorTypes { get; private set; }
 
-        private List<AST> variableDeclarations;
-        private List<AST> methodDefinitions;
+        public bool isChecked = false;
 
 
         public ClassType(
@@ -237,7 +275,7 @@ namespace JavaWhoCompiler
 
             // InitializeLocalFields(variableDeclarations);
 
-            Constructor = (Constructor)constructor;
+            this.constructor = (Constructor)constructor;
             // InitializeMethodSignatures(methodDefinitions);
         }
         
@@ -274,6 +312,8 @@ namespace JavaWhoCompiler
 
             InitializeFields(typeMap);
 
+            InitializeConstructor(typeMap);
+
             InitializeLocalMethodSignatures(typeMap);
             InheritMethods();
 
@@ -295,6 +335,13 @@ namespace JavaWhoCompiler
                     localMethodSet.Add(parentMethodSignature);
                 }
             }
+        }
+
+        private void InitializeConstructor(TypeMap typeMap) {
+            ConstructorTypes = new TypeList(
+                constructor.Parameters.Select(param => 
+                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToList()
+            );
         }
 
         private void InheritMethods() {
@@ -324,7 +371,7 @@ namespace JavaWhoCompiler
         // }
 
         private void InitializeFields(TypeMap typeMap) {
-            Fields = ParentClassType is not null ? ParentClassType.Fields : new();
+            Fields = ParentClassType is not null ? new(ParentClassType.Fields) : new();
 
             foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
                 if(Fields.ContainsKey(variableDeclaration.Var.Value)) {
@@ -340,9 +387,11 @@ namespace JavaWhoCompiler
 
         private void InitializeLocalMethodSignatures(TypeMap typeMap) {
             foreach(MethodDefinition methodDefinition in methodDefinitions) {
-                MethodSignature newMethodSignature = new MethodSignature(
+                MethodSignature newMethodSignature = new(
                     methodDefinition.Name.Value,
-                    methodDefinition.Parameters.Select(vd => typeMap.GetType(((VariableDeclaration)vd).Type.Value)).ToList(),
+                    new TypeList(
+                        methodDefinition.Parameters.Select(vd => typeMap.GetType(((VariableDeclaration)vd).Type.Value)).ToList()
+                        ),
                     typeMap.GetType(methodDefinition.ReturnType.Value)
                 );
                 
@@ -359,10 +408,10 @@ namespace JavaWhoCompiler
     public class TypeChecker
     {
         private Scope scope = new(null);
-        private TypeMap Types = new(TypeBase.Primitives);
+        private TypeMap Types = new(TypeBase.Predefined);
 
 
-        private void CreateType(
+        private void CreateClassType(
             string className, 
             Dictionary<string, ClassDefinition> definedClasses,
             HashSet<string> workingTree) 
@@ -382,13 +431,13 @@ namespace JavaWhoCompiler
 
 
             TypeBase extendingClassType = null;
-            if(classDefinition.ExtendsName.Value is string extendsName) {
+            if(classDefinition.ExtendsName?.Value is string extendsName) {
                 if(!Types.TypeDefined(extendsName)) {
                     throw new TypeException($"Inherited class {extendsName} is not defined");
                 }
 
                 workingTree.Add(className);
-                CreateType(extendsName, definedClasses, workingTree);
+                CreateClassType(extendsName, definedClasses, workingTree);
             }
 
             Types.DefineType(
@@ -410,7 +459,7 @@ namespace JavaWhoCompiler
         //
         // }
 
-        private void CreateAndCheckTypes(List<AST> classes) {
+        private void CreateAndInitializeClassTypes(List<AST> classes) {
             Dictionary<string, ClassDefinition> definedClasses = new();
 
             // first pass: add classes to dictionary
@@ -425,11 +474,11 @@ namespace JavaWhoCompiler
             // second pass: convert ClassDefinitions into ClassTypes
             foreach(ClassDefinition classDefinition in classes) {
                 HashSet<string> workingTree = new();
-                CreateType(classDefinition.Name.Value, definedClasses, workingTree);
+                CreateClassType(classDefinition.Name.Value, definedClasses, workingTree);
                 // Types.Add(classDefinition.Name.Value, CreateType(classDefinition.Name.Value, definedClasses, workingTree));
             }
 
-            // third pass: validate class types :(
+            // third pass: populate class types with all type info
             foreach(TypeBase type in Types) {
                 if(type is ClassType classType) {
                     classType.PopulateWithTypeMap(Types);
@@ -450,24 +499,32 @@ namespace JavaWhoCompiler
             switch (node)
             {
                 case ProgramNode prog:
-                    CreateAndCheckTypes(prog.Classes);
+                    CreateAndInitializeClassTypes(prog.Classes);
+
+                    foreach(AST classDefinition in prog.Classes) {
+                        CheckTypeHelper(classDefinition);
+                    }
 
                     foreach (AST statement in prog.Statements)
                     {
                         CheckTypeHelper(statement);
                     }
                     break;
+                case ClassDefinition classDefinition:
+                    CheckClass(classDefinition);
+
+                    break;
                 case VariableDeclaration varDec:
-                    scope.Define(varDec.Var.Value, varDec.Type.Value);
+                    scope.Define(varDec.Var.Value, Types.GetType(varDec.Type.Value));
 
                     break;
                 case AssignmentStatement assignmentStatement:
 
-                    string leftType = scope.LookUp(assignmentStatement.Var.Value);
+                    TypeBase leftType = scope.LookUp(assignmentStatement.Var.Value);
 
-                    string rightType = GetExpressionType(assignmentStatement.Val);
+                    TypeBase rightType = GetExpressionType(assignmentStatement.Val);
 
-                    if (leftType != rightType)
+                    if (!rightType.CanBeAssignedTo(leftType))
                     {
                         throw new TypeException($"Can not assign {leftType} to {rightType}");
                     }
@@ -480,8 +537,96 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void CheckClass(ClassDefinition classdef) {
+        private void CheckClass(ClassDefinition classDefinition) {
+            ClassType classType = Types.GetTypeAs<ClassType>(classDefinition.Name.Value);
+
+            // enter class scope
+            EnterScope();
+
+            // add vardecs to scope
+            foreach(AST variableDeclaration in classDefinition.VariableDeclarations) {
+                CheckTypeHelper(variableDeclaration);
+            }
+
+            Constructor constructor = (Constructor)classDefinition.Constructor;
+            CheckClassConstructor(constructor, classType);
+
+            foreach(AST methodDefinition in classDefinition.MethodDefinitions) {
+                CheckClassMethod((MethodDefinition)methodDefinition);
+            }
+
+            // exit class scope
+            ExitScope();
         }
+
+        private void CheckClassMethod(MethodDefinition methodDefinition) {
+            EnterScope();
+
+            // add params to scope
+            foreach(AST variableDeclaration in methodDefinition.Parameters) {
+                CheckTypeHelper(variableDeclaration);
+            }
+
+            BlockStatement body = (BlockStatement)methodDefinition.Body;
+            for(int i = 0; i < body.Statements.Count; i++) {
+                AST statement = body.Statements[i];
+                if(statement is ReturnStatement returnStatement) {
+                    if(i < body.Statements.Count - 1) {
+                        throw new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}");
+                    }
+                
+                    TypeBase returnType = TypeBase.VoidPrimitive;
+                    if(returnStatement.Val is not null) {
+                        returnType = GetExpressionType(returnStatement.Val);
+
+                    }
+                    TypeBase methodReturnType = TypeBase.VoidPrimitive;
+                    if(methodDefinition.ReturnType is not null) {
+                        methodReturnType = Types.GetType(methodDefinition.ReturnType.Value);
+                    }
+
+                    if(!returnType.CanBeAssignedTo(methodReturnType)) {
+                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnType}");
+                    }
+                } else {
+                    CheckTypeHelper(statement);
+                }
+            }
+
+            ExitScope();
+        }
+
+        private void CheckClassConstructor(Constructor constructor, ClassType classType) {
+            // enter constructor scope
+            EnterScope();
+
+            // add parameter vardecs to scope
+            foreach(AST variableDeclaration in constructor.Parameters) {
+                CheckTypeHelper(variableDeclaration);
+            }
+
+            // check super call
+            if(classType.ParentClassType is not null) {
+                List<AST> superArguments = constructor.SuperArguments;
+                if(superArguments is null) {
+                    throw new TypeException($"Constructor for class ${classType.Name} is missing super call");
+                }
+
+                TypeList superCallTypes = GetExpressionTypeList(superArguments);
+                if(!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes)) {
+                    throw new TypeException($"Super call arguments in class ${classType.Name} are not compatible with parent class constructor");
+                }
+            }
+
+            foreach(AST statement in constructor.Statements) {
+                CheckTypeHelper(statement);
+            }
+
+            // exit constructor scope
+            ExitScope();
+        }
+
+
 
         private void EnterScope()
         {
@@ -493,15 +638,19 @@ namespace JavaWhoCompiler
             scope = scope.Parent;
         }
 
-        private string GetExpressionType(AST node)
+        private TypeBase GetExpressionType(AST node)
         {
             return node switch 
             { 
-                IntLiteral => "Int",
-                StringLiteral => "String",
-                BooleanLiteral => "Boolean",
-                _ => scope.LookUp(node.ToString())
+                IntLiteral => TypeBase.IntPrimitive,
+                StringLiteral => TypeBase.StringBuiltIn,
+                BooleanLiteral => TypeBase.BooleanPrimitive,
+                _ => throw new TypeException($"Cannot obtain type of {node}")
             };
+        }
+
+        private TypeList GetExpressionTypeList(List<AST> nodes) {
+            return new TypeList(nodes.Select(GetExpressionType).ToList());
         }
     }
 }
