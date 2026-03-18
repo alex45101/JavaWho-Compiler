@@ -553,9 +553,9 @@ namespace JavaWhoCompiler
             // enter class scope
             EnterScope();
 
-            // add vardecs to scope
-            foreach(AST variableDeclaration in classDefinition.VariableDeclarations) {
-                CheckTypeHelper(variableDeclaration);
+            // add fields to scope
+            foreach((string name, TypeBase type) in classType.Fields) {
+                scope.Define(name, type);
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
