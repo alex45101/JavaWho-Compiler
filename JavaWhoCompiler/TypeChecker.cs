@@ -253,7 +253,7 @@ namespace JavaWhoCompiler
             if(parentClassType is ClassType classType) {
                 ParentClassType = classType;
             } else if(parentClassType is PrimitiveType primitiveType){
-                throw new TypeException($"Cannot extend class by primitive type ${primitiveType.Name}");
+                throw new TypeException($"Cannot extend class by primitive type {primitiveType.Name}");
             }
 
             this.variableDeclarations = variableDeclarations;
@@ -414,7 +414,7 @@ namespace JavaWhoCompiler
 
             TypeBase extendingClassType = null;
             if(classDefinition.ExtendsName?.Value is string extendsName) {
-                if(!definedClasses.ContainsKey(extendsName)) {
+                if(!definedClasses.ContainsKey(extendsName) && !Types.TypeDefined(extendsName)) {
                     throw new TypeException($"Inherited class {extendsName} is not defined");
                 }
 
