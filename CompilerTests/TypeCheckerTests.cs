@@ -38,6 +38,36 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void ClassDeclarationTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void SubClassDeclarationTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+                    }
+
+                    class SubType {
+                        init() {
+                            super("5", 0);
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
         public void ClassAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
