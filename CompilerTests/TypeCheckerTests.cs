@@ -256,7 +256,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        public void MismachSuperCallTest() {
+        public void MismatchSuperCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType extends OtherType {
                         init() { super(5, "string", 1); }
@@ -265,6 +265,21 @@ namespace CompilerTests
                     class OtherType {
                         init(Int x, String y) {}
                     }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+        
+        [Fact]
+        public void MismatchConstructorCallTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, String y) {}
+                    }
+
+                    MyType m;
+                    m = new MyType(5, new Object());
                     """);
             AST root = Parser.Parse(tokens);
 

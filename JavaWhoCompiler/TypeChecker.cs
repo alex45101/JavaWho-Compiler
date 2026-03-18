@@ -159,30 +159,6 @@ namespace JavaWhoCompiler
     }
 
 
-    // public class TypeList(IEnumerable<TypeBase> types) : List<TypeBase>(types) {
-    //
-    //     public static TypeList FromASTNodes(List<AST> variableDeclarations) {
-    //         return new TypeList(variableDeclarations.Select(vd => {
-    //                         throw new NotImplementedException();
-    //                         return TypeBase.IntPrimitive;
-    //                     }));
-    //     }
-    //
-    //     public override bool Equals(Object other) {
-    //         return other is TypeList paramTypes &&
-    //                 this.SequenceEqual(paramTypes);
-    //     }
-    //
-    //     public override int GetHashCode() {
-    //         HashCode hashCode = new();
-    //         foreach(TypeBase paramType in this) {
-    //             hashCode.Add(paramType.GetHashCode());
-    //         }
-    //
-    //         return hashCode.ToHashCode();
-    //     }
-    // }
-
     public sealed record TypeList(List<TypeBase> Types) {
         public bool AreSubtypesOf(TypeList other) {
             return Types.Count == other.Types.Count &&
@@ -658,12 +634,25 @@ namespace JavaWhoCompiler
                 StringLiteral => TypeBase.StringBuiltIn,
                 BooleanLiteral => TypeBase.BooleanPrimitive,
                 IdentifiedNode identifier => scope.LookUp(identifier.Value),
+                NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression),
                 _ => throw new TypeException($"Cannot obtain type of {node}")
             };
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes) {
             return new TypeList(nodes.Select(GetExpressionType).ToList());
+        }
+
+        private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression) {
+            ClassType classType = Types.GetTypeAs<ClassType>(newObjectExpression.ClassName.Value);
+            
+            // check if params are compatible with constructor
+            TypeList arguments = GetExpressionTypeList(newObjectExpression.Arguments);
+            if(!arguments.AreSubtypesOf(classType.ConstructorTypes)) {
+                throw new TypeException($"Arguments for new {classType.Name} object do not match constructor types");
+            }
+
+            return classType;
         }
     }
 }
