@@ -391,12 +391,17 @@ namespace JavaWhoCompiler
 
         private void InitializeLocalMethodSignatures(TypeMap typeMap) {
             foreach(MethodDefinition methodDefinition in methodDefinitions) {
+                TypeBase newMethodReturnType = TypeBase.VoidPrimitive;
+                if(methodDefinition.ReturnType is not null) {
+                    newMethodReturnType = typeMap.GetType(methodDefinition.ReturnType.Value);
+                }
+
                 MethodSignature newMethodSignature = new(
                     methodDefinition.Name.Value,
                     new TypeList(
                         methodDefinition.Parameters.Select(vd => typeMap.GetType(((VariableDeclaration)vd).Type.Value)).ToList()
                         ),
-                    typeMap.GetType(methodDefinition.ReturnType.Value)
+                        newMethodReturnType
                 );
                 
                 if(MethodSignatures.TryGetValue(newMethodSignature.Name, out HashSet<MethodSignature> methodSetWithSameName)) {
@@ -436,7 +441,7 @@ namespace JavaWhoCompiler
 
             TypeBase extendingClassType = null;
             if(classDefinition.ExtendsName?.Value is string extendsName) {
-                if(!Types.TypeDefined(extendsName)) {
+                if(!definedClasses.ContainsKey(extendsName)) {
                     throw new TypeException($"Inherited class {extendsName} is not defined");
                 }
 
@@ -573,6 +578,13 @@ namespace JavaWhoCompiler
             }
 
             BlockStatement body = (BlockStatement)methodDefinition.Body;
+
+            TypeBase methodReturnType = TypeBase.VoidPrimitive;
+            if(methodDefinition.ReturnType is not null) {
+                methodReturnType = Types.GetType(methodDefinition.ReturnType.Value);
+            }
+
+            bool returned = false;
             for(int i = 0; i < body.Statements.Count; i++) {
                 AST statement = body.Statements[i];
                 if(statement is ReturnStatement returnStatement) {
@@ -580,22 +592,24 @@ namespace JavaWhoCompiler
                         throw new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}");
                     }
                 
-                    TypeBase returnType = TypeBase.VoidPrimitive;
+                    TypeBase returnExpressionType = TypeBase.VoidPrimitive;
                     if(returnStatement.Val is not null) {
-                        returnType = GetExpressionType(returnStatement.Val);
+                        returnExpressionType = GetExpressionType(returnStatement.Val);
 
                     }
-                    TypeBase methodReturnType = TypeBase.VoidPrimitive;
-                    if(methodDefinition.ReturnType is not null) {
-                        methodReturnType = Types.GetType(methodDefinition.ReturnType.Value);
+
+                    if(!returnExpressionType.CanBeAssignedTo(methodReturnType)) {
+                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}");
                     }
 
-                    if(!returnType.CanBeAssignedTo(methodReturnType)) {
-                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnType}");
-                    }
+                    returned = true;
                 } else {
                     CheckTypeHelper(statement);
                 }
+            }
+
+            if(methodReturnType != TypeBase.VoidPrimitive && !returned) {
+                throw new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none");
             }
 
             ExitScope();
@@ -614,13 +628,15 @@ namespace JavaWhoCompiler
             if(classType.ParentClassType is not null) {
                 List<AST> superArguments = constructor.SuperArguments;
                 if(superArguments is null) {
-                    throw new TypeException($"Constructor for class ${classType.Name} is missing super call");
+                    throw new TypeException($"Constructor for class {classType.Name} is missing super call");
                 }
 
                 TypeList superCallTypes = GetExpressionTypeList(superArguments);
                 if(!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes)) {
-                    throw new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class constructor");
+                    throw new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor");
                 }
+            } else if(constructor.SuperArguments is not null) {
+                throw new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class");
             }
 
             foreach(AST statement in constructor.Statements) {
@@ -650,6 +666,7 @@ namespace JavaWhoCompiler
                 IntLiteral => TypeBase.IntPrimitive,
                 StringLiteral => TypeBase.StringBuiltIn,
                 BooleanLiteral => TypeBase.BooleanPrimitive,
+                IdentifiedNode identifier => scope.LookUp(identifier.Value),
                 _ => throw new TypeException($"Cannot obtain type of {node}")
             };
         }
