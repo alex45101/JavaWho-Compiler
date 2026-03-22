@@ -4,7 +4,7 @@ using System.Text;
 
 namespace JavaWhoCompiler
 {
-    public class TypeException(string message) : Exception(message);
+    public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
 
     public class Scope
     {
@@ -21,7 +21,7 @@ namespace JavaWhoCompiler
             lookUp[name] = type;
         }
 
-        public TypeBase LookUp(string name)
+        public TypeBase LookUp(string name, Position position)
         {
             if (lookUp.TryGetValue(name, out TypeBase value))
             {
@@ -30,10 +30,10 @@ namespace JavaWhoCompiler
 
             if (Parent != null)
             { 
-                return Parent.LookUp(name);
+                return Parent.LookUp(name, position);
             }
 
-            throw new TypeException($"Undefined variable {name}");
+            throw new TypeException($"Undefined variable {name}", position);
         }
     }
 
@@ -57,18 +57,26 @@ namespace JavaWhoCompiler
 
         // built ins
         public static ClassType ObjectBuiltIn = new(
-                "Object",
-                [], // vardecs
-                new Constructor([], null, []),
-                [], // methods
+                new ClassDefinition(
+                    new IdentifiedNode("Object", null),
+                    null,
+                    [], // vardecs
+                    new Constructor([], null, [], null),
+                    [], // methods
+                    null
+                ),
                 null // extending class
                 );
 
         public static ClassType StringBuiltIn = new(
-                "String",
-                [],
-                new Constructor([], null, []),
-                [], // methods
+                new ClassDefinition(
+                    new IdentifiedNode("String", null),
+                    new IdentifiedNode("Object", null),
+                    [], // vardecs
+                    new Constructor([], null, [], null),
+                    [], // methods
+                    null
+                ),
                 ObjectBuiltIn // extending class
                 );
         
@@ -103,43 +111,34 @@ namespace JavaWhoCompiler
             }
         }
 
-        public void DefineType(TypeBase classDefinition) {
-            AssertNotDefined(classDefinition.Name);
+        public void DefineType(TypeBase classDefinition, Position position) {
+            AssertNotDefined(classDefinition.Name, position);
 
             types.Add(classDefinition.Name, classDefinition);
-        }
-
-        public bool CanBeAssignedTo(string assigningTypeName, string targetTypeName) {
-            TypeBase targetType =  GetType(targetTypeName);
-            TypeBase assigningType = GetType(assigningTypeName);
-
-            return assigningType.CanBeAssignedTo(targetType);
-        }
-
-        public void AssertCanAssign(string assigningTypeName, string targetTypeName) {
-            if(!CanBeAssignedTo(assigningTypeName, targetTypeName)) {
-                throw new TypeException($"Type {assigningTypeName} cannot be assigned to type {targetTypeName}");
-            }
         }
 
         public bool TypeDefined(string type) {
             return types.ContainsKey(type);
         }
 
-        public void AssertNotDefined(string type) {
+        public void AssertNotDefined(string type, Position position) {
             if(TypeDefined(type)) {
-                throw new TypeException($"Type {type} is already defined");
+                throw new TypeException($"Type {type} is already defined", position);
             }
         }
 
-        public void AssertDefined(string type) {
+        public void AssertDefined(string type, Position position) {
             if(!TypeDefined(type)) {
-                throw new TypeException($"Type {type} is not defined");
+                throw new TypeException($"Type {type} is not defined", position);
             }
         }
 
-        public TypeBase GetType(string typeName) { 
-            AssertDefined(typeName);
+        public TypeBase GetType(IdentifiedNode node) {
+            return GetType(node.Value, node.Position);
+        }
+
+        public TypeBase GetType(string typeName, Position position) { 
+            AssertDefined(typeName, position);
 
             TypeBase type = types[typeName];
             if(type is ClassType classType) {
@@ -149,13 +148,13 @@ namespace JavaWhoCompiler
             return type;
         }
 
-        public T GetTypeAs<T>(string type) 
+        public T GetTypeAs<T>(string type, Position position) 
             where T: TypeBase
         {
-            TypeBase typeObj = GetType(type);
+            TypeBase typeObj = GetType(type, position);
             return typeObj switch {
                 T classType => classType,
-                _ => throw new TypeException($"Type {type} is not a {typeof(T)} type")
+                _ => throw new TypeException($"Type {type} is not a {typeof(T)} type", position)
             };
         }
 
@@ -192,9 +191,15 @@ namespace JavaWhoCompiler
                 ));
         }
 
-        public bool IsMorePreciseThanNonAmbiguous(TypeList other) {
+        public enum MorePreciseResult {
+            True,
+            False,
+            Ambigious
+        }
+
+        public MorePreciseResult IsMorePreciseThanNonAmbiguous(TypeList other) {
             if(Types.Count != other.Types.Count) {
-                throw new TypeException($"Cannot do greater than comparison on two TypeList's with differing sizes");
+                return MorePreciseResult.False;
             }
 
             int numLT = 0;
@@ -210,13 +215,13 @@ namespace JavaWhoCompiler
                 }
             }
 
-            if(numGT == Types.Count) return true;
+            if(numGT == Types.Count) return MorePreciseResult.True;
 
             if(numLT > 0 && numGT > 0) {
-                throw new TypeException($"Ambiguous comparison between type lists {this} and {other}");
+                return MorePreciseResult.Ambigious;
             }
 
-            return false;
+            return MorePreciseResult.False;
         }
 
         public bool Equals(TypeList other) {
@@ -249,7 +254,7 @@ namespace JavaWhoCompiler
         }
     }
 
-    public sealed record MethodSignature(string Name, TypeList ParamTypes, TypeBase ReturnType) {
+    public sealed record MethodSignature(string Name, TypeList ParamTypes, TypeBase ReturnType, Position Position) {
         public bool Equals(MethodSignature other) {
             // signatures will be considered unique by (Name + ParamTypes)
             return Name == other.Name &&
@@ -275,9 +280,10 @@ namespace JavaWhoCompiler
 
     public class ClassType : TypeBase
     {
-        private List<AST> variableDeclarations;
-        private List<AST> methodDefinitions;
-        private Constructor constructor { get; }
+        private List<AST> VariableDeclarations;
+        private List<AST> MethodDefinitions;
+        private Constructor Constructor;
+        private Position Position;
 
 
         public ClassType ParentClassType { get; }
@@ -292,26 +298,11 @@ namespace JavaWhoCompiler
 
         private bool isChecked = false;
 
-
         public ClassType(
-            ClassDefinition classDefinition,
-            TypeBase parentClassType
-            ) 
-            : this(classDefinition.Name.Value,
-                    classDefinition.VariableDeclarations,
-                    classDefinition.Constructor,
-                    classDefinition.MethodDefinitions,
-                    parentClassType) {}
-
-
-        public ClassType(
-                string className,
-                List<AST> variableDeclarations,
-                AST constructor,
-                List<AST> methodDefinitions,
+                ClassDefinition classDefinition,
                 TypeBase parentClassType
                 )
-                : base(className)
+                : base(classDefinition.Name.Value)
         {
             Base = this;
             if(parentClassType is ClassType classType) {
@@ -319,15 +310,14 @@ namespace JavaWhoCompiler
                 Base = parentClassType.Base;
                 DistanceFromBase = parentClassType.DistanceFromBase + 1;
             } else if(parentClassType is PrimitiveType primitiveType){
-                throw new TypeException($"Cannot extend class by primitive type {primitiveType.Name}");
+                throw new TypeException($"Cannot extend class by primitive type {primitiveType.Name}", classDefinition.ExtendsName.Position);
             }
 
 
-            this.variableDeclarations = variableDeclarations;
-            this.methodDefinitions = methodDefinitions;
+            VariableDeclarations = classDefinition.VariableDeclarations;
+            MethodDefinitions = classDefinition.MethodDefinitions;
 
-
-            this.constructor = (Constructor)constructor;
+            Constructor = (Constructor)classDefinition.Constructor;
         }
         
         public override bool CanBeAssignedTo(TypeBase other) {
@@ -373,8 +363,9 @@ namespace JavaWhoCompiler
 
         private void InitializeConstructor(TypeMap typeMap) {
             ConstructorTypes = new TypeList(
-                constructor.Parameters.Select(param => 
-                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToImmutableList()
+                Constructor.Parameters.Select(
+                    param => typeMap.GetType(((VariableDeclaration)param).Type)
+                    ).ToImmutableList()
             );
         }
 
@@ -403,7 +394,7 @@ namespace JavaWhoCompiler
                 if(!localMethodSignature.CanOverride(parentMethodSignature)) {
                     throw new TypeException($"Overriding method {localMethodSignature.Name}'s return type " + 
                             $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
-                            $"return type {parentMethodSignature.ReturnType}");
+                            $"return type {parentMethodSignature.ReturnType}", localMethodSignature.Position);
                 }
             }
         }
@@ -419,24 +410,26 @@ namespace JavaWhoCompiler
         }
 
         private void InitializeLocalMethodSignatures(TypeMap typeMap) {
-            foreach(MethodDefinition methodDefinition in methodDefinitions) {
+            foreach(MethodDefinition methodDefinition in MethodDefinitions) {
                 TypeBase newMethodReturnType = TypeBase.VoidPrimitive;
                 if(methodDefinition.ReturnType is not null) {
-                    newMethodReturnType = typeMap.GetType(methodDefinition.ReturnType.Value);
+                    newMethodReturnType = typeMap.GetType(methodDefinition.ReturnType.Value,
+                                                        methodDefinition.ReturnType.Position);
                 }
 
-                TypeList paramTypes = new(methodDefinition.Parameters.Select((param) =>
-                        typeMap.GetType(((VariableDeclaration)param).Type.Value)
+                TypeList paramTypes = new(methodDefinition.Parameters.Select(
+                        param => typeMap.GetType(((VariableDeclaration)param).Type)
                         ).ToImmutableList());
-                TypeList baseParamTypes = new(methodDefinition.Parameters.Select((param) =>
-                        typeMap.GetType(((VariableDeclaration)param).Type.Value).Base
+                TypeList baseParamTypes = new(methodDefinition.Parameters.Select(
+                        param => typeMap.GetType(((VariableDeclaration)param).Type).Base
                         ).ToImmutableList());
 
 
                 MethodSignature newMethodSignature = new(
                     methodDefinition.Name.Value,
                     paramTypes,
-                    newMethodReturnType
+                    newMethodReturnType,
+                    methodDefinition.Position
                 );
 
                 if(!MethodSignatures.ContainsKey(newMethodSignature.Name)) {
@@ -463,7 +456,7 @@ namespace JavaWhoCompiler
 
                 if(methodSet.Contains(newMethodSignature)) {
                     // exact signature match, local redeclaration
-                    throw new TypeException($"Redeclaration of method {newMethodSignature}");
+                    throw new TypeException($"Redeclaration of method {newMethodSignature}", newMethodSignature.Position);
                 }
                 
                 methodSet.Add(newMethodSignature);
@@ -473,38 +466,38 @@ namespace JavaWhoCompiler
         private void InitializeFields(TypeMap typeMap) {
             Fields = ParentClassType is not null ? new(ParentClassType.Fields) : new();
 
-            foreach(VariableDeclaration variableDeclaration in variableDeclarations) {
+            foreach(VariableDeclaration variableDeclaration in VariableDeclarations) {
                 if(Fields.ContainsKey(variableDeclaration.Var.Value)) {
-                    throw new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}");
+                    throw new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}", variableDeclaration.Position);
                 }
 
                 Fields.Add(
                         variableDeclaration.Var.Value,
-                        typeMap.GetType(variableDeclaration.Type.Value)
+                        typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position)
                         );
             }
         }
 
 
-        public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments) {
+        public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments, Position position) {
             if(!MethodSignatures.TryGetValue(queryMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> baseDict)) {
                 if(ParentClassType is null) {
-                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName}");
+                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName}", position);
                 }
 
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position);
             }
             
             if(!baseDict.TryGetValue(queryMethodArguments.ToBaseList(), out HashSet<MethodSignature> methodSet)) {
                 if(ParentClassType is null) {
-                    throw new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}");
+                    throw new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}", position);
                 }
 
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position);
             }
 
             // avoid exhaustive search if exact match is found
-            if(methodSet.TryGetValue(new MethodSignature(queryMethodName, queryMethodArguments, null), out MethodSignature exactMatch)) {
+            if(methodSet.TryGetValue(new MethodSignature(queryMethodName, queryMethodArguments, null, null), out MethodSignature exactMatch)) {
                 return exactMatch;
             }
 
@@ -516,17 +509,27 @@ namespace JavaWhoCompiler
                     if(!methodSignature.ParamTypes.IsMorePreciseThan(queryMethodArguments)) {
                         mostPrecise = methodSignature;
                     }
-                } else if(methodSignature.ParamTypes.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes)) {
-                    mostPrecise = methodSignature;
+
+                    continue;
                 }
+
+                mostPrecise = methodSignature.ParamTypes.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes) switch {
+                    TypeList.MorePreciseResult.True => methodSignature,
+                    TypeList.MorePreciseResult.False => mostPrecise,
+                    TypeList.MorePreciseResult.Ambigious => throw new TypeException(
+                            $"Ambiguous method call with types {queryMethodArguments}\n" +
+                            $"Given types do not distinctly match {methodSignature} or {mostPrecise}"
+                            , position),
+                    _ => throw new TypeException($"Unexpected error", position)
+                };
             }
 
             if(mostPrecise is null) {
                 if(ParentClassType is null) {
-                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName} that matches the argument types {queryMethodArguments}");
+                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName} that matches the argument types {queryMethodArguments}", position);
                 }
 
-                mostPrecise = ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+                mostPrecise = ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position);
             }
 
             return mostPrecise;
@@ -547,7 +550,8 @@ namespace JavaWhoCompiler
         {
             if(workingTree.Contains(className)) {
                 // cyclic inheritance
-                throw new TypeException($"Class {className} is part of an inheritance cycle");
+                throw new TypeException($"Class {className} is part of an inheritance cycle",
+                            definedClasses[className].Position);
             }
 
             if(Types.TypeDefined(className)) {
@@ -555,26 +559,27 @@ namespace JavaWhoCompiler
             }
 
             if(!definedClasses.TryGetValue(className, out ClassDefinition classDefinition)) {
-                throw new TypeException($"Class {className} is not defined");
+                throw new TypeException($"Class {className} is not defined", new Position(1, 1));
             }
 
 
             TypeBase extendingClassType = null;
-            if(classDefinition.ExtendsName?.Value is string extendsName) {
+            if(classDefinition.ExtendsName is (string extendsName, Position extendsPosition)) {
                 if(!definedClasses.ContainsKey(extendsName) && !Types.TypeDefined(extendsName)) {
-                    throw new TypeException($"Inherited class {extendsName} is not defined");
+                    throw new TypeException($"Inherited class {extendsName} is not defined", extendsPosition);
                 }
 
                 workingTree.Add(className);
                 CreateClassType(extendsName, definedClasses, workingTree);
-                extendingClassType = Types.GetType(extendsName);
+                extendingClassType = Types.GetType(extendsName, extendsPosition);
             }
 
             Types.DefineType(
                 new ClassType(
                     classDefinition,
                     extendingClassType
-                )
+                ),
+                classDefinition.Position
             );
         }
 
@@ -584,7 +589,7 @@ namespace JavaWhoCompiler
             // first pass: add classes to dictionary
             foreach(ClassDefinition classDefinition in classes) {
                 if(definedClasses.ContainsKey(classDefinition.Name.Value)) {
-                    throw new TypeException($"Class {classDefinition.Name.Value} defined more than once");
+                    throw new TypeException($"Class {classDefinition.Name.Value} defined more than once", classDefinition.Position);
                 }
 
                 definedClasses.Add(classDefinition.Name.Value, classDefinition);
@@ -625,30 +630,31 @@ namespace JavaWhoCompiler
 
                     break;
                 case VariableDeclaration varDec:
-                    scope.Define(varDec.Var.Value, Types.GetType(varDec.Type.Value));
+                    scope.Define(varDec.Var.Value, Types.GetType(varDec.Type));
 
                     break;
                 case AssignmentStatement assignmentStatement:
 
-                    TypeBase leftType = scope.LookUp(assignmentStatement.Var.Value);
+                    TypeBase leftType = scope.LookUp(assignmentStatement.Var.Value, assignmentStatement.Position);
 
                     TypeBase rightType = GetExpressionType(assignmentStatement.Val);
+                    Position rightPosition = assignmentStatement.Position;
 
                     if (!rightType.CanBeAssignedTo(leftType))
                     {
-                        throw new TypeException($"Can not assign {leftType} to {rightType}");
+                        throw new TypeException($"Can not assign {rightType} to {leftType}", rightPosition);
                     }
 
                     break;
                 case null:
-                    throw new TypeException("Null node given");
+                    throw new TypeException("Null node given", new Position(1, 1));
                 default:
-                    throw new TypeException($"Type is not supported: {node.GetType()}");
+                    throw new TypeException($"Type is not supported: {node.GetType()}", node.Position);
             }
         }
 
         private void CheckClass(ClassDefinition classDefinition) {
-            ClassType classType = Types.GetTypeAs<ClassType>(classDefinition.Name.Value);
+            ClassType classType = Types.GetTypeAs<ClassType>(classDefinition.Name.Value, classDefinition.Name.Position);
 
             // enter class scope
             EnterScope();
@@ -684,7 +690,7 @@ namespace JavaWhoCompiler
 
             TypeBase methodReturnType = TypeBase.VoidPrimitive;
             if(methodDefinition.ReturnType is not null) {
-                methodReturnType = Types.GetType(methodDefinition.ReturnType.Value);
+                methodReturnType = Types.GetType(methodDefinition.ReturnType.Value, methodDefinition.ReturnType.Position);
             }
 
             bool returned = false;
@@ -692,7 +698,7 @@ namespace JavaWhoCompiler
                 AST statement = body.Statements[i];
                 if(statement is ReturnStatement returnStatement) {
                     if(i < body.Statements.Count - 1) {
-                        throw new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}");
+                        throw new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position);
                     }
                 
                     TypeBase returnExpressionType = TypeBase.VoidPrimitive;
@@ -702,7 +708,7 @@ namespace JavaWhoCompiler
                     }
 
                     if(!returnExpressionType.CanBeAssignedTo(methodReturnType)) {
-                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}");
+                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position);
                     }
 
                     returned = true;
@@ -712,7 +718,7 @@ namespace JavaWhoCompiler
             }
 
             if(methodReturnType != TypeBase.VoidPrimitive && !returned) {
-                throw new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none");
+                throw new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position);
             }
 
             ExitScope();
@@ -731,15 +737,15 @@ namespace JavaWhoCompiler
             if(classType.ParentClassType is not null) {
                 List<AST> superArguments = constructor.SuperArguments;
                 if(superArguments is null) {
-                    throw new TypeException($"Constructor for class {classType.Name} is missing super call");
+                    throw new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position);
                 }
 
                 TypeList superCallTypes = GetExpressionTypeList(superArguments);
                 if(!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes)) {
-                    throw new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor");
+                    throw new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor", constructor.Position);
                 }
             } else if(constructor.SuperArguments is not null) {
-                throw new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class");
+                throw new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class", constructor.Position);
             }
 
             foreach(AST statement in constructor.Statements) {
@@ -769,11 +775,11 @@ namespace JavaWhoCompiler
                 IntLiteral => TypeBase.IntPrimitive,
                 StringLiteral => TypeBase.StringBuiltIn,
                 BooleanLiteral => TypeBase.BooleanPrimitive,
-                IdentifiedNode identifier => scope.LookUp(identifier.Value),
+                IdentifiedNode(string value, Position position) => scope.LookUp(value, position),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression),
-                ThisExpression => scope.LookUp("this"),
+                ThisExpression(Position position) => scope.LookUp("this", position),
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression),
-                _ => throw new TypeException($"Cannot obtain type of {node}")
+                _ => throw new TypeException($"Cannot obtain type of {node}", node.Position)
             };
         }
 
@@ -782,12 +788,13 @@ namespace JavaWhoCompiler
         }
 
         private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression) {
-            ClassType classType = Types.GetTypeAs<ClassType>(newObjectExpression.ClassName.Value);
+            ClassType classType = Types.GetTypeAs<ClassType>(newObjectExpression.ClassName.Value, newObjectExpression.ClassName.Position);
             
             // check if params are compatible with constructor
             TypeList arguments = GetExpressionTypeList(newObjectExpression.Arguments);
             if(!arguments.AreSubtypesOf(classType.ConstructorTypes)) {
-                throw new TypeException($"Arguments for new {classType.Name} object do not match constructor types");
+                Position expPosition = newObjectExpression.Position;
+                throw new TypeException($"Arguments for new {classType.Name} object do not match constructor types", expPosition);
             }
 
             return classType;
@@ -799,12 +806,14 @@ namespace JavaWhoCompiler
             if(targetType is ClassType targetClassType) {
                 MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
                     methodCallExpression.Name, 
-                    GetExpressionTypeList(methodCallExpression.Arguments)
+                    GetExpressionTypeList(methodCallExpression.Arguments),
+                    methodCallExpression.Position
                 );
 
                 return matchingSignature.ReturnType;
             } else {
-                throw new TypeException($"Cannot call methods on primitive type {targetType}");
+                Position targetPosition = methodCallExpression.Target.Position;
+                throw new TypeException($"Cannot call methods on primitive type {targetType}", targetPosition);
             }
         }
     }
