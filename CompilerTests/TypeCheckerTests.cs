@@ -50,6 +50,61 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void ClassVardecTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void ClassUseVardecTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init() {
+                            x = 5;
+                            y = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void ClassUseInheritedVardecTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init() {}
+                    }
+
+                    class SubType extends MyType {
+                        String z;
+                        init(Int _x, Boolean _y, String _z) {
+                            super();
+                            x = _x;
+                            y = _y;
+                            z = _z;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
         public void ClassAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -151,6 +206,28 @@ namespace CompilerTests
             AST root = Parser.Parse(tokens);
 
             TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void DeadCodeInMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            Int x;
+                            x = y;
+                            return x;
+
+                            x = 10;
+                            Boolean z;
+                            z = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
         }
 
         [Fact]
