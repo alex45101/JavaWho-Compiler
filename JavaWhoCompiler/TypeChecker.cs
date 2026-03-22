@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
+using System.Text;
 
 namespace JavaWhoCompiler
 {
@@ -37,6 +39,8 @@ namespace JavaWhoCompiler
 
     public abstract class TypeBase(string name) {
         public string Name { get; } = name;
+        public TypeBase Base;
+        public int DistanceFromBase { get; protected set; } = 0;
 
         public abstract bool CanBeAssignedTo(TypeBase other);
 
@@ -77,7 +81,11 @@ namespace JavaWhoCompiler
         ]);
     }
 
-    public class PrimitiveType(string name) : TypeBase(name) {
+    public class PrimitiveType : TypeBase {
+        public PrimitiveType(string name) : base(name) {
+            Base = this;
+        }
+
         public override bool CanBeAssignedTo(TypeBase other) {
             return Equals(other);
         }
@@ -165,13 +173,50 @@ namespace JavaWhoCompiler
     }
 
 
-    public sealed record TypeList(List<TypeBase> Types) {
+    public sealed record TypeList(ImmutableList<TypeBase> Types) {
+        private int savedHashCode;
+        private bool hashCodeCalculated = false;
         public bool AreSubtypesOf(TypeList other) {
-            return Types.Count == other.Types.Count &&
-                Types.Index().All(
-                        indexedType => 
-                        indexedType.Item.CanBeAssignedTo(other.Types[indexedType.Index])
-                        );
+            return Types.SequenceEqual(other.Types, EqualityComparer<TypeBase>.Create((thisType, otherType) =>
+                        thisType.CanBeAssignedTo(otherType)
+                        ));
+        }
+
+        public TypeList ToBaseList() {
+            return new(Types.Select(type => type.Base).ToImmutableList());
+        }
+
+        public bool IsMorePreciseThan(TypeList other) {
+            return Types.SequenceEqual(other.Types, EqualityComparer<TypeBase>.Create((thisType, otherType) =>
+                        thisType.DistanceFromBase > otherType.DistanceFromBase
+                ));
+        }
+
+        public bool IsMorePreciseThanNonAmbiguous(TypeList other) {
+            if(Types.Count != other.Types.Count) {
+                throw new TypeException($"Cannot do greater than comparison on two TypeList's with differing sizes");
+            }
+
+            int numLT = 0;
+            int numGT = 0;
+            for(int i = 0; i < Types.Count; i++) {
+                int thisPrecision = Types[i].DistanceFromBase;
+                int otherPrecision = other.Types[i].DistanceFromBase;
+
+                if(thisPrecision > otherPrecision){
+                    numGT++;
+                } else if(thisPrecision < otherPrecision) {
+                    numLT++;
+                }
+            }
+
+            if(numGT == Types.Count) return true;
+
+            if(numLT > 0 && numGT > 0) {
+                throw new TypeException($"Ambiguous comparison between type lists {this} and {other}");
+            }
+
+            return false;
         }
 
         public bool Equals(TypeList other) {
@@ -179,12 +224,28 @@ namespace JavaWhoCompiler
         }
 
         public override int GetHashCode() {
+            if(hashCodeCalculated) return savedHashCode;
             HashCode hashCode = new();
             foreach(TypeBase type in Types) {
                 hashCode.Add(type);
             }
 
-            return hashCode.ToHashCode();
+            hashCodeCalculated = true;
+            savedHashCode = hashCode.ToHashCode();
+
+            return savedHashCode;
+        }
+
+        public override string ToString() {
+            StringBuilder stringBuilder = new StringBuilder("(");
+            for(int i = 0; i < Types.Count - 1; i++) {
+                TypeBase type = Types[i];
+                stringBuilder.Append($"{type}, ");
+            }
+
+            stringBuilder.Append($"{Types[^1]})");
+
+            return stringBuilder.ToString();
         }
     }
 
@@ -203,12 +264,12 @@ namespace JavaWhoCompiler
         public override int GetHashCode() {
             HashCode hashCode = new();
             hashCode.Add(Name);
-
-            foreach(TypeBase paramType in ParamTypes.Types) {
-                hashCode.Add(paramType);
-            }
-
+            hashCode.Add(ParamTypes);
             return hashCode.ToHashCode();
+        }
+
+        public override string ToString() {
+            return $"{Name}{ParamTypes} {ReturnType}";
         }
     }
 
@@ -221,11 +282,13 @@ namespace JavaWhoCompiler
 
         public ClassType ParentClassType { get; }
 
-        public Dictionary<string, HashSet<MethodSignature>> MethodSignatures { get; } = new();
-        // name to type
+        // name to base type list to signature set
+        public Dictionary<string, Dictionary<TypeList, HashSet<MethodSignature>>> MethodSignatures { get; } = new();
+
         public Dictionary<string, TypeBase> Fields { get; private set; }
 
         public TypeList ConstructorTypes { get; private set; }
+
 
         private bool isChecked = false;
 
@@ -250,11 +313,15 @@ namespace JavaWhoCompiler
                 )
                 : base(className)
         {
+            Base = this;
             if(parentClassType is ClassType classType) {
                 ParentClassType = classType;
+                Base = parentClassType.Base;
+                DistanceFromBase = parentClassType.DistanceFromBase + 1;
             } else if(parentClassType is PrimitiveType primitiveType){
                 throw new TypeException($"Cannot extend class by primitive type {primitiveType.Name}");
             }
+
 
             this.variableDeclarations = variableDeclarations;
             this.methodDefinitions = methodDefinitions;
@@ -299,7 +366,7 @@ namespace JavaWhoCompiler
             InitializeConstructor(typeMap);
 
             InitializeLocalMethodSignatures(typeMap);
-            InheritMethods();
+            CheckInheritedMethods();
 
             isChecked = true;
         }
@@ -307,36 +374,46 @@ namespace JavaWhoCompiler
         private void InitializeConstructor(TypeMap typeMap) {
             ConstructorTypes = new TypeList(
                 constructor.Parameters.Select(param => 
-                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToList()
+                    typeMap.GetType(((VariableDeclaration)param).Type.Value)).ToImmutableList()
             );
         }
 
-        private void MergeMatchingParentMethodSet(HashSet<MethodSignature> parentMethodSet, HashSet<MethodSignature> localMethodSet) {
+        private void CheckMatchingParentMethodSet(Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict, Dictionary<TypeList, HashSet<MethodSignature>> localMethodDict) {
             // local class has matching method name to parent
+            HashSet<MethodSignature> localMethodSet = null;
+            HashSet<MethodSignature> parentMethodSet = null;
+
+            TypeList matchingBaseTypeList = parentMethodDict.Keys.SingleOrDefault(baseTypeList => localMethodDict.ContainsKey(baseTypeList), null);
+            if(matchingBaseTypeList is null) {
+                // nothing to check
+                return;
+            }
+
+            localMethodSet = localMethodDict[matchingBaseTypeList];
+            parentMethodSet = parentMethodDict[matchingBaseTypeList];
+
+
             foreach(MethodSignature parentMethodSignature in parentMethodSet) {
-                if(localMethodSet.TryGetValue(parentMethodSignature, out MethodSignature localMethodSignature)) {
-                    // a local method is trying to override a parent method
-                    if(!localMethodSignature.CanOverride(parentMethodSignature)) {
-                        throw new TypeException($"Overriding method {localMethodSignature.Name}'s return type " + 
-                                $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
-                                $"return type {parentMethodSignature.ReturnType}");
-                    }
-                } else {
-                    // no override needed, add parent method signature to local set
-                    localMethodSet.Add(parentMethodSignature);
+                if(!localMethodSet.TryGetValue(parentMethodSignature, out MethodSignature localMethodSignature)) {
+                    // local method set isnt trying to override parent method
+                    continue;
+                }
+
+                // a local method is trying to override a parent method
+                if(!localMethodSignature.CanOverride(parentMethodSignature)) {
+                    throw new TypeException($"Overriding method {localMethodSignature.Name}'s return type " + 
+                            $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
+                            $"return type {parentMethodSignature.ReturnType}");
                 }
             }
         }
 
-        private void InheritMethods() {
+        private void CheckInheritedMethods() {
             if(ParentClassType is null) return;
 
-            foreach((string parentMethodName, HashSet<MethodSignature> parentMethodSet) in ParentClassType.MethodSignatures) {
-                if(MethodSignatures.TryGetValue(parentMethodName, out HashSet<MethodSignature> localMethodSet)) {
-                    MergeMatchingParentMethodSet(parentMethodSet, localMethodSet);
-                } else {
-                    // local class doesn't have any matching method names to parent
-                    MethodSignatures.Add(parentMethodName, parentMethodSet);
+            foreach((string parentMethodName, Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict) in ParentClassType.MethodSignatures) {
+                if(MethodSignatures.TryGetValue(parentMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> localMethodSet)) {
+                    CheckMatchingParentMethodSet(parentMethodDict, localMethodSet);
                 }
             }
         }
@@ -348,25 +425,48 @@ namespace JavaWhoCompiler
                     newMethodReturnType = typeMap.GetType(methodDefinition.ReturnType.Value);
                 }
 
+                TypeList paramTypes = new(methodDefinition.Parameters.Select((param) =>
+                        typeMap.GetType(((VariableDeclaration)param).Type.Value)
+                        ).ToImmutableList());
+                TypeList baseParamTypes = new(methodDefinition.Parameters.Select((param) =>
+                        typeMap.GetType(((VariableDeclaration)param).Type.Value).Base
+                        ).ToImmutableList());
+
+
                 MethodSignature newMethodSignature = new(
                     methodDefinition.Name.Value,
-                    new TypeList(
-                        methodDefinition.Parameters.Select(vd => typeMap.GetType(((VariableDeclaration)vd).Type.Value)).ToList()
-                        ),
-                        newMethodReturnType
+                    paramTypes,
+                    newMethodReturnType
                 );
 
-                if(MethodSignatures.TryGetValue(newMethodSignature.Name, out HashSet<MethodSignature> methodSetWithSameName)) {
-
-                    if(methodSetWithSameName.Contains(newMethodSignature)) {
-                        // exact signature match, local redeclaration
-                        throw new TypeException($"Redeclaration of method {newMethodSignature}");
-                    }
-
-                    methodSetWithSameName.Add(newMethodSignature);
-                } else {
-                    MethodSignatures.Add(newMethodSignature.Name, new HashSet<MethodSignature>([newMethodSignature]));
+                if(!MethodSignatures.ContainsKey(newMethodSignature.Name)) {
+                    MethodSignatures.Add(
+                        newMethodSignature.Name, 
+                        new Dictionary<TypeList, HashSet<MethodSignature>>{
+                            { 
+                                baseParamTypes, 
+                                new HashSet<MethodSignature>([newMethodSignature]) 
+                            }
+                            }
+                        );
+                    continue;
                 }
+
+                Dictionary<TypeList, HashSet<MethodSignature>> methodBaseTypeDict = MethodSignatures[newMethodSignature.Name];
+
+                if(!methodBaseTypeDict.ContainsKey(baseParamTypes)) {
+                    methodBaseTypeDict.Add(baseParamTypes, new HashSet<MethodSignature>([newMethodSignature]));
+                    continue;
+                }
+
+                HashSet<MethodSignature> methodSet = methodBaseTypeDict[baseParamTypes];
+
+                if(methodSet.Contains(newMethodSignature)) {
+                    // exact signature match, local redeclaration
+                    throw new TypeException($"Redeclaration of method {newMethodSignature}");
+                }
+                
+                methodSet.Add(newMethodSignature);
             }
         }
 
@@ -383,6 +483,53 @@ namespace JavaWhoCompiler
                         typeMap.GetType(variableDeclaration.Type.Value)
                         );
             }
+        }
+
+
+        public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments) {
+            if(!MethodSignatures.TryGetValue(queryMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> baseDict)) {
+                if(ParentClassType is null) {
+                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName}");
+                }
+
+                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+            }
+            
+            if(!baseDict.TryGetValue(queryMethodArguments.ToBaseList(), out HashSet<MethodSignature> methodSet)) {
+                if(ParentClassType is null) {
+                    throw new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}");
+                }
+
+                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+            }
+
+            // avoid exhaustive search if exact match is found
+            if(methodSet.TryGetValue(new MethodSignature(queryMethodName, queryMethodArguments, null), out MethodSignature exactMatch)) {
+                return exactMatch;
+            }
+
+            // do the comparison here to find most precise method or throw ambiguous error
+            MethodSignature mostPrecise = null;
+            foreach(MethodSignature methodSignature in methodSet) {
+                if(mostPrecise is null) {
+                    // look for method signature is usable with given type list
+                    if(!methodSignature.ParamTypes.IsMorePreciseThan(queryMethodArguments)) {
+                        mostPrecise = methodSignature;
+                    }
+                } else if(methodSignature.ParamTypes.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes)) {
+                    mostPrecise = methodSignature;
+                }
+            }
+
+            if(mostPrecise is null) {
+                if(ParentClassType is null) {
+                    throw new TypeException($"Class {Name} does not contain a method ${queryMethodName} that matches the argument types {queryMethodArguments}");
+                }
+
+                mostPrecise = ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments);
+            }
+
+            return mostPrecise;
         }
 
     }
@@ -506,6 +653,9 @@ namespace JavaWhoCompiler
             // enter class scope
             EnterScope();
 
+            // hacky way of defining the type of "this"
+            scope.Define("this", classType);
+
             // add fields to scope
             foreach((string name, TypeBase type) in classType.Fields) {
                 scope.Define(name, type);
@@ -621,12 +771,14 @@ namespace JavaWhoCompiler
                 BooleanLiteral => TypeBase.BooleanPrimitive,
                 IdentifiedNode identifier => scope.LookUp(identifier.Value),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression),
+                ThisExpression => scope.LookUp("this"),
+                MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression),
                 _ => throw new TypeException($"Cannot obtain type of {node}")
             };
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes) {
-            return new TypeList(nodes.Select(GetExpressionType).ToList());
+            return new TypeList(nodes.Select(GetExpressionType).ToImmutableList());
         }
 
         private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression) {
@@ -639,6 +791,21 @@ namespace JavaWhoCompiler
             }
 
             return classType;
+        }
+
+        private TypeBase DeriveMethodCallExpressionType(MethodCallExpression methodCallExpression) {
+            TypeBase targetType = GetExpressionType(methodCallExpression.Target);
+            
+            if(targetType is ClassType targetClassType) {
+                MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
+                    methodCallExpression.Name, 
+                    GetExpressionTypeList(methodCallExpression.Arguments)
+                );
+
+                return matchingSignature.ReturnType;
+            } else {
+                throw new TypeException($"Cannot call methods on primitive type {targetType}");
+            }
         }
     }
 }
