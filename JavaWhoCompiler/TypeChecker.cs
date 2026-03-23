@@ -64,8 +64,7 @@ namespace JavaWhoCompiler
                     new Constructor([], null, [], null),
                     [], // methods
                     null
-                ),
-                null // extending class
+                )
                 );
 
         public static ClassType StringBuiltIn = new(
@@ -298,13 +297,28 @@ namespace JavaWhoCompiler
 
         private bool isChecked = false;
 
+        // constructor for built ins (avoid defaulting to Object inheritance)
+        public ClassType(
+                ClassDefinition classDefinition
+                ) : base(classDefinition.Name.Value) {
+            Base = this;
+            DistanceFromBase = 0;
+
+            VariableDeclarations = classDefinition.VariableDeclarations;
+            MethodDefinitions = classDefinition.MethodDefinitions;
+
+            Constructor = (Constructor)classDefinition.Constructor;
+        }
+
         public ClassType(
                 ClassDefinition classDefinition,
                 TypeBase parentClassType
                 )
                 : base(classDefinition.Name.Value)
         {
-            Base = this;
+            // default to inheriting from Object
+            Base = TypeBase.ObjectBuiltIn;
+            ParentClassType = TypeBase.ObjectBuiltIn;
             if(parentClassType is ClassType classType) {
                 ParentClassType = classType;
                 Base = parentClassType.Base;
