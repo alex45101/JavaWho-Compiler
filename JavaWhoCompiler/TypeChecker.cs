@@ -749,7 +749,11 @@ namespace JavaWhoCompiler
 
             // check super call
             if(classType.ParentClassType is not null) {
-                List<AST> superArguments = constructor.SuperArguments;
+                // insert empty super call if a super isnt provided and parent is Object
+                List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
+                                           ? []
+                                           : constructor.SuperArguments;
+
                 if(superArguments is null) {
                     throw new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position);
                 }
