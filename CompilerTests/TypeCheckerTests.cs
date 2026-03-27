@@ -4,6 +4,25 @@ namespace CompilerTests
 {
     public class TypeCheckerTests
     {
+        public static IEnumerable<object[]> BuiltInTypeData()
+        {
+            foreach(TypeBase type in TypeBase.BuiltIns) {
+                yield return new object[] {
+                    type.Name
+                };
+            }
+        }
+
+        public static IEnumerable<object[]> AssignablePrimitiveTypeData()
+        {
+            // Void type in an assignment context won't parse
+            foreach(TypeBase type in TypeBase.Primitives.Where(t => t != TypeBase.VoidPrimitive)) {
+                yield return new object[] {
+                    type.Name
+                };
+            }
+        }
+
         [Fact]
         public void EmptyTest()
         {
@@ -149,6 +168,53 @@ namespace CompilerTests
                     class MyType {
                         init(Int x, Int y) {}
                     }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void ObjectSubClassAssignmentTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+                    }
+
+                    class SubType extends MyType {
+                        init() {
+                            super(5, 0);
+                        }
+                    }
+
+                    Object m;
+                    m = new MyType(5, 4);
+
+                    Object s;
+                    s = new SubType();
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+        }
+
+        [Fact]
+        public void ExtendObjectTest() {
+            // with and without super call
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType extends Object {
+                        init() { super(); }
+                    }
+
+                    class OtherType extends Object {
+                        init() {}
+                    }
+
+                    Object m;
+                    m = new MyType();
+
+                    Object s;
+                    s = new OtherType();
                     """);
             AST root = Parser.Parse(tokens);
 
@@ -550,6 +616,71 @@ namespace CompilerTests
                     MyType m;
                     m = new MyType(5, new Object());
                     """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
+        [Fact]
+        public void RedefineClassTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+                    }
+
+                    class MyType {
+                        Int y;
+                        init(Int x) {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
+
+        [Theory]
+        [MemberData(nameof(BuiltInTypeData))]
+        public void RedefineBuiltInTest(string builtInName) {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class {{builtInName}} {
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
+        [Theory]
+        [MemberData(nameof(AssignablePrimitiveTypeData))]
+        public void RedefinePrimitiveTest(string primitiveName) {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class {{primitiveName}} {
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
+        [Theory]
+        [MemberData(nameof(AssignablePrimitiveTypeData))]
+        public void ExtendPrimitiveTest(string primitiveName) {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class MyType extends {{primitiveName}} {
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
+        [Fact]
+        public void DeclareVarWithUndefinedTypeTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("DoesntExist d;");
             AST root = Parser.Parse(tokens);
 
             Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));

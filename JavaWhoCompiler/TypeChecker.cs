@@ -50,13 +50,18 @@ namespace JavaWhoCompiler
 
 
         // primitives
-        public static PrimitiveType IntPrimitive = new("Int");
-        public static PrimitiveType BooleanPrimitive = new("Boolean");
-        public static PrimitiveType VoidPrimitive = new("Void");
+        public readonly static PrimitiveType IntPrimitive = new("Int");
+        public readonly static PrimitiveType BooleanPrimitive = new("Boolean");
+        public readonly static PrimitiveType VoidPrimitive = new("Void");
+        public static readonly HashSet<PrimitiveType> Primitives = [
+            IntPrimitive, 
+            BooleanPrimitive, 
+            VoidPrimitive
+        ];
 
 
         // built ins
-        public static ClassType ObjectBuiltIn = new(
+        public readonly static ClassType ObjectBuiltIn = new(
                 new ClassDefinition(
                     new IdentifiedNode("Object", null),
                     null,
@@ -67,7 +72,7 @@ namespace JavaWhoCompiler
                 )
                 );
 
-        public static ClassType StringBuiltIn = new(
+        public readonly static ClassType StringBuiltIn = new(
                 new ClassDefinition(
                     new IdentifiedNode("String", null),
                     new IdentifiedNode("Object", null),
@@ -78,13 +83,16 @@ namespace JavaWhoCompiler
                 ),
                 ObjectBuiltIn // extending class
                 );
+
+        public readonly static HashSet<ClassType> BuiltIns = [
+            ObjectBuiltIn, 
+            StringBuiltIn
+        ];
         
-        public static HashSet<TypeBase> Predefined = new([
-                IntPrimitive,
-                BooleanPrimitive,
-                VoidPrimitive,
-                ObjectBuiltIn,
-                StringBuiltIn,
+
+        public readonly static HashSet<TypeBase> Predefined = new([
+                ..Primitives,
+                ..BuiltIns
         ]);
     }
 
@@ -602,6 +610,10 @@ namespace JavaWhoCompiler
 
             // first pass: add classes to dictionary
             foreach(ClassDefinition classDefinition in classes) {
+                // check built ins
+                Types.AssertNotDefined(classDefinition.Name.Value, classDefinition.Position);
+
+                // check user defined classes
                 if(definedClasses.ContainsKey(classDefinition.Name.Value)) {
                     throw new TypeException($"Class {classDefinition.Name.Value} defined more than once", classDefinition.Position);
                 }
