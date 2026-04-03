@@ -638,6 +638,19 @@ namespace CompilerTests
             Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
         }
 
+        [Fact]
+        public void UseUnassignedVarTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+        }
+
 
         [Theory]
         [MemberData(nameof(BuiltInTypeData))]

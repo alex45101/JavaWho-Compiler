@@ -4,12 +4,16 @@ using System.Text;
 
 namespace JavaWhoCompiler
 {
+
     public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
+
+
+    public record VarInfo(TypeBase Type, bool Assigned);
 
     public class Scope
     {
         public Scope Parent { get; init; }
-        private readonly Dictionary<string, TypeBase> lookUp = new();
+        private readonly Dictionary<string, VarInfo> lookUp = new();
 
         public Scope(Scope parent)
         { 
@@ -18,14 +22,30 @@ namespace JavaWhoCompiler
 
         public void Define(string name, TypeBase type)
         {
-            lookUp[name] = type;
+            lookUp[name] = new VarInfo(type, false);
         }
 
-        public TypeBase LookUp(string name, Position position)
+        public void DefineAssigned(string name, TypeBase type)
         {
-            if (lookUp.TryGetValue(name, out TypeBase value))
+            lookUp[name] = new VarInfo(type, true);
+        }
+
+        public void Assign(string name, TypeBase type, Position position)
+        {
+            VarInfo varInfo = LookUp(name, position);
+
+            if(!type.CanBeAssignedTo(varInfo.Type)) {
+                throw new TypeException($"Can not assign {type} to {varInfo.Type}", position);
+            }
+
+            lookUp[name] = new VarInfo(varInfo.Type, true);
+        }
+
+        public VarInfo LookUp(string name, Position position)
+        {
+            if (lookUp.TryGetValue(name, out VarInfo info))
             {
-                return value;
+                return info;
             }
 
             if (Parent != null)
@@ -683,16 +703,9 @@ namespace JavaWhoCompiler
 
                     break;
                 case AssignmentStatement assignmentStatement:
-
-                    TypeBase leftType = scope.LookUp(assignmentStatement.Var.Value, assignmentStatement.Position);
-
                     TypeBase rightType = GetExpressionType(assignmentStatement.Val);
-                    Position rightPosition = assignmentStatement.Position;
 
-                    if (!rightType.CanBeAssignedTo(leftType))
-                    {
-                        throw new TypeException($"Can not assign {rightType} to {leftType}", rightPosition);
-                    }
+                    scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position);
 
                     break;
                 case null:
@@ -709,7 +722,7 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            scope.Define("this", classType);
+            scope.DefineAssigned("this", classType);
 
             // add fields to scope
             foreach((string name, TypeBase type) in classType.Fields) {
@@ -730,10 +743,7 @@ namespace JavaWhoCompiler
         private void CheckClassMethod(MethodDefinition methodDefinition) {
             EnterScope();
 
-            // add params to scope
-            foreach(AST variableDeclaration in methodDefinition.Parameters) {
-                CheckTypeHelper(variableDeclaration);
-            }
+            AddParamsToScope(methodDefinition.Parameters);
 
             BlockStatement body = (BlockStatement)methodDefinition.Body;
 
@@ -777,10 +787,7 @@ namespace JavaWhoCompiler
             // enter constructor scope
             EnterScope();
 
-            // add parameter vardecs to scope
-            foreach(AST variableDeclaration in constructor.Parameters) {
-                CheckTypeHelper(variableDeclaration);
-            }
+            AddParamsToScope(constructor.Parameters);
 
             // check super call
             if(classType.ParentClassType is not null) {
@@ -809,6 +816,14 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
+        private void AddParamsToScope(List<AST> astVariableDeclarations) {
+            foreach(AST astVariableDeclaration in astVariableDeclarations) {
+                VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
+
+                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type));
+            }
+        }
+
 
 
         private void EnterScope()
@@ -828,9 +843,9 @@ namespace JavaWhoCompiler
                 IntLiteral => TypeBase.IntPrimitive,
                 StringLiteral => TypeBase.StringBuiltIn,
                 BooleanLiteral => TypeBase.BooleanPrimitive,
-                IdentifiedNode(string value, Position position) => scope.LookUp(value, position),
+                IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression),
-                ThisExpression(Position position) => scope.LookUp("this", position),
+                ThisExpression(Position position) => scope.LookUp("this", position).Type,
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression),
                 _ => throw new TypeException($"Cannot obtain type of {node}", node.Position)
             };
@@ -838,6 +853,16 @@ namespace JavaWhoCompiler
 
         private TypeList GetExpressionTypeList(List<AST> nodes) {
             return new TypeList(nodes.Select(GetExpressionType).ToImmutableList());
+        }
+
+
+        private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode) {
+            VarInfo varInfo = scope.LookUp(identifiedNode.Value, identifiedNode.Position);
+            if(!varInfo.Assigned) {
+                throw new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position);
+            }
+
+            return varInfo.Type;
         }
 
         private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression) {
