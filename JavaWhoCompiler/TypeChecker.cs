@@ -182,6 +182,9 @@ namespace JavaWhoCompiler
     public sealed record TypeList(ImmutableList<TypeBase> Types) {
         private int savedHashCode;
         private bool hashCodeCalculated = false;
+
+        private string UnderscoreSeperatedString = null;
+
         public bool AreSubtypesOf(TypeList other) {
             return Types.SequenceEqual(other.Types, EqualityComparer<TypeBase>.Create((thisType, otherType) =>
                         thisType.CanBeAssignedTo(otherType)
@@ -259,9 +262,30 @@ namespace JavaWhoCompiler
 
             return stringBuilder.ToString();
         }
+
+        public string ToUnderscoreSeperated() {
+            if(UnderscoreSeperatedString != null) return UnderscoreSeperatedString;
+
+            if(Types.Count == 0) {
+                UnderscoreSeperatedString = "Empty";
+                return UnderscoreSeperatedString;
+            }
+
+            StringBuilder s = new(Types[0].ToString());
+
+            for(int i = 1; i < Types.Count; i++) {
+                s.Append('_');
+                s.Append(Types[i].ToString());
+            }
+
+            UnderscoreSeperatedString = s.ToString();
+            return UnderscoreSeperatedString;
+        }
     }
 
     public sealed record MethodSignature(string Name, TypeList ParamTypes, TypeBase ReturnType, Position Position) {
+        public string MethodName = $"{ParamTypes.ToUnderscoreSeperated()}_{Name}_{ReturnType}";
+
         public bool Equals(MethodSignature other) {
             // signatures will be considered unique by (Name + ParamTypes)
             return Name == other.Name &&
@@ -290,7 +314,6 @@ namespace JavaWhoCompiler
         private List<AST> VariableDeclarations;
         private List<AST> MethodDefinitions;
         private Constructor Constructor;
-        private Position Position;
 
 
         public ClassType ParentClassType { get; }
@@ -839,6 +862,8 @@ namespace JavaWhoCompiler
                     GetExpressionTypeList(methodCallExpression.Arguments),
                     methodCallExpression.Position
                 );
+
+                methodCallExpression.Annotate(matchingSignature);
 
                 return matchingSignature.ReturnType;
             } else {
