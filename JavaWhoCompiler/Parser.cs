@@ -222,6 +222,22 @@ namespace JavaWhoCompiler
     //class
     public sealed record MethodDefinition(IdentifiedNode Name, List<AST> Parameters, IdentifiedNode ReturnType, AST Body, Position Position) : AST(Position)
     {
+        public string AnnotatedMethodName { 
+            get {
+                if(field is null) {
+                    throw new Exception($"Trying to access annotated method name of {this} before annotation");
+                }
+
+                return field;
+            }
+
+            private set;
+        } = null;
+
+        public void Annotate(MethodSignature methodSignature) {
+            AnnotatedMethodName = methodSignature.MethodName;
+        }
+
         protected override bool EqualCore(AST other, bool ignorePos) =>
             other is MethodDefinition right &&
             NodesEqual(Name, right.Name, ignorePos) &&

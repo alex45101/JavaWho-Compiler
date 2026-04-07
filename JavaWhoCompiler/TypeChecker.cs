@@ -497,6 +497,8 @@ namespace JavaWhoCompiler
                     methodDefinition.Position
                 );
 
+                methodDefinition.Annotate(newMethodSignature);
+
                 if(!MethodSignatures.ContainsKey(newMethodSignature.Name)) {
                     MethodSignatures.Add(
                         newMethodSignature.Name, 

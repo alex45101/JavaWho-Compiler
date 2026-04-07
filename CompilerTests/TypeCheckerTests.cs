@@ -698,5 +698,74 @@ namespace CompilerTests
 
             Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
         }
+
+        [Fact]
+        public void AnnotatedMethodDefNameTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class OtherType { init() {} }
+                    class MyType {
+                        init() {}
+
+                        method a() Int { return 5; }
+                        method a(Int x) Int { return 5; }
+                        method a(Boolean x, OtherType y) Int { return 5; }
+                        method b(Boolean x, OtherType y) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+
+            ProgramNode program = (ProgramNode)root;
+
+            ClassDefinition myTypeClass = (ClassDefinition)program.Classes[1];
+
+            List<MethodDefinition> methodDefinitions = myTypeClass.MethodDefinitions.Select(ast => (MethodDefinition)ast).ToList();
+
+            Assert.Equal("Empty_a_Int", methodDefinitions[0].AnnotatedMethodName);
+            Assert.Equal("Int_a_Int", methodDefinitions[1].AnnotatedMethodName);
+            Assert.Equal("Boolean_OtherType_a_Int", methodDefinitions[2].AnnotatedMethodName);
+            Assert.Equal("Boolean_OtherType_b_Int", methodDefinitions[3].AnnotatedMethodName);
+        }
+
+        [Fact]
+        public void AnnotatedMethodCallNameTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class OtherType { init() {} }
+                    class MyType {
+                        init() {}
+
+                        method a() Int { return 5; }
+                        method a(Int x) Int { return 5; }
+                        method a(Boolean x, OtherType y) Int { return 5; }
+                        method b(Boolean x, OtherType y) Int { return 5; }
+                    }
+
+                    MyType m;
+                    m = new MyType();
+
+                    Int x;
+                    x = m.a();
+                    x = m.a(5);
+                    x = m.a(true, new OtherType());
+                    x = m.b(true, new OtherType());
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+
+            ProgramNode program = (ProgramNode)root;
+
+            List<MethodCallExpression> methodCalls = program.Statements
+                                                            .Where(s => s is AssignmentStatement)
+                                                            .Skip(1) // skip m = new MyType();
+                                                            .Select(s => (AssignmentStatement)s)
+                                                            .Select(s => (MethodCallExpression)s.Val).ToList();
+
+            Assert.Equal("Empty_a_Int", methodCalls[0].AnnotatedMethodName);
+            Assert.Equal("Int_a_Int", methodCalls[1].AnnotatedMethodName);
+            Assert.Equal("Boolean_OtherType_a_Int", methodCalls[2].AnnotatedMethodName);
+            Assert.Equal("Boolean_OtherType_b_Int", methodCalls[3].AnnotatedMethodName);
+        }
     }
 }
