@@ -767,5 +767,37 @@ namespace CompilerTests
             Assert.Equal("Boolean_OtherType_a_Int", methodCalls[2].AnnotatedMethodName);
             Assert.Equal("Boolean_OtherType_b_Int", methodCalls[3].AnnotatedMethodName);
         }
+
+        [Fact]
+        public void AnnotatedIdentifiedNodeThisTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        init() { x = 5; }
+
+                        method a(Int y) Void { 
+                            Int z;
+                            z = x;
+                            z = y;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            TypeChecker.CheckType(root);
+
+            ProgramNode program = (ProgramNode)root;
+
+            ClassDefinition myTypeClass = (ClassDefinition)program.Classes[0];
+            MethodDefinition methodDefinition = (MethodDefinition)myTypeClass.MethodDefinitions.First();
+            List<IdentifiedNode> identifiedNodes = ((BlockStatement)methodDefinition.Body).Statements
+                                                        .Where(s => s is AssignmentStatement)
+                                                        .Select(s => (AssignmentStatement)s)
+                                                        .Select(s => (IdentifiedNode)s.Val)
+                                                        .ToList();
+
+            Assert.True(identifiedNodes[0].IsField);
+            Assert.False(identifiedNodes[1].IsField);
+        }
     }
 }

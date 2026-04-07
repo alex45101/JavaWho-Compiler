@@ -99,6 +99,7 @@ namespace JavaWhoCompiler
 
     public sealed record IdentifiedNode(string Value, Position Position) : AST(Position)
     {
+        public bool IsField = false;
         protected override bool EqualCore(AST other, bool ignorePos) =>
             other is IdentifiedNode right && Value == right.Value;
     }

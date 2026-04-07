@@ -8,7 +8,7 @@ namespace JavaWhoCompiler
     public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
 
 
-    public record VarInfo(TypeBase Type, bool Assigned);
+    public record VarInfo(TypeBase Type, bool IsAssigned, bool IsField);
 
     public class Scope
     {
@@ -22,23 +22,37 @@ namespace JavaWhoCompiler
 
         public void Define(string name, TypeBase type)
         {
-            lookUp[name] = new VarInfo(type, false);
+            lookUp[name] = new VarInfo(type, false, false);
         }
 
         public void DefineAssigned(string name, TypeBase type)
         {
-            lookUp[name] = new VarInfo(type, true);
+            lookUp[name] = new VarInfo(type, true, false);
+        }
+
+        public void DefineField(string name, TypeBase type)
+        {
+            lookUp[name] = new VarInfo(type, false, true);
         }
 
         public void Assign(string name, TypeBase type, Position position)
         {
-            VarInfo varInfo = LookUp(name, position);
+            if (lookUp.TryGetValue(name, out VarInfo info))
+            {
+                if(!type.CanBeAssignedTo(info.Type)) {
+                    throw new TypeException($"Can not assign {type} to {info.Type}", position);
+                }
 
-            if(!type.CanBeAssignedTo(varInfo.Type)) {
-                throw new TypeException($"Can not assign {type} to {varInfo.Type}", position);
+                lookUp[name] = new VarInfo(info.Type, true, info.IsField);
+            } 
+            else if(Parent != null)
+            {
+                Parent.Assign(name, type, position);
             }
-
-            lookUp[name] = new VarInfo(varInfo.Type, true);
+            else
+            {
+                throw new TypeException($"Undefined variable {name}", position);
+            }
         }
 
         public VarInfo LookUp(string name, Position position)
@@ -728,7 +742,7 @@ namespace JavaWhoCompiler
 
             // add fields to scope
             foreach((string name, TypeBase type) in classType.Fields) {
-                scope.Define(name, type);
+                scope.DefineField(name, type);
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
@@ -860,9 +874,11 @@ namespace JavaWhoCompiler
 
         private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode) {
             VarInfo varInfo = scope.LookUp(identifiedNode.Value, identifiedNode.Position);
-            if(!varInfo.Assigned) {
+            if(!varInfo.IsAssigned) {
                 throw new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position);
             }
+
+            identifiedNode.IsField = varInfo.IsField;
 
             return varInfo.Type;
         }
