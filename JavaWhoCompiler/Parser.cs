@@ -109,12 +109,6 @@ namespace JavaWhoCompiler
         protected override bool EqualCore(AST other, bool ignorePos) => other is ThisExpression;
     }
 
-    public sealed record PrimaryExpression(string Value, Position Position) : AST(Position)
-    {
-        protected override bool EqualCore(AST other, bool ignorePos) =>
-            other is PrimaryExpression right && Value == right.Value;
-    }
-
     public sealed record BinaryExpression(AST Left, OperatorType OperatorType, AST Right, Position Position) : AST(Position)
     {
         protected override bool EqualCore(AST other, bool ignorePos) =>

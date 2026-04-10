@@ -89,6 +89,137 @@ namespace CompilerTests
                                         """ };
         }
 
+        public static IEnumerable<object[]> EqualCoreNotPrograms()
+        {
+            yield return new object[] {
+                new ProgramNode([], []),
+                new ProgramNode([], [new BreakStatement(new Position(1, 1))]),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new IntLiteral(5, new Position(1, 1)),
+                new IntLiteral(1, new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new StringLiteral("5", new Position(1, 1)),
+                new StringLiteral("1", new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new BooleanLiteral(true, new Position(1, 1)),
+                new BooleanLiteral(false, new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new IdentifiedNode("x", new Position(1, 1)),
+                new IdentifiedNode("y", new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new ThisExpression(new Position(1, 1)),
+                new ThisExpression(new Position(1, 2)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new BinaryExpression(new IntLiteral(5, new Position(1, 1)), OperatorType.Add, new IntLiteral(5, new Position(1, 5)), new Position(1, 1)),
+                new BinaryExpression(new IntLiteral(6, new Position(1, 1)), OperatorType.Add, new IntLiteral(5, new Position(1, 5)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
+                new MethodCallExpression("y", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
+                new NewObjectExpression(new IdentifiedNode("C", new Position(1, 5)), [], new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new ExpressionStatement(new ThisExpression(new Position(1, 1)), new Position(1, 1)),
+                new ExpressionStatement(new ThisExpression(new Position(1, 2)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new VariableDeclaration(new IdentifiedNode("Boolean", new Position(1, 1)), new IdentifiedNode("y", new Position(1, 5)), new Position(1, 1)),
+                new VariableDeclaration(new IdentifiedNode("Int", new Position(1, 1)), new IdentifiedNode("y", new Position(1, 5)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new AssignmentStatement(new IdentifiedNode("x", new Position(1, 1)), new IntLiteral(5, new Position(1, 5)), new Position(1, 1)),
+                new AssignmentStatement(new IdentifiedNode("y", new Position(1, 1)), new IntLiteral(5, new Position(1, 5)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new WhileStatement(new BooleanLiteral(true, new Position(1, 7)), new BlockStatement([], new Position(1, 13)), new Position(1, 1)),
+                new WhileStatement(new BooleanLiteral(false, new Position(1, 7)), new BlockStatement([], new Position(1, 13)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new BreakStatement(new Position(2, 2)),
+                new BreakStatement(new Position(1, 2)),
+                new WhileStatement(new BooleanLiteral(false, new Position(1, 7)), new BlockStatement([], new Position(1, 13)), new Position(1, 1))
+            };
+
+            yield return new object[] {
+                new ReturnStatement(null, new Position(2, 2)),
+                new ReturnStatement(null, new Position(1, 2)),
+                new BreakStatement(new Position(1, 2)),
+            };
+
+            yield return new object[] {
+                new IfStatement(new BooleanLiteral(true, new Position(1, 4)), new BlockStatement([], new Position(1, 10)), null, new Position(1, 1)),
+                new IfStatement(new BooleanLiteral(false, new Position(1, 4)), new BlockStatement([], new Position(1, 10)), null, new Position(1, 1)),
+                new BreakStatement(new Position(1, 2)),
+            };
+
+            yield return new object[] {
+                new BlockStatement([], new Position(2, 2)),
+                new BlockStatement([], new Position(1, 2)),
+                new BreakStatement(new Position(1, 2)),
+            };
+
+            yield return new object[] {
+                new PrintLnStatement(new StringLiteral("9", new Position(1, 9)), new Position(1, 1)),
+                new PrintLnStatement(new StringLiteral("8", new Position(1, 9)), new Position(1, 1)),
+                new BreakStatement(new Position(1, 2)),
+            };
+
+            yield return new object[] {
+                new ClassDefinition(
+                        new IdentifiedNode("B", new Position(1, 7)), 
+                        null, [], 
+                        new Constructor([], null, [], new Position(1, 21)), 
+                        [
+                        new MethodDefinition(new IdentifiedNode("x", new Position(1, 40)), [], null, new BlockStatement([], new Position(1, 45)), new Position(1, 35))
+                        ], 
+                        new Position(1, 1)),
+                new ClassDefinition(
+                        new IdentifiedNode("A", new Position(1, 7)), 
+                        null, [], 
+                        new Constructor([], null, [], new Position(1, 21)), 
+                        [
+                        new MethodDefinition(new IdentifiedNode("x", new Position(1, 40)), [], null, new BlockStatement([], new Position(1, 45)), new Position(1, 35))
+                        ], 
+                        new Position(1, 1)),
+                new BreakStatement(new Position(1, 2)),
+            };
+        }
+
         [Fact]
         [Trait("Category", "Expression")]
         public void EmptyTest()
@@ -2740,6 +2871,15 @@ namespace CompilerTests
             ]);
 
             Assert.True(AST.NodesEqual(expected, root, false));
+        }
+
+        [Theory]
+        [Trait("Category", "Util")]
+        [MemberData(nameof(EqualCoreNotPrograms))]
+        public void EqualCoreNotTest(AST ast, AST almost, AST certainlyNot) {
+            Assert.False(AST.NodesEqual(ast, almost, false));
+            Assert.False(AST.NodesEqual(ast, certainlyNot, false));
+
         }
     }
 }
