@@ -21,19 +21,28 @@ namespace JavaWhoCompiler
         }
 
 
-        public void Define(string name, TypeBase type)
+        public void Define(string name, TypeBase type, Position position, List<string> output)
         {
-            lookUp[name] = new VarInfo(type, false, false);
+            if (!lookUp.TryAdd(name, new VarInfo(type, false, false)))
+            {
+                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+            }
         }
 
-        public void DefineAssigned(string name, TypeBase type)
+        public void DefineAssigned(string name, TypeBase type, Position position, List<string> output)
         {
-            lookUp[name] = new VarInfo(type, true, false);
+            if (!lookUp.TryAdd(name, new VarInfo(type, true, false)))
+            {
+                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+            }
         }
 
-        public void DefineField(string name, TypeBase type)
+        public void DefineField(string name, TypeBase type, Position position, List<string> output)
         {
-            lookUp[name] = new VarInfo(type, false, true);
+            if (!lookUp.TryAdd(name, new VarInfo(type, false, true)))
+            {
+                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+            }
         }
 
         public void Assign(string name, TypeBase type, Position position, List<string> output)
@@ -817,13 +826,13 @@ namespace JavaWhoCompiler
 
                     break;
                 case VariableDeclaration varDec:
-                    scope.Define(varDec.Var.Value, Types.GetType(varDec.Type));
+                    scope.Define(varDec.Var.Value, Types.GetType(varDec.Type), varDec.Position, output);
 
                     break;
                 case AssignmentStatement assignmentStatement:
-                    TypeBase rightType = GetExpressionType(assignmentStatement.Val);
+                    TypeBase rightType = GetExpressionType(assignmentStatement.Val, output);
 
-                    scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position);
+                    scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position, output);
 
                     break;
                 case null:
@@ -856,14 +865,14 @@ namespace JavaWhoCompiler
 
             foreach (MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
             {
-                CheckClassMethod(methodDefinition);
+                CheckClassMethod(methodDefinition, output);
             }
 
             // exit class scope
             ExitScope();
         }
 
-        private void CheckClassMethod(MethodDefinition methodDefinition)
+        private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
         {
             EnterScope();
 
@@ -956,17 +965,15 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
-        private void AddParamsToScope(List<AST> astVariableDeclarations)
+        private void AddParamsToScope(List<AST> astVariableDeclarations, List<string> output)
         {
             foreach (AST astVariableDeclaration in astVariableDeclarations)
             {
                 VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
 
-                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type));
+                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type), variableDeclaration.Position, output);
             }
         }
-
-
 
         private void EnterScope()
         {
