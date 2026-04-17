@@ -184,30 +184,30 @@ namespace JavaWhoCompiler
             return types.ContainsKey(type);
         }
 
-        public void AssertNotDefined(string type, Position position)
+        public void AssertNotDefined(string type, Position position, List<string> output)
         {
             if (TypeDefined(type))
             {
-                throw new TypeException($"Type {type} is already defined", position);
+                output.Add(new TypeException($"Type {type} is already defined", position).ToString());
             }
         }
 
-        public void AssertDefined(string type, Position position)
+        public void AssertDefined(string type, Position position, List<string> output)
         {
             if (!TypeDefined(type))
             {
-                throw new TypeException($"Type {type} is not defined", position);
+                output.Add(new TypeException($"Type {type} is not defined", position).ToString());
             }
         }
 
-        public TypeBase GetType(IdentifiedNode node)
+        public TypeBase GetType(IdentifiedNode node, List<string> output)
         {
-            return GetType(node.Value, node.Position);
+            return GetType(node.Value, node.Position, output);
         }
 
-        public TypeBase GetType(string typeName, Position position)
+        public TypeBase GetType(string typeName, Position position, List<string> output)
         {
-            AssertDefined(typeName, position);
+            AssertDefined(typeName, position, output);
 
             TypeBase type = types[typeName];
             if (type is ClassType classType)
@@ -218,15 +218,22 @@ namespace JavaWhoCompiler
             return type;
         }
 
-        public T GetTypeAs<T>(string type, Position position)
+        public T GetTypeAs<T>(string type, Position position, List<string> output)
             where T : TypeBase
         {
-            TypeBase typeObj = GetType(type, position);
+            TypeBase typeObj = GetType(type, position, output);
             return typeObj switch
             {
                 T classType => classType,
-                _ => throw new TypeException($"Type {type} is not a {typeof(T)} type", position)
+                _ => ReturnNullAndAddError<T>(new TypeException($"Type {type} is not a {typeof(T)} type", position).ToString(), output)
             };
+        }
+
+        private T ReturnNullAndAddError<T>(string message, List<string> output)
+            where T : TypeBase
+        {
+            output.Add(message);
+            return null;
         }
 
         public IEnumerator<TypeBase> GetEnumerator()
@@ -412,7 +419,7 @@ namespace JavaWhoCompiler
         // name to base type list to signature set
         public Dictionary<string, Dictionary<TypeList, HashSet<MethodSignature>>> MethodSignatures { get; } = new();
 
-        public Dictionary<string, TypeBase> Fields { get; private set; }
+        public Dictionary<string, (TypeBase, Position)> Fields { get; private set; }
 
         public TypeList ConstructorTypes { get; private set; }
 
@@ -639,7 +646,8 @@ namespace JavaWhoCompiler
 
                 Fields.Add(
                         variableDeclaration.Var.Value,
-                        typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position)
+                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position),
+                        variableDeclaration.Type.Position)
                         );
             }
         }
@@ -852,12 +860,12 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            scope.DefineAssigned("this", classType);
+            scope.DefineAssigned("this", classType, classDefinition.Position, output);
 
             // add fields to scope
-            foreach ((string name, TypeBase type) in classType.Fields)
+            foreach ((string name, (TypeBase type, Position position)) in classType.Fields)
             {
-                scope.DefineField(name, type);
+                scope.DefineField(name, type, position, output);
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
@@ -876,7 +884,7 @@ namespace JavaWhoCompiler
         {
             EnterScope();
 
-            AddParamsToScope(methodDefinition.Parameters);
+            AddParamsToScope(methodDefinition.Parameters, output);
 
             BlockStatement body = methodDefinition.Body as BlockStatement;
 
@@ -894,32 +902,32 @@ namespace JavaWhoCompiler
                 {
                     if (i < body.Statements.Count - 1)
                     {
-                        throw new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position);
+                        output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
                     }
 
                     TypeBase returnExpressionType = TypeBase.VoidPrimitive;
                     if (returnStatement.Val is not null)
                     {
-                        returnExpressionType = GetExpressionType(returnStatement.Val);
+                        returnExpressionType = GetExpressionType(returnStatement.Val, output);
 
                     }
 
                     if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
                     {
-                        throw new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position);
+                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
                     }
 
                     returned = true;
                 }
                 else
                 {
-                    CheckTypeHelper(statement);
+                    CheckTypeHelper(statement, output);
                 }
             }
 
             if (methodReturnType != TypeBase.VoidPrimitive && !returned)
             {
-                throw new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position);
+                output.Add(new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position).ToString());
             }
 
             ExitScope();
@@ -930,7 +938,7 @@ namespace JavaWhoCompiler
             // enter constructor scope
             EnterScope();
 
-            AddParamsToScope(constructor.Parameters);
+            AddParamsToScope(constructor.Parameters, output);
 
             // check super call
             if (classType.ParentClassType is not null)
@@ -992,11 +1000,11 @@ namespace JavaWhoCompiler
                 IntLiteral => TypeBase.IntPrimitive,
                 StringLiteral => TypeBase.StringBuiltIn,
                 BooleanLiteral => TypeBase.BooleanPrimitive,
-                IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode),
-                NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression),
+                IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode, output),
+                NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
                 ThisExpression(Position position) => scope.LookUp("this", position, output).Type,
-                MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression),
-                _ => AddAndReturnNull(output, 
+                MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
+                _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain type of {node}", node.Position).ToString())
             };
         }
@@ -1026,30 +1034,30 @@ namespace JavaWhoCompiler
             return varInfo.Type;
         }
 
-        private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression)
+        private TypeBase DeriveNewObjectExpressionType(NewObjectExpression newObjectExpression, List<string> output)
         {
             ClassType classType = Types.GetTypeAs<ClassType>(newObjectExpression.ClassName.Value, newObjectExpression.ClassName.Position);
 
             // check if params are compatible with constructor
-            TypeList arguments = GetExpressionTypeList(newObjectExpression.Arguments);
+            TypeList arguments = GetExpressionTypeList(newObjectExpression.Arguments, output);
             if (!arguments.AreSubtypesOf(classType.ConstructorTypes))
             {
                 Position expPosition = newObjectExpression.Position;
-                throw new TypeException($"Arguments for new {classType.Name} object do not match constructor types", expPosition);
+                output.Add(new TypeException($"Arguments for new {classType.Name} object do not match constructor types", expPosition).ToString());
             }
 
             return classType;
         }
 
-        private TypeBase DeriveMethodCallExpressionType(MethodCallExpression methodCallExpression)
+        private TypeBase DeriveMethodCallExpressionType(MethodCallExpression methodCallExpression, List<string> output)
         {
-            TypeBase targetType = GetExpressionType(methodCallExpression.Target);
+            TypeBase targetType = GetExpressionType(methodCallExpression.Target, output);
 
             if (targetType is ClassType targetClassType)
             {
                 MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
                     methodCallExpression.Name,
-                    GetExpressionTypeList(methodCallExpression.Arguments),
+                    GetExpressionTypeList(methodCallExpression.Arguments, output),
                     methodCallExpression.Position
                 );
 
@@ -1057,11 +1065,11 @@ namespace JavaWhoCompiler
 
                 return matchingSignature.ReturnType;
             }
-            else
-            {
-                Position targetPosition = methodCallExpression.Target.Position;
-                throw new TypeException($"Cannot call methods on primitive type {targetType}", targetPosition);
-            }
+
+            Position targetPosition = methodCallExpression.Target.Position;
+            output.Add(new TypeException($"Cannot call methods on primitive type {targetType}", targetPosition).ToString());
+
+            return null; //might be a bad idea to return null
         }
     }
 }
