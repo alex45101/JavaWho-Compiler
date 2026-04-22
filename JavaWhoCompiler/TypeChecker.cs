@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace JavaWhoCompiler
@@ -192,12 +193,15 @@ namespace JavaWhoCompiler
             }
         }
 
-        public void AssertDefined(string type, Position position, List<string> output)
+        public bool AssertDefined(string type, Position position, List<string> output)
         {
             if (!TypeDefined(type))
             {
                 output.Add(new TypeException($"Type {type} is not defined", position).ToString());
+                return false;
             }
+
+            return true;
         }
 
         public TypeBase GetType(IdentifiedNode node, List<string> output)
@@ -207,7 +211,10 @@ namespace JavaWhoCompiler
 
         public TypeBase GetType(string typeName, Position position, List<string> output)
         {
-            AssertDefined(typeName, position, output);
+            if (!AssertDefined(typeName, position, output))
+            {
+                return null;
+            }
 
             TypeBase type = types[typeName];
             if (type is ClassType classType)
@@ -459,7 +466,7 @@ namespace JavaWhoCompiler
             Base = TypeBase.ObjectBuiltIn;
             ParentClassType = TypeBase.ObjectBuiltIn;
 
-            if (ValidateParentClass(classDefinition, parentClassType, output))
+            if (parentClassType is not null && ValidateParentClass(classDefinition, parentClassType, output))
             {
                 ParentClassType = parentClassType as ClassType;
                 Base = parentClassType.Base;
@@ -818,6 +825,7 @@ namespace JavaWhoCompiler
                 if (definedClasses.ContainsKey(classDefinition.Name.Value))
                 {
                     output.Add(new TypeException($"Class {classDefinition.Name.Value} defined more than once", classDefinition.Position).ToString());
+                    continue;
                 }
 
                 definedClasses.Add(classDefinition.Name.Value, classDefinition);

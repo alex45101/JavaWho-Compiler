@@ -24,39 +24,51 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Empty")]
         public void EmptyTest()
         {
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(null));
+            List<string> errors = TypeChecker.CheckType(null);
+            Assert.Single(errors); //give error of null input
         }
 
         [Fact]
+        [Trait("Category", "Assignment")]
         public void IntAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int a; a = 5;");
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Assignment")]
         public void StringAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("String a; a = \"Hello World!\";");
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Assignment")]
         public void BooleanAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("Boolean a; a = true;");
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassDeclaration")]
         public void ClassDeclarationTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -65,10 +77,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassFields")]
         public void ClassVardecTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -79,10 +94,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassFields")]
         public void ClassUseVardecTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -96,10 +114,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void ClassUseInheritedVardecTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -120,10 +141,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Class")]
         public void ClassAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -135,10 +159,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void SubClassDeclarationTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -153,10 +180,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void SubClassDeclarationBeforeBaseTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class SubType extends MyType {
@@ -171,10 +201,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void ObjectSubClassAssignmentTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -195,10 +228,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void ExtendObjectTest() {
             // with and without super call
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -218,10 +254,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void SubTypeInClassConstructorDefTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -244,10 +283,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void MethodsInClassDefTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -271,10 +313,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void DeadCodeInMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -293,10 +338,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void AdHocClassDefTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -324,10 +372,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void OverridingMethodWithCovarianceTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class TestType {
@@ -344,10 +395,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void OverridingMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class TestType {
@@ -364,10 +418,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void BasicMethodCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class Math {
@@ -384,10 +441,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void BasicBadMethodCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class Math {
@@ -404,10 +464,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void MethodCallWithCovarianceTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class TestType {
@@ -433,10 +496,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void MethodCallWithOverloadingTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -480,10 +546,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void MethodCallWithThisTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -508,10 +577,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
         public void AmbiguousMethodCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -539,10 +611,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void InvalidOverridingMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class TestType {
@@ -559,10 +634,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void CyclicInheritanceTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -575,10 +653,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void UnecessarySuperCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -587,10 +668,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
         public void MismatchSuperCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType extends OtherType {
@@ -603,10 +687,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
         
         [Fact]
+        [Trait("Category", "ClassDeclaration")]
         public void MismatchConstructorCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -618,10 +705,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "ClassDecleration")]
         public void RedefineClassTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -635,10 +725,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Assignment")]
         public void UseUnassignedVarTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     Int x;
@@ -648,11 +741,14 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
 
         [Theory]
+        [Trait("Category", "Class")]
         [MemberData(nameof(BuiltInTypeData))]
         public void RedefineBuiltInTest(string builtInName) {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
@@ -662,10 +758,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Theory]
+        [Trait("Category", "Class")]
         [MemberData(nameof(AssignablePrimitiveTypeData))]
         public void RedefinePrimitiveTest(string primitiveName) {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
@@ -675,10 +774,13 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Theory]
+        [Trait("Category", "Class")]
         [MemberData(nameof(AssignablePrimitiveTypeData))]
         public void ExtendPrimitiveTest(string primitiveName) {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
@@ -688,18 +790,24 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Declaration")]
         public void DeclareVarWithUndefinedTypeTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("DoesntExist d;");
             AST root = Parser.Parse(tokens);
 
-            Assert.Throws<TypeException>(() => TypeChecker.CheckType(root));
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
+        [Trait("Category", "Annotation")]
         public void AnnotatedMethodDefNameTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherType { init() {} }
@@ -714,7 +822,9 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
 
             ProgramNode program = (ProgramNode)root;
 
@@ -729,6 +839,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Annotation")]
         public void AnnotatedMethodCallNameTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class OtherType { init() {} }
@@ -752,7 +863,9 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
 
             ProgramNode program = (ProgramNode)root;
 
@@ -769,6 +882,7 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Annotation")]
         public void AnnotatedIdentifiedNodeThisTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -784,7 +898,9 @@ namespace CompilerTests
                     """);
             AST root = Parser.Parse(tokens);
 
-            TypeChecker.CheckType(root);
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
 
             ProgramNode program = (ProgramNode)root;
 
