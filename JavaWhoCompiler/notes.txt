@@ -1,0 +1,32 @@
+TODO:
+- binary expression
+    - type rules for this
+    - addition
+        - str + str = str
+        - int + str = str
+        - str + int = str
+        - cls + anything | anything + cls = err
+        - bool + anything | anything + bool = err
+    - subtraction
+        - int - int = int
+        - everything else = err
+    - mult
+        - int * int = int
+        - anything else = err
+    - div
+        - int / int = int
+        - anything else = err
+    - <
+        - int < int = bool
+        - anything < anything = err
+    - == | !=
+        - anything == anything = bool
+        - anything != anything = bool
+
+- println typechecking
+
+- add rest of statements
+    - only have vardec and 
+
+- check explicitly returning void as error
+    - this is weird
