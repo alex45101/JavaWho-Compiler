@@ -2,108 +2,113 @@
 
 namespace JavaWhoCompiler
 {
+    public sealed record Position(int Line, int Column);
+
     public interface IToken
     {
         string Value { get; init; }
+        Position Position { get; init; }
     }
 
     public class InvalidTokenException(string Message) : Exception(Message);
 
-    public sealed record UnknownToken(string Value) : IToken;
+    public sealed record UnknownToken(string Value, Position Position) : IToken;
 
-    public sealed record IdentifierToken(string Value) : IToken;
-    public sealed record WhiteSpaceToken(string Value) : IToken;
-    public sealed record StringToken(string Value) : IToken;
-    public sealed record NumberToken(string Value) : IToken
+    public sealed record IdentifierToken(string Value, Position Position) : IToken;
+    public sealed record WhiteSpaceToken(string Value, Position Position) : IToken;
+    public sealed record NewLineToken(string Value, Position Position) : IToken;
+    public sealed record StringToken(string Value, Position Position) : IToken;
+    public sealed record NumberToken(string Value, Position Position) : IToken
     {
         public int Number => int.Parse(Value);
     }
 
     #region Operators
-    public sealed record AddOperatorToken(string Value) : IToken;
-    public sealed record SubtractOperatorToken(string Value) : IToken;
-    public sealed record MultiplyOperatorToken(string Value) : IToken;
-    public sealed record DivideOperatorToken(string Value) : IToken;
-    public sealed record LessThanOperatorToken(string Value) : IToken;
-    public sealed record EqualsOperatorToken(string Value) : IToken;
-    public sealed record NotEqualsOperatorToken(string Value) : IToken;
-    public sealed record AssignmentOperatorToken(string Value) : IToken;
+    public sealed record AddOperatorToken(string Value, Position Position) : IToken;
+    public sealed record SubtractOperatorToken(string Value, Position Position) : IToken;
+    public sealed record MultiplyOperatorToken(string Value, Position Position) : IToken;
+    public sealed record DivideOperatorToken(string Value, Position Position) : IToken;
+    public sealed record LessThanOperatorToken(string Value, Position Position) : IToken;
+    public sealed record EqualsOperatorToken(string Value, Position Position) : IToken;
+    public sealed record NotEqualsOperatorToken(string Value, Position Position) : IToken;
+    public sealed record AssignmentOperatorToken(string Value, Position Position) : IToken;
     #endregion
 
     #region Reserved Keywords
-    public sealed record ThisToken(string Value) : IToken;
-    public sealed record TrueToken(string Value) : IToken;
-    public sealed record FalseToken(string Value) : IToken;
-    public sealed record NewToken(string Value) : IToken;
-    public sealed record InitToken(string Value) : IToken;
-    public sealed record ClassToken(string Value) : IToken;
-    public sealed record SuperToken(string Value) : IToken;
-    public sealed record WhileToken(string Value) : IToken;
-    public sealed record BreakToken(string Value) : IToken;
-    public sealed record IfToken(string Value) : IToken;
-    public sealed record ElseToken(string Value) : IToken;
-    public sealed record VoidTypeToken(string Value) : IToken;
-    public sealed record MethodToken(string Value) : IToken;
-    public sealed record ReturnToken(string Value) : IToken;
-    public sealed record ExtendsToken(string Value) : IToken;
-    public sealed record PrintLnToken(string Value) : IToken;
+    public sealed record ThisToken(string Value, Position Position) : IToken;
+    public sealed record TrueToken(string Value, Position Position) : IToken;
+    public sealed record FalseToken(string Value, Position Position) : IToken;
+    public sealed record NewToken(string Value, Position Position) : IToken;
+    public sealed record InitToken(string Value, Position Position) : IToken;
+    public sealed record ClassToken(string Value, Position Position) : IToken;
+    public sealed record SuperToken(string Value, Position Position) : IToken;
+    public sealed record WhileToken(string Value, Position Position) : IToken;
+    public sealed record BreakToken(string Value, Position Position) : IToken;
+    public sealed record IfToken(string Value, Position Position) : IToken;
+    public sealed record ElseToken(string Value, Position Position) : IToken;
+    public sealed record VoidTypeToken(string Value, Position Position) : IToken;
+    public sealed record MethodToken(string Value, Position Position) : IToken;
+    public sealed record ReturnToken(string Value, Position Position) : IToken;
+    public sealed record ExtendsToken(string Value, Position Position) : IToken;
+    public sealed record PrintLnToken(string Value, Position Position) : IToken;
     #endregion
 
     #region Punctuation
-    public sealed record OpenParenthesisToken(string Value) : IToken;
-    public sealed record CloseParenthesisToken(string Value) : IToken;
-    public sealed record OpenCurlyBracketToken(string Value) : IToken;
-    public sealed record CloseCurlyBracketToken(string Value) : IToken;
-    public sealed record SemiColonToken(string Value) : IToken;
-    public sealed record CommaToken(string Value) : IToken;
-    public sealed record DotToken(string Value) : IToken;
+    public sealed record OpenParenthesisToken(string Value, Position Position) : IToken;
+    public sealed record CloseParenthesisToken(string Value, Position Position) : IToken;
+    public sealed record OpenCurlyBracketToken(string Value, Position Position) : IToken;
+    public sealed record CloseCurlyBracketToken(string Value, Position Position) : IToken;
+    public sealed record SemiColonToken(string Value, Position Position) : IToken;
+    public sealed record CommaToken(string Value, Position Position) : IToken;
+    public sealed record DotToken(string Value, Position Position) : IToken;
     #endregion
 
     public static class RegexPatterns
     {
-        public static IReadOnlyDictionary<string, Func<string, IToken>> PatternToToken = new Dictionary<string, Func<string, IToken>>()
+        public static IReadOnlyDictionary<string, Func<string, int, int, IToken>> PatternToToken = new Dictionary<string, Func<string, int, int, IToken>>()
         {
 
-            [@"\G\s+"] = value => new WhiteSpaceToken(value),
+            [@"\G[\p{Zs}\t]+"] = (value, line, col) => new WhiteSpaceToken(value, new Position(line, col)),
+            [@"\G(\r?\n|\r)"] = (value, line, col) => new NewLineToken(value, new Position(line, col)),
 
-            [@"\G\d+"] = value => new NumberToken(value),
-            [@"\G""(?:\\.|[^""\\])*"""] = value => new StringToken(value),
+            [@"\G\d+"] = (value, line, col) => new NumberToken(value, new Position(line, col)),
+            [@"\G""(?:\\.|[^""\\])*"""] = (value, line, col) => new StringToken(value, new Position(line, col)),
 
-            [@"\Gthis\b"] = value => new ThisToken(value),
-            [@"\Gtrue\b"] = value => new TrueToken(value),
-            [@"\Gfalse\b"] = value => new FalseToken(value),
-            [@"\Gnew\b"] = value => new NewToken(value),
-            [@"\Ginit\b"] = value => new InitToken(value),
-            [@"\Gclass\b"] = value => new ClassToken(value),
-            [@"\Gsuper\b"] = value => new SuperToken(value),
-            [@"\Gwhile\b"] = value => new WhileToken(value),
-            [@"\Gbreak\b"] = value => new BreakToken(value),
-            [@"\Gif\b"] = value => new IfToken(value),
-            [@"\Gelse\b"] = value => new ElseToken(value),
-            [@"\GVoid\b"] = value => new VoidTypeToken(value),
-            [@"\Gmethod\b"] = value => new MethodToken(value),
-            [@"\Greturn\b"] = value => new ReturnToken(value),
-            [@"\Gextends\b"] = value => new ExtendsToken(value),
-            [@"\Gprintln\b"] = value => new PrintLnToken(value),
+            [@"\Gthis\b"] = (value, line, col) => new ThisToken(value, new Position(line, col)),
+            [@"\Gtrue\b"] = (value, line, col) => new TrueToken(value, new Position(line, col)),
+            [@"\Gfalse\b"] = (value, line, col) => new FalseToken(value, new Position(line, col)),
+            [@"\Gnew\b"] = (value, line, col) => new NewToken(value, new Position(line, col)),
+            [@"\Ginit\b"] = (value, line, col) => new InitToken(value, new Position(line, col)),
+            [@"\Gclass\b"] = (value, line, col) => new ClassToken(value, new Position(line, col)),
+            [@"\Gsuper\b"] = (value, line, col) => new SuperToken(value, new Position(line, col)),
+            [@"\Gwhile\b"] = (value, line, col) => new WhileToken(value, new Position(line, col)),
+            [@"\Gbreak\b"] = (value, line, col) => new BreakToken(value, new Position(line, col)),
+            [@"\Gif\b"] = (value, line, col) => new IfToken(value, new Position(line, col)),
+            [@"\Gelse\b"] = (value, line, col) => new ElseToken(value, new Position(line, col)),
+            [@"\GVoid\b"] = (value, line, col) => new VoidTypeToken(value, new Position(line, col)),
+            [@"\Gmethod\b"] = (value, line, col) => new MethodToken(value, new Position(line, col)),
+            [@"\Greturn\b"] = (value, line, col) => new ReturnToken(value, new Position(line, col)),
+            [@"\Gextends\b"] = (value, line, col) => new ExtendsToken(value, new Position(line, col)),
+            [@"\Gprintln\b"] = (value, line, col) => new PrintLnToken(value, new Position(line, col)),
 
-            [@"\G[a-zA-Z_][a-zA-Z0-9_]*"] = value => new IdentifierToken(value),
+            [@"\G[a-zA-Z_][a-zA-Z0-9_]*"] = (value, line, col) => new IdentifierToken(value, new Position(line, col)),
 
-            [@"\G\+"] = value => new AddOperatorToken(value),
-            [@"\G\-"] = value => new SubtractOperatorToken(value),
-            [@"\G\*"] = value => new MultiplyOperatorToken(value),
-            [@"\G\/"] = value => new DivideOperatorToken(value),
-            [@"\G\=="] = value => new EqualsOperatorToken(value),
-            [@"\G\!="] = value => new NotEqualsOperatorToken(value),
-            [@"\G\="] = value => new AssignmentOperatorToken(value),
-            [@"\G\<"] = value => new LessThanOperatorToken(value),
+            [@"\G\+"] = (value, line, col) => new AddOperatorToken(value, new Position(line, col)),
+            [@"\G\-"] = (value, line, col) => new SubtractOperatorToken(value, new Position(line, col)),
+            [@"\G\*"] = (value, line, col) => new MultiplyOperatorToken(value, new Position(line, col)),
+            [@"\G\/"] = (value, line, col) => new DivideOperatorToken(value, new Position(line, col)),
+            [@"\G\=="] = (value, line, col) => new EqualsOperatorToken(value, new Position(line, col)),
+            [@"\G\!="] = (value, line, col) => new NotEqualsOperatorToken(value, new Position(line, col)),
+            [@"\G\="] = (value, line, col) => new AssignmentOperatorToken(value, new Position(line, col)),
+            [@"\G\<"] = (value, line, col) => new LessThanOperatorToken(value, new Position(line, col)),
 
-            [@"\G\("] = value => new OpenParenthesisToken(value),
-            [@"\G\)"] = value => new CloseParenthesisToken(value),
-            [@"\G\{"] = value => new OpenCurlyBracketToken(value),
-            [@"\G\}"] = value => new CloseCurlyBracketToken(value),
-            [@"\G;"] = value => new SemiColonToken(value),
-            [@"\G,"] = value => new CommaToken(value),
-            [@"\G\."] = value => new DotToken(value)
+            [@"\G\("] = (value, line, col) => new OpenParenthesisToken(value, new Position(line, col)),
+            [@"\G\)"] = (value, line, col) => new CloseParenthesisToken(value, new Position(line, col)),
+            [@"\G\{"] = (value, line, col) => new OpenCurlyBracketToken(value, new Position(line, col)),
+            [@"\G\}"] = (value, line, col) => new CloseCurlyBracketToken(value, new Position(line, col)),
+            [@"\G;"] = (value, line, col) => new SemiColonToken(value, new Position(line, col)),
+            [@"\G,"] = (value, line, col) => new CommaToken(value, new Position(line, col)),
+            [@"\G\."] = (value, line, col) => new DotToken(value, new Position(line, col))
         };
     }
 
@@ -112,15 +117,16 @@ namespace JavaWhoCompiler
         public static IEnumerable<IToken> Tokenize(string code)
         {
             List<IToken> tokens = new List<IToken>();
+            int line = 1, position = 1;
 
             for (int i = 0; i < code.Length; i++)
             {
                 KeyValuePair<Match, IToken> tokenMatch = new KeyValuePair<Match, IToken>(
                     key: Match.Empty,
-                    value: new UnknownToken("")
+                    value: new UnknownToken("", null)
                 );
 
-                foreach (KeyValuePair<string, Func<string, IToken>> pattern in RegexPatterns.PatternToToken)
+                foreach (KeyValuePair<string, Func<string, int, int, IToken>> pattern in RegexPatterns.PatternToToken)
                 {
                     Regex regex = new Regex(pattern.Key);
 
@@ -130,7 +136,7 @@ namespace JavaWhoCompiler
                     {
                         tokenMatch = new KeyValuePair<Match, IToken>(
                             key: currMatch,
-                            value: pattern.Value(currMatch.Value)
+                            value: pattern.Value(currMatch.Value, line, position)
                         );
                         break;
                     }
@@ -139,13 +145,20 @@ namespace JavaWhoCompiler
 
                 if (tokenMatch.Value is UnknownToken)
                 {
-                    throw new InvalidTokenException($"Invalid token '{code[i]}' starting at position: {i}");
+                    throw new InvalidTokenException($"Invalid token '{code[i]}' on line {line} position {position}");
                 }
 
+
                 i += tokenMatch.Key.Length - 1;
+                position += tokenMatch.Key.Length;
+
+                if (tokenMatch.Value is NewLineToken) {
+                    line += 1;
+                    position = 1;
+                }
 
                 // ignore whitespace
-                if (tokenMatch.Value is not WhiteSpaceToken) {
+                if (tokenMatch.Value is not WhiteSpaceToken && tokenMatch.Value is not NewLineToken) {
                     tokens.Add(tokenMatch.Value);
                 }
 
