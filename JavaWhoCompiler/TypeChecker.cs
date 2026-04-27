@@ -689,6 +689,7 @@ namespace JavaWhoCompiler
                 if (ParentClassType is null)
                 {
                     output.Add(new TypeException($"Class {Name} does not contain a method ${queryMethodName}", position).ToString());
+                    return null;
                 }
 
                 return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
@@ -699,6 +700,7 @@ namespace JavaWhoCompiler
                 if (ParentClassType is null)
                 {
                     output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}", position).ToString());
+                    return null;
                 }
 
                 return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
@@ -774,6 +776,7 @@ namespace JavaWhoCompiler
             {
                 // cyclic inheritance
                 output.Add(new TypeException($"Class {className} is part of an inheritance cycle", definedClasses[className].Position).ToString());
+                return;
             }
 
             if (Types.TypeDefined(className))
@@ -877,6 +880,12 @@ namespace JavaWhoCompiler
                     break;
                 case AssignmentStatement assignmentStatement:
                     TypeBase rightType = GetExpressionType(assignmentStatement.Val, output);
+                    
+                    if (rightType is null)
+                    {
+                        output.Add(new TypeException("Assignment Error: Unable to determine type of right side", assignmentStatement.Position).ToString());
+                        break;
+                    }
 
                     scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position, output);
 
@@ -893,6 +902,11 @@ namespace JavaWhoCompiler
         private void CheckClass(ClassDefinition classDefinition, List<string> output)
         {
             ClassType classType = Types.GetTypeAs<ClassType>(classDefinition.Name.Value, classDefinition.Name.Position, output);
+
+            if (classType is null)
+            {
+                return;
+            }
 
             // enter class scope
             EnterScope();
@@ -1099,6 +1113,11 @@ namespace JavaWhoCompiler
                     methodCallExpression.Position,
                     output
                 );
+
+                if (matchingSignature is null)
+                {
+                    return null;
+                }
 
                 methodCallExpression.Annotate(matchingSignature);
 
