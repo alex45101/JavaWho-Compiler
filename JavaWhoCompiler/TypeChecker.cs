@@ -269,19 +269,20 @@ namespace JavaWhoCompiler
         public bool AreSubtypesOf(TypeList other)
         {
             return Types.SequenceEqual(other.Types, EqualityComparer<TypeBase>.Create((thisType, otherType) =>
+                        thisType is not null &&
                         thisType.CanBeAssignedTo(otherType)
                         ));
         }
 
         public TypeList ToBaseList()
         {
-            return new(Types.Select(type => type.Base).ToImmutableList());
+            return new(Types.Select(type => type?.Base).ToImmutableList());
         }
 
         public bool IsMorePreciseThan(TypeList other)
         {
             return Types.SequenceEqual(other.Types, EqualityComparer<TypeBase>.Create((thisType, otherType) =>
-                        thisType.DistanceFromBase > otherType.DistanceFromBase
+                        thisType?.DistanceFromBase > otherType?.DistanceFromBase
                 ));
         }
 
@@ -303,6 +304,11 @@ namespace JavaWhoCompiler
             int numGT = 0;
             for (int i = 0; i < Types.Count; i++)
             {
+                if(Types[i] is null || other.Types[i] is null)
+                {
+                    return MorePreciseResult.False;
+                }
+
                 int thisPrecision = Types[i].DistanceFromBase;
                 int otherPrecision = other.Types[i].DistanceFromBase;
 
@@ -370,12 +376,12 @@ namespace JavaWhoCompiler
                 return UnderscoreSeperatedString;
             }
 
-            StringBuilder s = new(Types[0].ToString());
+            StringBuilder s = new(Types[0]?.ToString());
 
             for (int i = 1; i < Types.Count; i++)
             {
                 s.Append('_');
-                s.Append(Types[i].ToString());
+                s.Append(Types[i]?.ToString());
             }
 
             UnderscoreSeperatedString = s.ToString();
@@ -615,7 +621,7 @@ namespace JavaWhoCompiler
                         param => typeMap.GetType(((VariableDeclaration)param).Type, output)
                         ).ToImmutableList());
                 TypeList baseParamTypes = new(methodDefinition.Parameters.Select(
-                        param => typeMap.GetType(((VariableDeclaration)param).Type, output).Base
+                        param => typeMap.GetType(((VariableDeclaration)param).Type, output)?.Base
                         ).ToImmutableList());
 
 
@@ -964,7 +970,10 @@ namespace JavaWhoCompiler
 
                     }
 
-                    if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
+                    if (returnExpressionType is null) {
+                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                    } 
+                    else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
                     {
                         output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
                     }
@@ -1054,7 +1063,7 @@ namespace JavaWhoCompiler
                 BooleanLiteral => TypeBase.BooleanPrimitive,
                 IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode, output),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
-                ThisExpression(Position position) => scope.LookUp("this", position, output).Type,
+                ThisExpression(Position position) => scope.LookUp("this", position, output)?.Type,
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
                 _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain type of {node}", node.Position).ToString())
@@ -1076,6 +1085,12 @@ namespace JavaWhoCompiler
         private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode, List<string> output)
         {
             VarInfo varInfo = scope.LookUp(identifiedNode.Value, identifiedNode.Position, output);
+            if(varInfo is null)
+            {
+                output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
+                return null;
+            }
+
             if (!varInfo.IsAssigned)
             {
                 output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
@@ -1104,30 +1119,33 @@ namespace JavaWhoCompiler
         private TypeBase DeriveMethodCallExpressionType(MethodCallExpression methodCallExpression, List<string> output)
         {
             TypeBase targetType = GetExpressionType(methodCallExpression.Target, output);
-
-            if (targetType is ClassType targetClassType)
-            {
-                MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
-                    methodCallExpression.Name,
-                    GetExpressionTypeList(methodCallExpression.Arguments, output),
-                    methodCallExpression.Position,
-                    output
-                );
-
-                if (matchingSignature is null)
-                {
-                    return null;
-                }
-
-                methodCallExpression.Annotate(matchingSignature);
-
-                return matchingSignature.ReturnType;
-            }
-
             Position targetPosition = methodCallExpression.Target.Position;
-            output.Add(new TypeException($"Cannot call methods on primitive type {targetType}", targetPosition).ToString());
 
-            return null; //might be a bad idea to return null
+            switch(targetType)
+            {
+                case ClassType targetClassType:
+                    MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
+                        methodCallExpression.Name,
+                        GetExpressionTypeList(methodCallExpression.Arguments, output),
+                        methodCallExpression.Position,
+                        output
+                    );
+
+                    if (matchingSignature is null)
+                    {
+                        return null;
+                    }
+
+                    methodCallExpression.Annotate(matchingSignature);
+
+                    return matchingSignature.ReturnType;
+                case PrimitiveType primitiveType:
+                    output.Add(new TypeException($"Cannot call methods on primitive type {primitiveType}", targetPosition).ToString());
+                    return null;
+                default:
+                    output.Add(new TypeException($"Cannot call methods on unknown expression {methodCallExpression.Target}", targetPosition).ToString());
+                    return null;
+            }
         }
     }
 }

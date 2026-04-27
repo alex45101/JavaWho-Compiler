@@ -344,6 +344,57 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void MalformedMethodCallTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+
+                        method a(Nope y) Void {}
+                    }
+
+                    MyType m;
+                    m = new MyType();
+                    m.a("?");
+                    m.a(doesntexist);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void MalformedMethodReturnTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+
+                        method a(Nope y) Void {
+                            return whatisthis;
+                        }
+
+                        method b(Nope y) Boolean {
+                            return whatisthis;
+                        }
+
+                        method c(Nope y) what {
+                            return nothing;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassInheritence")]
         public void AdHocClassDefTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -711,6 +762,26 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "ClassDeclaration")]
+        public void MalformedConstructorCallTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Nope x, No y) {}
+                    }
+
+                    MyType m;
+                    m = new MyType(5, "5");
+                    m = new MyType(5, doesntexist);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassDecleration")]
         public void RedefineClassTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -737,6 +808,21 @@ namespace CompilerTests
                     Int x;
                     Int y;
 
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void UseUndefinedVarTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
                     x = y;
                     """);
             AST root = Parser.Parse(tokens);
