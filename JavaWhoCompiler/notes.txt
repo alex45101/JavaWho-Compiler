@@ -26,7 +26,7 @@ TODO:
 - println typechecking
 
 - add rest of statements
-    - only have vardec and 
+    - only have vardec and assignment
 
 - check explicitly returning void as error
     - this is weird
