@@ -305,7 +305,7 @@ namespace JavaWhoCompiler
             int numGT = 0;
             for (int i = 0; i < Types.Count; i++)
             {
-                if(Types[i] is null || other.Types[i] is null)
+                if (Types[i] is null || other.Types[i] is null)
                 {
                     return MorePreciseResult.False;
                 }
@@ -893,7 +893,7 @@ namespace JavaWhoCompiler
                     break;
                 case AssignmentStatement assignmentStatement:
                     TypeBase rightType = GetExpressionType(assignmentStatement.Val, output);
-                    
+
                     if (rightType is null)
                     {
                         output.Add(new TypeException("Assignment Error: Unable to determine type of right side", assignmentStatement.Position).ToString());
@@ -904,6 +904,7 @@ namespace JavaWhoCompiler
 
                     break;
                 case IfStatement ifStatement:
+
                     TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
 
                     if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
@@ -1020,9 +1021,10 @@ namespace JavaWhoCompiler
 
                     }
 
-                    if (returnExpressionType is null) {
+                    if (returnExpressionType is null)
+                    {
                         output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
-                    } 
+                    }
                     else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
                     {
                         output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
@@ -1114,6 +1116,7 @@ namespace JavaWhoCompiler
                 IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode, output),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
                 ThisExpression(Position position) => scope.LookUp("this", position, output)?.Type,
+                ExpressionStatement expressionStatement => DeriveExpressionStmt(expressionStatement, output),
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
                 _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain type of {node}", node.Position).ToString())
@@ -1126,6 +1129,61 @@ namespace JavaWhoCompiler
             return null;
         }
 
+        private TypeBase DeriveExpressionStmt(ExpressionStatement expressionStatement, List<string> output)
+        {
+            return expressionStatement.Expression switch
+            {
+                BinaryExpression => throw new NotImplementedException(),
+                PrintLnStatement => throw new NotImplementedException(),
+                _ => AddAndReturnNull(output,
+                    new TypeException($"Cannot obtain expression of {expressionStatement.Expression}", expressionStatement.Position).ToString())
+            };
+        }
+
+        private TypeBase DeriveBinaryExpressionStmt(BinaryExpression binaryExpression, List<string> output)
+        {
+            return binaryExpression.OperatorType switch
+            {
+                OperatorType.Add or 
+                OperatorType.Subtract or
+                OperatorType.Multiply or
+                OperatorType.Divide or
+                OperatorType.LessThan => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.Equal or
+                OperatorType.NotEqual => DeriveBooleanOperatorType(binaryExpression, output),
+            };
+        }
+
+        private TypeBase DeriveBooleanOperatorType(BinaryExpression binaryExpression, List<string> output)
+        {
+            TypeBase left = GetExpressionType(binaryExpression.Left, output);
+            TypeBase right = GetExpressionType(binaryExpression.Right, output);
+
+            //TODO add 
+
+            return TypeBase.BooleanPrimitive;
+        }
+
+        private TypeBase DeriveMathOperatorType(BinaryExpression binaryExpression, List<string> output)
+        {
+            TypeBase left = GetExpressionType(binaryExpression.Left, output);
+            TypeBase right = GetExpressionType(binaryExpression.Right, output);
+
+            if (left != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return null;
+            }
+
+            if (right != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return null;
+            }
+
+            return TypeBase.IntPrimitive;
+        }
+
         private TypeList GetExpressionTypeList(List<AST> nodes, List<string> output)
         {
             return new TypeList(nodes.Select(n => GetExpressionType(n, output)).ToImmutableList());
@@ -1135,7 +1193,7 @@ namespace JavaWhoCompiler
         private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode, List<string> output)
         {
             VarInfo varInfo = scope.LookUp(identifiedNode.Value, identifiedNode.Position, output);
-            if(varInfo is null)
+            if (varInfo is null)
             {
                 output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
                 return null;
@@ -1171,7 +1229,7 @@ namespace JavaWhoCompiler
             TypeBase targetType = GetExpressionType(methodCallExpression.Target, output);
             Position targetPosition = methodCallExpression.Target.Position;
 
-            switch(targetType)
+            switch (targetType)
             {
                 case ClassType targetClassType:
                     MethodSignature matchingSignature = targetClassType.GetMatchingSignature(

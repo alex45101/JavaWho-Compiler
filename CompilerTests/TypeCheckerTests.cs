@@ -1089,6 +1089,41 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IntIfElseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 5;
+
+                if(x < 5)
+                {
+                    y = 0;
+                }
+                else if(x == 4)
+                {
+                    y = 1;
+                }
+                else if(x == 3)
+                {
+                    y = 2;
+                }
+                else
+                {
+                    y = 3;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "WhileStatement")]
         public void WhileTrueTest()
         {
