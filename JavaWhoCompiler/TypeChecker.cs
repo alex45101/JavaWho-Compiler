@@ -1116,6 +1116,7 @@ namespace JavaWhoCompiler
                 IdentifiedNode identifiedNode => DeriveIdentifiedNodeExpressionType(identifiedNode, output),
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
                 ThisExpression(Position position) => scope.LookUp("this", position, output)?.Type,
+                PrintLnStatement printLnStatement => DerivePrintLnStatementType(printLnStatement, output),
                 ExpressionStatement expressionStatement => DeriveExpressionStmt(expressionStatement, output),
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
                 _ => AddAndReturnNull(output,
@@ -1188,6 +1189,17 @@ namespace JavaWhoCompiler
             return new TypeList(nodes.Select(n => GetExpressionType(n, output)).ToImmutableList());
         }
 
+
+        private TypeBase DerivePrintLnStatementType(PrintLnStatement printLnStatement, List<string> output)
+        {
+            TypeBase argType = GetExpressionType(printLnStatement.Argument, output);
+            if (argType is null)
+            {
+                output.Add(new TypeException($"Cannot call println with an unknown typed argument", printLnStatement.Position).ToString());
+            }
+            
+            return TypeBase.VoidPrimitive;
+        }
 
         private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode, List<string> output)
         {
