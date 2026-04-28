@@ -1137,9 +1137,11 @@ namespace CompilerTests
 
             var expected = new WhileStatement(
                     new BooleanLiteral(true, null),
-                    null,
+                    new BlockStatement(new List<AST>(), null),
                     null
                 );
+
+            Assert.True(expected.Equal(whileStatement));
         }
 
         [Fact]
@@ -1161,9 +1163,11 @@ namespace CompilerTests
 
             var expected = new WhileStatement(
                     new BooleanLiteral(false, null),
-                    null,
+                    new BlockStatement(new List<AST>(), null),
                     null
                 );
+
+            Assert.True(expected.Equal(whileStatement));
         }
 
         [Fact]
