@@ -1001,5 +1001,87 @@ namespace CompilerTests
             Assert.True(identifiedNodes[0].IsField);
             Assert.False(identifiedNodes[1].IsField);
         }
+
+        [Fact]
+        [Trait("Category", "BuiltInFunctions")]
+        public void PrintLnTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    println("Hello, world!");
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BuiltInFunctions")]
+        public void PrintLnInClassTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {
+                            println("initializing");
+                        }
+                        method a() Void {
+                            println("method a");
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BuiltInFunctions")]
+        public void PrintLnAsReturnTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Void {
+                            return println("method a");
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BuiltInFunctions")]
+        public void PrintLnAsValueTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    Int x;
+                    x = println("no no no");
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BuiltInFunctions")]
+        public void PrintLnWithNonStringArgTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    Object o;
+                    o = new Object();
+
+                    println(5);
+                    println(o);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
     }
 }
