@@ -5,13 +5,13 @@ class Pet
 
     init(String name, Int age)
     {
-        this.Name = name;
-        this.Age = age;
+        Name = name;
+        Age = age;
     } 
 
     method Info() Void
     {
-        println("Pet Name: " + this.Name + ", Age: " + this.Age);
+        println("Pet Name: " + Name + ", Age: " + Age);
     }
 }
 
@@ -21,27 +21,27 @@ class Cat extends Pet
 
     init(String name, Int age, Int lives)
     {
-        super(name, age)
+        super(name, age);
 
-        this.Lives = lives;
+        Lives = lives;
     }
 
     method Lives() Void
     {
-        println("Lives: " + this.Lives);
+        println("Lives: " + Lives);
     }
 
     method LoseLives(Int livesToLose) Boolean
     {
         Int tempLives;
-        tempLives = this.Lives - livesToLose;
+        tempLives = Lives - livesToLose;
 
         if (tempLives < 0)
         {
             return false;
         }
 
-        this.Lives = tempLives;
+        Lives = tempLives;
 
         return true;
     }

@@ -5,8 +5,8 @@ class Pet
 
     init(String name, Int age)
     {
-        this.Name = name;
-        this.Age = age;
+        Name = name;
+        Age = age;
     } 
 
     method Info() Void
