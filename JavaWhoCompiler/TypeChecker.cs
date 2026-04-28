@@ -1134,7 +1134,6 @@ namespace JavaWhoCompiler
             return expressionStatement.Expression switch
             {
                 BinaryExpression => throw new NotImplementedException(),
-                PrintLnStatement => throw new NotImplementedException(),
                 _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain expression of {expressionStatement.Expression}", expressionStatement.Position).ToString())
             };
