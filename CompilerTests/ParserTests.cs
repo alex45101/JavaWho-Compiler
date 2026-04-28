@@ -484,6 +484,62 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "If")]
+        public void IfTrueStmtTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(true)
+                {}
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var ifStatement = Assert.IsType<IfStatement>(program.Statements[0]);
+
+            var expected = new IfStatement(
+                new BooleanLiteral(true, null),
+                new BlockStatement(new List<AST>(), null),
+                null,
+                null
+                );
+
+            Assert.True(expected.Equal(ifStatement));
+        }
+
+        [Fact]
+        [Trait("Category", "If")]
+        public void IfFalseStmtTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(false)
+                {}
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            var ifStatement = Assert.IsType<IfStatement>(program.Statements[0]);
+
+            var expected = new IfStatement(
+                new BooleanLiteral(false, null),
+                new BlockStatement(new List<AST>(), null),
+                null,
+                null
+                );
+
+            Assert.True(expected.Equal(ifStatement));
+        }
+
+        [Fact]
         [Trait("Category", "Statement")]
         public void EmptyBlockStmtTest()
         {
