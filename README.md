@@ -81,15 +81,15 @@ program ::= classdef* stmt+  stmt+ is the entry point
 ```C++
 class Animal {
   init() {}
-  method speak() Void { return println(0); }
+  method speak() Void { println(0); }
 }
 class Cat extends Animal {
   init() { super(); }
-  method speak() Void { return println(1); }
+  method speak() Void { println(1); }
 }
 class Dog extends Animal {
   init() { super(); }
-  method speak() Void { return println(2); }
+  method speak() Void { println(2); }
 }
 
 Animal cat;
