@@ -1120,6 +1120,54 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "While")]
+        public void WhileTrueStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(true){}
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            WhileStatement whileStatement = Assert.IsType<WhileStatement>(program.Statements[0]);
+
+            var expected = new WhileStatement(
+                    new BooleanLiteral(true, null),
+                    null,
+                    null
+                );
+        }
+
+        [Fact]
+        [Trait("Category", "While")]
+        public void WhileFalseStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(false){}
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            ProgramNode program = Assert.IsType<ProgramNode>(root);
+
+            Assert.Empty(program.Classes);
+            Assert.Single(program.Statements);
+
+            WhileStatement whileStatement = Assert.IsType<WhileStatement>(program.Statements[0]);
+
+            var expected = new WhileStatement(
+                    new BooleanLiteral(false, null),
+                    null,
+                    null
+                );
+        }
+
+        [Fact]
+        [Trait("Category", "While")]
         public void NestedWhileStatementsTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
