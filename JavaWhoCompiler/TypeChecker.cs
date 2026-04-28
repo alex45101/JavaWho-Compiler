@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Net.Http.Headers;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -876,6 +877,12 @@ namespace JavaWhoCompiler
                         CheckTypeHelper(statement, output);
                     }
                     break;
+                case BlockStatement blockStatement:
+                    foreach (AST statement in blockStatement.Statements)
+                    {
+                        CheckTypeHelper(statement, output);
+                    }
+                    break;
                 case ClassDefinition classDefinition:
                     CheckClass(classDefinition, output);
 
@@ -896,6 +903,36 @@ namespace JavaWhoCompiler
                     scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position, output);
 
                     break;
+                case IfStatement ifStatement:
+                    TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
+
+                    if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
+                    {
+                        break;
+                    }
+
+                    CheckTypeHelper(ifStatement.IfBody, output);
+
+                    if (ifStatement.ElseBody is not null)
+                    {
+                        CheckTypeHelper(ifStatement.ElseBody, output);
+                    }
+
+                    break;
+                case WhileStatement whileStatement:
+                    TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
+
+                    if (!CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output))
+                    {
+                        break;
+                    }
+
+                    if (whileStatement.Statement is not null)
+                    {
+                        CheckTypeHelper(whileStatement.Statement, output);
+                    }
+
+                    break;
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -903,6 +940,19 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Type is not supported: {node.GetType()}", node.Position).ToString());
                     break;
             }
+        }
+
+        private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
+        {
+            //TODO add boolean expressions when implemented
+
+            if (guardType != TypeBase.BooleanPrimitive)
+            {
+                output.Add(new TypeException($"Invalid guard type for {astExpression}: {guardType}", position).ToString());
+                return false;
+            }
+
+            return true;
         }
 
         private void CheckClass(ClassDefinition classDefinition, List<string> output)

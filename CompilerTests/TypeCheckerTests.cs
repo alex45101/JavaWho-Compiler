@@ -1001,5 +1001,200 @@ namespace CompilerTests
             Assert.True(identifiedNodes[0].IsField);
             Assert.False(identifiedNodes[1].IsField);
         }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(true)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfElseLinkTests()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(true)
+                {
+                
+                }
+                else if(true)
+                {
+                
+                }
+                else
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(false)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfBlockEqualityTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 5;
+                y = 5;
+
+                if(x == y)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(true)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(false)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void SimpleClassTypeEquality()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {}
+                    
+                    MyType a;
+                    MyType b;
+
+                    a = new MyType();
+                    b = new MyType();
+
+                    if(a == b)
+                    {
+                    
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void InheritenceClassTypeEquality()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {}
+                    class SubType extends MyType {}
+                    
+                    MyType a;
+                    SubType b;
+
+                    a = new MyType();
+                    b = new SubType();
+
+                    if(a == b)
+                    {
+                    
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Class")]
+        public void ObjectClassTypeEquality()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {}
+
+                    MyType a;
+                    Object b;
+
+                    a = new MyType();
+                    b = new Object();
+
+                    if(a == b)
+                    {
+                    
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+            Assert.Empty(errors);
+        }
     }
 }
