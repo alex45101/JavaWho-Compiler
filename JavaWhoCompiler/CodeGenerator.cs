@@ -43,7 +43,7 @@ namespace JavaWhoCompiler
                 Write($" extends {extendsName}");
             }
 
-            WriteLine("{");
+            WriteLine(" {");
             Indent();
 
             foreach(VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
@@ -69,7 +69,7 @@ namespace JavaWhoCompiler
             Write(")");
 
             // constructor body start
-            WriteLine("{");
+            WriteLine(" {");
             Indent();
             
             // super
@@ -96,7 +96,7 @@ namespace JavaWhoCompiler
 
             Write("(");
             GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateParameter);
-            Write(")");
+            Write(") ");
             
             GenerateBlockStatement((BlockStatement)methodDefinition.Body);
         }
@@ -195,7 +195,7 @@ namespace JavaWhoCompiler
         private void GenerateAssignmentStatement(AssignmentStatement assignmentStatement)
         {
             GenerateIdentifiedNode(assignmentStatement.Var);
-            Write("=");
+            Write(" = ");
             GenerateExpression(assignmentStatement.Val);
 
             WriteLine(";");
@@ -207,7 +207,7 @@ namespace JavaWhoCompiler
             for(int i = 0; i < items.Count - 1; i++)
             {
                 generate((T)items[i]);
-                Write(",");
+                Write(", ");
             }
 
             generate((T)items[^1]);

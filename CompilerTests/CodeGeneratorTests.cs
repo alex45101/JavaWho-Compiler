@@ -22,7 +22,7 @@ namespace CompilerTests
                 "Int x; x = 5;",
                 $"""
                 let x;
-                x=5;
+                x = 5;
 
                 """
             };
@@ -33,7 +33,7 @@ namespace CompilerTests
                 $$"""
                 {
                     let x;
-                    x=5;
+                    x = 5;
                 }
 
                 """
