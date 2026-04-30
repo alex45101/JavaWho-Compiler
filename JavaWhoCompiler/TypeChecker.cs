@@ -878,10 +878,16 @@ namespace JavaWhoCompiler
                     }
                     break;
                 case BlockStatement blockStatement:
+
+                    EnterScope();
+
                     foreach (AST statement in blockStatement.Statements)
                     {
                         CheckTypeHelper(statement, output);
                     }
+
+                    ExitScope();
+
                     break;
                 case ClassDefinition classDefinition:
                     CheckClass(classDefinition, output);
