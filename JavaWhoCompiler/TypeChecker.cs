@@ -940,6 +940,21 @@ namespace JavaWhoCompiler
                     }
 
                     break;
+                case ExpressionStatement expressionStatement:
+                    if (expressionStatement.Expression is not MethodCallExpression)
+                    {
+                        output.Add(new TypeException("Only assignment, and method call expressions can be used as a statement", expressionStatement.Position).ToString());
+                        break;
+                    }
+
+                    CheckTypeHelper(expressionStatement.Expression, output);
+
+                    break;
+                case MethodCallExpression methodCallExpression:
+
+                    GetExpressionType(methodCallExpression, output);
+
+                    break;
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -1024,12 +1039,15 @@ namespace JavaWhoCompiler
                     if (returnStatement.Val is not null)
                     {
                         returnExpressionType = GetExpressionType(returnStatement.Val, output);
-
                     }
 
                     if (returnExpressionType is null)
                     {
                         output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                    }
+                    else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
+                    {
+                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
                     }
                     else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
                     {

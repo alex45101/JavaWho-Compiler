@@ -1342,6 +1342,73 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Methods")]
+        public void SimpleVoidMethodEmptyReturnTests()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Void {                       
+                            return;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DifferentScopeReturnTests()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Void {                       
+
+                            if (true)
+                            {
+                                return;
+                            }
+
+                            return;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllCodePathsReturnTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Void {                       
+
+                            if (true)
+                            {
+                                return;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "BuiltInFunctions")]
         public void PrintLnTest()
         {
@@ -1819,6 +1886,111 @@ namespace CompilerTests
                 {
                 
                 }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void SimpleInvalidExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void SimpleMethodExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                println(5);
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void InvalidLessThanExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5 < 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void InvalidAdditionExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5 + 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void InvalidSubtractionExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5 - 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void InvalidMultiplicationExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5 * 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ExpressionStatement")]
+        public void InvalidDivisionExpressionStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                5 / 7;
                 """);
 
             AST root = Parser.Parse(tokens);
