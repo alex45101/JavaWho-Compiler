@@ -320,7 +320,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void DeadCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -345,7 +345,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void EmptyCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -363,7 +363,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void SingleNonReturnCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -383,7 +383,7 @@ namespace CompilerTests
 
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void NotTopLevelReturnCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -406,7 +406,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void IfElseIfReturnCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -431,7 +431,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void IfNoElseReturnCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -456,7 +456,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void IfNoElseDeadCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -480,7 +480,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void IfNoBlockDeadCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -503,7 +503,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassMethods")]
+        [Trait("Category", "Methods")]
         public void IfNoBlockCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -1610,7 +1610,7 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            Assert.NotEmpty(errors);
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -1620,9 +1620,9 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
                     class Test {
                         init() {}
-                        method a() Int {                       
+                        method a(Int x) Int {                       
 
-                            if (true)
+                            if (x == 8)
                             {
                                 return 5;
                             }

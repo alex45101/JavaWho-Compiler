@@ -1019,6 +1019,55 @@ namespace JavaWhoCompiler
         }
 
 
+        private bool GuardIsBoolLiteral(AST guard, bool valueToCheck)
+        {
+            return guard switch
+            {
+                BooleanLiteral(bool value, _) when value == valueToCheck => valueToCheck,
+                _ => false
+            };
+        }
+
+        private bool CheckIfCodePath(IfStatement ifStatement, TypeBase methodReturnType, List<string> output)
+        {
+            // if (true)
+            if (GuardIsBoolLiteral(ifStatement.Guard, true))
+            {
+                // else would be unreachable
+                if (ifStatement.ElseBody is AST elseBody)
+                {
+                    output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
+                }
+
+                // only check if body
+                return CheckCodePath([ifStatement.IfBody], methodReturnType, output);
+            }
+
+            // if (false)
+            if (GuardIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // unreachable code
+                output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
+
+                // will still check else body in case there are more errors
+                return CheckElseCodePath(ifStatement.ElseBody, methodReturnType, output);
+            }
+
+
+            bool ifPathResult = CheckCodePath([ifStatement.IfBody], methodReturnType, output);
+            List<AST> elseBodyStatements = ifStatement.ElseBody != null ? [ifStatement.ElseBody] : [];
+            bool elsePathResult = CheckCodePath(elseBodyStatements, methodReturnType, output);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool CheckElseCodePath(AST elseBody, TypeBase methodReturnType, List<string> output)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return CheckCodePath(elseBodyStatements, methodReturnType, output);
+        }
+
         private bool CheckCodePath(List<AST> statements, TypeBase methodReturnType, List<string> output)
         {
             if (statements.Count == 0)
@@ -1035,11 +1084,7 @@ namespace JavaWhoCompiler
                     statementReturns = true;
                     break;
                 case IfStatement ifStatement:
-                    bool ifPathResult = CheckCodePath([ifStatement.IfBody], methodReturnType, output);
-                    List<AST> elseBodyStatements = ifStatement.ElseBody != null ? [ifStatement.ElseBody] : [];
-                    bool elsePathResult = CheckCodePath(elseBodyStatements, methodReturnType, output);
-
-                    statementReturns = ifPathResult && elsePathResult;
+                    statementReturns = CheckIfCodePath(ifStatement, methodReturnType, output);
                     break;
                 case BlockStatement blockStatement:
                     statementReturns = CheckCodePath(blockStatement.Statements, methodReturnType, output);
