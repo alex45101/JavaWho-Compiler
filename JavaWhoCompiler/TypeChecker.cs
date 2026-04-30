@@ -46,8 +46,9 @@ namespace JavaWhoCompiler
             }
         }
 
-        public void Assign(string name, TypeBase type, Position position, List<string> output)
+        public void Assign(IdentifiedNode varNode, TypeBase type, Position position, List<string> output)
         {
+            string name = varNode.Value;
             if (lookUp.TryGetValue(name, out VarInfo info))
             {
                 if (!type.CanBeAssignedTo(info.Type))
@@ -56,10 +57,13 @@ namespace JavaWhoCompiler
                 }
 
                 lookUp[name] = new VarInfo(info.Type, true, info.IsField);
+
+                // annotate varNode
+                varNode.IsField = info.IsField;
             }
             else if (Parent != null)
             {
-                Parent.Assign(name, type, position, output);
+                Parent.Assign(varNode, type, position, output);
             }
             else
             {
@@ -893,7 +897,7 @@ namespace JavaWhoCompiler
                         break;
                     }
 
-                    scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position, output);
+                    scope.Assign(assignmentStatement.Var, rightType, assignmentStatement.Position, output);
 
                     break;
                 case null:
