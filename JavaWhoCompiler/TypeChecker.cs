@@ -1019,11 +1019,11 @@ namespace JavaWhoCompiler
         }
 
 
-        private bool GuardIsBoolLiteral(AST guard, bool valueToCheck)
+        private bool NodeIsBoolLiteral(AST node, bool valueToCheck)
         {
-            return guard switch
+            return node switch
             {
-                BooleanLiteral(bool value, _) when value == valueToCheck => valueToCheck,
+                BooleanLiteral(bool value, _) when value == valueToCheck => true,
                 _ => false
             };
         }
@@ -1031,7 +1031,7 @@ namespace JavaWhoCompiler
         private bool CheckIfCodePath(IfStatement ifStatement, TypeBase methodReturnType, List<string> output)
         {
             // if (true)
-            if (GuardIsBoolLiteral(ifStatement.Guard, true))
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
             {
                 // else would be unreachable
                 if (ifStatement.ElseBody is AST elseBody)
@@ -1044,7 +1044,7 @@ namespace JavaWhoCompiler
             }
 
             // if (false)
-            if (GuardIsBoolLiteral(ifStatement.Guard, false))
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
             {
                 // unreachable code
                 output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
@@ -1068,6 +1068,26 @@ namespace JavaWhoCompiler
             return CheckCodePath(elseBodyStatements, methodReturnType, output);
         }
 
+        private bool CheckWhileCodePath(WhileStatement whileStatement, TypeBase methodReturnType, List<string> output)
+        {
+            // while(true)
+            if (NodeIsBoolLiteral(whileStatement.Guard, true))
+            {
+                // guaranteed to hit body, check if body returns
+                return CheckCodePath([whileStatement.Statement], methodReturnType, output);
+            }
+
+            // while(false)
+            if (NodeIsBoolLiteral(whileStatement.Guard, false))
+            {
+                // unreachable
+                output.Add(new TypeException("Unreachable code in while body", whileStatement.Statement.Position).ToString());
+            }
+
+            // return false so that CheckCodePath is forced to check next statement
+            return false;
+        }
+
         private bool CheckCodePath(List<AST> statements, TypeBase methodReturnType, List<string> output)
         {
             if (statements.Count == 0)
@@ -1077,21 +1097,15 @@ namespace JavaWhoCompiler
 
             AST statement = statements.First();
             
-            bool statementReturns = false;
-            switch(statement)
+
+            bool statementReturns = statement switch
             {
-                case ReturnStatement:
-                    statementReturns = true;
-                    break;
-                case IfStatement ifStatement:
-                    statementReturns = CheckIfCodePath(ifStatement, methodReturnType, output);
-                    break;
-                case BlockStatement blockStatement:
-                    statementReturns = CheckCodePath(blockStatement.Statements, methodReturnType, output);
-                    break;
-                default:
-                    break;
-            }
+                ReturnStatement => true,
+                IfStatement ifStatement => CheckIfCodePath(ifStatement, methodReturnType, output),
+                WhileStatement whileStatement => CheckWhileCodePath(whileStatement, methodReturnType, output),
+                BlockStatement blockStatement => CheckCodePath(blockStatement.Statements, methodReturnType, output),
+                _ => false,
+            };
 
             if(statementReturns && statements.Count > 1)
             {

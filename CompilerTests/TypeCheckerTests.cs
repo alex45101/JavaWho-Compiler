@@ -1592,7 +1592,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void NotAllCodePathsReturnTest()
+        public void CodePathsReturnWithIfTrueTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
                     class Test {
@@ -1611,6 +1611,56 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeWithIfTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Int {                       
+
+                            if (true)
+                            {
+                                return 5;
+                            }
+
+                            Int x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeWithIfFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Int {                       
+
+                            if (false)
+                            {
+                                return 5;
+                            }
+
+                            return 4;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -1638,6 +1688,81 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(x == 5)
+                            {
+                                return x;
+                            }
+
+                            while(x == 5) 
+                            {
+
+                            }
+
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                return x;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeWithWhileFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(false)
+                            {
+                                return x;
+                            }
+
+                            return 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
