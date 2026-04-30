@@ -1,4 +1,5 @@
 ﻿using JavaWhoCompiler;
+using System.ComponentModel;
 
 namespace CompilerTests
 {
@@ -1721,6 +1722,102 @@ namespace CompilerTests
                     }
 
                     y = 2;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void NestedBinaryExpressionInIfStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 2;
+                y = 7;
+
+                if(((x + 7) < (y + 3)) == false)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void InvalidNestedBinaryExpressionInIfStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 2;
+                y = 7;
+
+                if(((x + 7) < (y + 3)) == (1 + 2))
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void NestedBinaryExpressionInWhileStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 2;
+                y = 7;
+
+                while(((x + 7) < (y + 3)) == false)
+                {
+                
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void InvalidNestedBinaryExpressionInWhileStatementTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                Int y;
+
+                x = 2;
+                y = 7;
+
+                if(((x + 7) < (y + 3)) == (1 + 2))
+                {
+                
                 }
                 """);
 
