@@ -1387,7 +1387,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void NotAllCodePathsReturnTest()
+        public void OneReturnInIfInsideVoidMethodTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
                     class Test {
@@ -1405,7 +1405,57 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllCodePathsReturnTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Int {                       
+
+                            if (true)
+                            {
+                                return 5;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
             Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfElseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Int {                       
+
+                            if (true)
+                            {
+                                return 5;
+                            }
+                            else
+                            {
+                                return 4;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]

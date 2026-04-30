@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
+using System.Reflection.Metadata;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -15,13 +17,14 @@ namespace JavaWhoCompiler
     public class Scope
     {
         public Scope Parent { get; init; }
+        public TypeBase ReturnType { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent)
+        public Scope(Scope parent, TypeBase returnType = null)
         {
             Parent = parent;
+            ReturnType = returnType;
         }
-
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
@@ -879,7 +882,7 @@ namespace JavaWhoCompiler
                     break;
                 case BlockStatement blockStatement:
 
-                    EnterScope();
+                    EnterScope(scope.ReturnType);
 
                     foreach (AST statement in blockStatement.Statements)
                     {
@@ -940,6 +943,12 @@ namespace JavaWhoCompiler
                     }
 
                     break;
+                case ReturnStatement returnStatement:
+                    
+                    //did not pass in method name recursively
+                    CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
+
+                    break;
                 case ExpressionStatement expressionStatement:
                     if (expressionStatement.Expression is not MethodCallExpression)
                     {
@@ -947,14 +956,14 @@ namespace JavaWhoCompiler
                         break;
                     }
 
-                    CheckTypeHelper(expressionStatement.Expression, output);
+                    GetExpressionType(expressionStatement.Expression, output);
 
                     break;
                 case MethodCallExpression methodCallExpression:
 
                     GetExpressionType(methodCallExpression, output);
 
-                    break;
+                    break;                
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -1011,9 +1020,7 @@ namespace JavaWhoCompiler
         }
 
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
-        {
-            EnterScope();
-
+        {            
             AddParamsToScope(methodDefinition.Parameters, output);
 
             BlockStatement body = methodDefinition.Body as BlockStatement;
@@ -1023,6 +1030,8 @@ namespace JavaWhoCompiler
             {
                 methodReturnType = Types.GetType(methodDefinition.ReturnType.Value, methodDefinition.ReturnType.Position, output);
             }
+
+            EnterScope(methodReturnType);
 
             bool returned = false;
             for (int i = 0; i < body.Statements.Count; i++)
@@ -1035,24 +1044,25 @@ namespace JavaWhoCompiler
                         output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
                     }
 
-                    TypeBase returnExpressionType = TypeBase.VoidPrimitive;
-                    if (returnStatement.Val is not null)
-                    {
-                        returnExpressionType = GetExpressionType(returnStatement.Val, output);
-                    }
+                    //TypeBase returnExpressionType = TypeBase.VoidPrimitive;
+                    //if (returnStatement.Val is not null)
+                    //{
+                    //    returnExpressionType = GetExpressionType(returnStatement.Val, output);
+                    //}
 
-                    if (returnExpressionType is null)
-                    {
-                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
-                    }
-                    else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
-                    {
-                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
-                    }
-                    else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
-                    {
-                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
-                    }
+                    //if (returnExpressionType is null)
+                    //{
+                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                    //}
+                    //else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
+                    //{
+                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+                    //}
+                    //else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
+                    //{
+                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+                    //}
+                    CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
 
                     returned = true;
                 }
@@ -1068,6 +1078,28 @@ namespace JavaWhoCompiler
             }
 
             ExitScope();
+        }
+
+        private void CheckMethodReturnType(string methodName, TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
+        {
+            TypeBase returnExpressionType = TypeBase.VoidPrimitive;
+            if (returnStatement.Val is not null)
+            {
+                returnExpressionType = GetExpressionType(returnStatement.Val, output);
+            }
+
+            if (returnExpressionType is null)
+            {
+                output.Add(new TypeException($"Method {methodName} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+            }
+            else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
+            {
+                output.Add(new TypeException($"Method {methodName} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+            }
+            else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
+            {
+                output.Add(new TypeException($"Method {methodName} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+            }
         }
 
         private void CheckClassConstructor(Constructor constructor, ClassType classType, List<string> output)
@@ -1120,9 +1152,9 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void EnterScope()
+        private void EnterScope(TypeBase returnType = null)
         {
-            scope = new Scope(scope);
+            scope = new Scope(scope, returnType);
         }
 
         private void ExitScope()
