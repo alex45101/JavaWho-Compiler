@@ -2,34 +2,44 @@ namespace JavaWhoCompiler
 {
     public class CodeGeneratorException(string message) : Exception(message);
 
-    public class CodeGenerator(StreamWriter streamWriter)
+    public class CodeGenerator(TextWriter textWriter)
     {
         public static void Generate(ProgramNode programNode, string outPath)
         {
             StreamWriter streamWriter = new(outPath);
 
             CodeGenerator codeGenerator = new(streamWriter);
-            foreach(ClassDefinition classDefinition in programNode.Classes)
-            {
-                codeGenerator.GenerateClass(classDefinition);
-            }
+            codeGenerator.GenerateProgram(programNode);
 
             streamWriter.Close();
         }
 
-        private void GenerateClass(ClassDefinition classDefinition)
+        public void GenerateProgram(ProgramNode programNode)
         {
-            streamWriter.Write($"class {classDefinition.Name.Value}");
-            if (classDefinition.ExtendsName is (string extendsName, _))
+            foreach(ClassDefinition classDefinition in programNode.Classes)
             {
-                streamWriter.Write($" extends {extendsName}");
+                GenerateClass(classDefinition);
             }
 
-            streamWriter.WriteLine("{");
-
-            foreach(AST variableDeclaration in classDefinition.VariableDeclarations)
+            foreach(AST statement in programNode.Statements)
             {
-                GenerateStatement(variableDeclaration);
+                GenerateStatement(statement);
+            }
+        }
+
+        private void GenerateClass(ClassDefinition classDefinition)
+        {
+            textWriter.Write($"class {classDefinition.Name.Value}");
+            if (classDefinition.ExtendsName is (string extendsName, _))
+            {
+                textWriter.Write($" extends {extendsName}");
+            }
+
+            textWriter.WriteLine("{");
+
+            foreach(VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
+            {
+                GenerateField(variableDeclaration);
             }
 
             GenerateConstructor((Constructor)classDefinition.Constructor);
@@ -39,24 +49,24 @@ namespace JavaWhoCompiler
                 GenerateMethod(methodDefinition);
             }
 
-            streamWriter.WriteLine("}");
+            textWriter.WriteLine("}");
         }
 
         private void GenerateConstructor(Constructor constructor)
         {
-            streamWriter.Write("constructor(");
-            GenerateCommaSeperated<VariableDeclaration>(constructor.Parameters, GenerateVariableDeclaration);
-            streamWriter.Write(")");
+            textWriter.Write("constructor(");
+            GenerateCommaSeperated<VariableDeclaration>(constructor.Parameters, GenerateParameter);
+            textWriter.Write(")");
 
             // constructor body start
-            streamWriter.WriteLine("{");
+            textWriter.WriteLine("{");
             
             // super
             if (constructor.SuperArguments is List<AST> args)
             {
-                streamWriter.Write("super(");
+                textWriter.Write("super(");
                 GenerateCommaSeperated<AST>(args, GenerateExpression);
-                streamWriter.WriteLine(");");
+                textWriter.WriteLine(");");
             }
 
             // statements
@@ -65,16 +75,16 @@ namespace JavaWhoCompiler
                 GenerateStatement(statement);
             }
 
-            streamWriter.WriteLine("}");
+            textWriter.WriteLine("}");
         }
 
         private void GenerateMethod(MethodDefinition methodDefinition)
         {
-            streamWriter.Write($"{methodDefinition.Name.Value}");
+            textWriter.Write($"{methodDefinition.Name.Value}");
 
-            streamWriter.Write("(");
-            GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateVariableDeclaration);
-            streamWriter.Write(")");
+            textWriter.Write("(");
+            GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateParameter);
+            textWriter.Write(")");
             
             GenerateBlockStatement((BlockStatement)methodDefinition.Body);
         }
@@ -84,8 +94,7 @@ namespace JavaWhoCompiler
             switch(statement)
             {
                 case VariableDeclaration variableDeclaration:
-                    GenerateVariableDeclaration(variableDeclaration);
-                    streamWriter.WriteLine(";");
+                    GenerateVariableDeclarationStatement(variableDeclaration);
                     break;
                 case AssignmentStatement assignmentStatement:
                     GenerateAssignmentStatement(assignmentStatement);
@@ -104,33 +113,34 @@ namespace JavaWhoCompiler
 
         private void GenerateBlockStatement(BlockStatement blockStatement)
         {
-            streamWriter.WriteLine("{");
+            textWriter.WriteLine("{");
             foreach(AST statement in blockStatement.Statements)
             {
                 GenerateStatement(statement);
             }
-            streamWriter.WriteLine("}");
+            textWriter.WriteLine("}");
         }
 
         private void GenerateReturnStatement(ReturnStatement returnStatement)
         {
-            streamWriter.Write("return");
+            textWriter.Write("return");
             if(returnStatement.Val is AST expression)
             {
+                textWriter.Write(" ");
                 GenerateExpression(expression);
             }
 
-            streamWriter.WriteLine(";");
+            textWriter.WriteLine(";");
         }
 
         private void GenerateIdentifiedNode(IdentifiedNode identifiedNode)
         {
             if (identifiedNode.IsField)
             {
-                streamWriter.Write("this.");
+                textWriter.Write("this.");
             }
 
-            streamWriter.Write(identifiedNode.Value);
+            textWriter.Write(identifiedNode.Value);
         }
 
         private void GenerateExpression(AST expression)
@@ -141,10 +151,10 @@ namespace JavaWhoCompiler
                     GenerateIdentifiedNode(identifiedNode);
                     break;
                 case BooleanLiteral(bool value, _):
-                    streamWriter.Write(value);
+                    textWriter.Write(value.ToString().ToLower());
                     break;
                 case IntLiteral(int value, _):
-                    streamWriter.Write(value);
+                    textWriter.Write(value);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -153,20 +163,28 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void GenerateVariableDeclaration(VariableDeclaration variableDeclaration)
+        private void GenerateField(VariableDeclaration fieldVariableDeclaration)
         {
-            // VariableDeclaration variableDeclaration = (VariableDeclaration)ast;
+            textWriter.WriteLine($"{fieldVariableDeclaration.Var.Value};");
+        }
 
-            GenerateIdentifiedNode(variableDeclaration.Var);
+        private void GenerateParameter(VariableDeclaration fieldVariableDeclaration)
+        {
+            textWriter.Write(fieldVariableDeclaration.Var.Value);
+        }
+
+        private void GenerateVariableDeclarationStatement(VariableDeclaration variableDeclaration)
+        {
+            textWriter.WriteLine($"let {variableDeclaration.Var.Value};");
         }
 
         private void GenerateAssignmentStatement(AssignmentStatement assignmentStatement)
         {
             GenerateIdentifiedNode(assignmentStatement.Var);
-            streamWriter.Write("=");
+            textWriter.Write("=");
             GenerateExpression(assignmentStatement.Val);
 
-            streamWriter.WriteLine(";");
+            textWriter.WriteLine(";");
         }
 
         private void GenerateCommaSeperated<T>(List<AST> items, Action<T> generate)
@@ -175,7 +193,7 @@ namespace JavaWhoCompiler
             for(int i = 0; i < items.Count - 1; i++)
             {
                 generate((T)items[i]);
-                streamWriter.Write(",");
+                textWriter.Write(",");
             }
 
             generate((T)items[^1]);
