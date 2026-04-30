@@ -5,7 +5,10 @@ namespace JavaWhoCompiler
     public class CodeGenerator(TextWriter textWriter)
     {
         private int targetIndent = 0;
-        private int indent = 0;
+        private int curIndent = 0;
+
+        private void Indent() => targetIndent += 1;
+        private void Dedent() => targetIndent -= 1;
 
         public readonly static string INDENT_TEXT = "    ";
 
@@ -41,7 +44,7 @@ namespace JavaWhoCompiler
             }
 
             WriteLine("{");
-            targetIndent += 1;
+            Indent();
 
             foreach(VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
             {
@@ -55,7 +58,7 @@ namespace JavaWhoCompiler
                 GenerateMethod(methodDefinition);
             }
 
-            targetIndent -= 1;
+            Dedent();
             WriteLine("}");
         }
 
@@ -67,7 +70,7 @@ namespace JavaWhoCompiler
 
             // constructor body start
             WriteLine("{");
-            targetIndent += 1;
+            Indent();
             
             // super
             if (constructor.SuperArguments is List<AST> args)
@@ -83,7 +86,7 @@ namespace JavaWhoCompiler
                 GenerateStatement(statement);
             }
 
-            targetIndent -= 1;
+            Dedent();
             WriteLine("}");
         }
 
@@ -123,12 +126,12 @@ namespace JavaWhoCompiler
         private void GenerateBlockStatement(BlockStatement blockStatement)
         {
             WriteLine("{");
-            targetIndent += 1;
+            Indent();
             foreach(AST statement in blockStatement.Statements)
             {
                 GenerateStatement(statement);
             }
-            targetIndent -= 1;
+            Dedent();
             WriteLine("}");
         }
 
@@ -212,10 +215,10 @@ namespace JavaWhoCompiler
 
         private void Write(string text)
         {
-            while(indent < targetIndent)
+            while(curIndent < targetIndent)
             {
                 textWriter.Write(INDENT_TEXT);
-                indent += 1;
+                curIndent += 1;
             }
 
             textWriter.Write(text);
@@ -225,7 +228,7 @@ namespace JavaWhoCompiler
         {
             Write(text);
             textWriter.WriteLine();
-            indent = 0;
+            curIndent = 0;
         }
     }
 }
