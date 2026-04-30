@@ -1123,7 +1123,7 @@ namespace JavaWhoCompiler
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
                 ThisExpression(Position position) => scope.LookUp("this", position, output)?.Type,
                 PrintLnStatement printLnStatement => DerivePrintLnStatementType(printLnStatement, output),
-                ExpressionStatement expressionStatement => DeriveExpressionStmt(expressionStatement, output),
+                BinaryExpression binaryExpression => DeriveBinaryExpressionStmt(binaryExpression, output),
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
                 _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain type of {node}", node.Position).ToString())
@@ -1136,16 +1136,6 @@ namespace JavaWhoCompiler
             return null;
         }
 
-        private TypeBase DeriveExpressionStmt(ExpressionStatement expressionStatement, List<string> output)
-        {
-            return expressionStatement.Expression switch
-            {
-                BinaryExpression => throw new NotImplementedException(),
-                _ => AddAndReturnNull(output,
-                    new TypeException($"Cannot obtain expression of {expressionStatement.Expression}", expressionStatement.Position).ToString())
-            };
-        }
-
         private TypeBase DeriveBinaryExpressionStmt(BinaryExpression binaryExpression, List<string> output)
         {
             return binaryExpression.OperatorType switch
@@ -1153,41 +1143,67 @@ namespace JavaWhoCompiler
                 OperatorType.Add or 
                 OperatorType.Subtract or
                 OperatorType.Multiply or
-                OperatorType.Divide or
-                OperatorType.LessThan => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.Divide => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.LessThan or
                 OperatorType.Equal or
                 OperatorType.NotEqual => DeriveBooleanOperatorType(binaryExpression, output),
+                _ => throw new Exception("Something went horribly wrong...") //should never happen
             };
         }
 
         private TypeBase DeriveBooleanOperatorType(BinaryExpression binaryExpression, List<string> output)
         {
-            TypeBase left = GetExpressionType(binaryExpression.Left, output);
-            TypeBase right = GetExpressionType(binaryExpression.Right, output);
+            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
+            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);            
 
-            //TODO add 
+            if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
+            {
+                output.Add(new TypeException($"Can not compare {leftType} to {rightType}", binaryExpression.Position).ToString());
+                return null;
+            }
+
+            //if we arent doing LessThan op then we just return otherwise make sure left and right are ints
+            if (binaryExpression.OperatorType != OperatorType.LessThan)
+            {
+                return TypeBase.BooleanPrimitive;
+            }
+
+            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
+            {
+                return null;
+            }
 
             return TypeBase.BooleanPrimitive;
         }
 
         private TypeBase DeriveMathOperatorType(BinaryExpression binaryExpression, List<string> output)
         {
-            TypeBase left = GetExpressionType(binaryExpression.Left, output);
-            TypeBase right = GetExpressionType(binaryExpression.Right, output);
+            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
+            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
 
-            if (left != TypeBase.IntPrimitive)
+            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
             {
-                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
-                return null;
-            }
-
-            if (right != TypeBase.IntPrimitive)
-            {
-                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
                 return null;
             }
 
             return TypeBase.IntPrimitive;
+        }
+
+        private bool BinaryExpressionIntCheck(BinaryExpression binaryExpression, TypeBase leftType, TypeBase rightType, List<string> output)
+        {
+            if (leftType != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return false;
+            }
+
+            if (rightType != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return false;
+            }
+
+            return true;
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes, List<string> output)
