@@ -1646,5 +1646,89 @@ namespace CompilerTests
 
             Assert.NotEmpty(errors);
         }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void MultiNestedIfScopeTest()
+        { 
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                
+                x = 5;
+
+                if(x < 8)
+                {
+                    Int y;
+                    y = 7;
+
+                    if(x == y)
+                    {
+                        Int z;
+                        z = x + y;
+                    }
+                }
+                else if(true)
+                {
+                    x = 6;
+                }
+                else
+                {
+                    if (x == 2)
+                    {
+                        Int y;
+                        y = 2;
+                    }
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatement")]
+        public void InvalidMultiNestedIfScopeTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                
+                x = 5;
+
+                if(x < 8)
+                {
+                    Int y;
+                    y = 7;
+
+                    if(x == y)
+                    {
+                        Int z;
+                        z = x + y;
+                    }
+                }
+                else if(true)
+                {
+                    z = 5;
+                    x = 6;
+                }
+                else
+                {
+                    if (x == 2)
+                    {
+                        Int y;                        
+                    }
+
+                    y = 2;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
     }
 }
