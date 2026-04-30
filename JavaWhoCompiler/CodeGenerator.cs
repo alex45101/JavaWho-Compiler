@@ -92,7 +92,7 @@ namespace JavaWhoCompiler
 
         private void GenerateMethod(MethodDefinition methodDefinition)
         {
-            Write($"{methodDefinition.Name.Value}");
+            Write($"{methodDefinition.AnnotatedMethodName}");
 
             Write("(");
             GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateParameter);
