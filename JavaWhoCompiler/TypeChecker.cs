@@ -946,8 +946,7 @@ namespace JavaWhoCompiler
                 case ReturnStatement returnStatement:
                     
                     //did not pass in method name recursively
-                    CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
-
+                    CheckMethodReturnType(scope.ReturnType, returnStatement, output);
                     break;
                 case ExpressionStatement expressionStatement:
                     if (expressionStatement.Expression is not MethodCallExpression)
@@ -1019,10 +1018,50 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
+
+        private bool CheckCodePath(List<AST> statements, TypeBase methodReturnType, List<string> output)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+            
+            bool statementReturns = false;
+            switch(statement)
+            {
+                case ReturnStatement:
+                    statementReturns = true;
+                    break;
+                case IfStatement ifStatement:
+                    bool ifPathResult = CheckCodePath([ifStatement.IfBody], methodReturnType, output);
+                    List<AST> elseBodyStatements = ifStatement.ElseBody != null ? [ifStatement.ElseBody] : [];
+                    bool elsePathResult = CheckCodePath(elseBodyStatements, methodReturnType, output);
+
+                    statementReturns = ifPathResult && elsePathResult;
+                    break;
+                case BlockStatement blockStatement:
+                    statementReturns = CheckCodePath(blockStatement.Statements, methodReturnType, output);
+                    break;
+                default:
+                    break;
+            }
+
+            if(statementReturns && statements.Count > 1)
+            {
+                output.Add(new TypeException($"Unreachable code after return", statement.Position).ToString());
+            } 
+            else if(!statementReturns)
+            {
+                return CheckCodePath(statements.Slice(1, statements.Count - 1), methodReturnType, output);
+            }
+
+            return statementReturns;
+        }
+
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
         {            
-            AddParamsToScope(methodDefinition.Parameters, output);
-
             BlockStatement body = methodDefinition.Body as BlockStatement;
 
             TypeBase methodReturnType = TypeBase.VoidPrimitive;
@@ -1033,46 +1072,17 @@ namespace JavaWhoCompiler
 
             EnterScope(methodReturnType);
 
-            bool returned = false;
+            AddParamsToScope(methodDefinition.Parameters, output);
+
+            // validate types first
             for (int i = 0; i < body.Statements.Count; i++)
             {
-                AST statement = body.Statements[i];
-                if (statement is ReturnStatement returnStatement)
-                {
-                    if (i < body.Statements.Count - 1)
-                    {
-                        output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
-                    }
-
-                    //TypeBase returnExpressionType = TypeBase.VoidPrimitive;
-                    //if (returnStatement.Val is not null)
-                    //{
-                    //    returnExpressionType = GetExpressionType(returnStatement.Val, output);
-                    //}
-
-                    //if (returnExpressionType is null)
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
-                    //}
-                    //else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
-                    //}
-                    //else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
-                    //}
-                    CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
-
-                    returned = true;
-                }
-                else
-                {
-                    CheckTypeHelper(statement, output);
-                }
+                CheckTypeHelper(body.Statements[i], output);
             }
 
-            if (methodReturnType != TypeBase.VoidPrimitive && !returned)
+            // only check code path if return is not void
+            if (methodReturnType != TypeBase.VoidPrimitive &&
+                !CheckCodePath(body.Statements, methodReturnType, output))
             {
                 output.Add(new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position).ToString());
             }
@@ -1080,7 +1090,7 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
-        private void CheckMethodReturnType(string methodName, TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
+        private void CheckMethodReturnType(TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
         {
             TypeBase returnExpressionType = TypeBase.VoidPrimitive;
             if (returnStatement.Val is not null)
@@ -1090,15 +1100,15 @@ namespace JavaWhoCompiler
 
             if (returnExpressionType is null)
             {
-                output.Add(new TypeException($"Method {methodName} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Cannot return unknown expression type", returnStatement.Val.Position).ToString());
             }
             else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
             {
-                output.Add(new TypeException($"Method {methodName} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+                output.Add(new TypeException($"Attempting to explicitly return a void value. Try `return;` instead", returnStatement.Position).ToString());
             }
             else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
             {
-                output.Add(new TypeException($"Method {methodName} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Return type {returnExpressionType} does not match method return type", returnStatement.Val.Position).ToString());
             }
         }
 

@@ -321,7 +321,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "ClassMethods")]
-        public void DeadCodeInMethodTest() {
+        public void DeadCodePathMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -342,6 +342,188 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void EmptyCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void SingleNonReturnCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            Int x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void NotTopLevelReturnCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            } else {
+                                return 6;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void IfElseIfReturnCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            } else if(y == 8) {
+                                return 6;
+                            } else {
+                                return 9;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void IfNoElseReturnCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            }
+
+                            Int x;
+                            x = 5;
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void IfNoElseDeadCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            }
+
+                            Int x;
+                            x = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void IfNoBlockDeadCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5)
+                                return 5;
+
+                            Int x;
+                            x = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void IfNoBlockCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5)
+                                return 5;
+
+                            Int x;
+                            x = 5;
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
