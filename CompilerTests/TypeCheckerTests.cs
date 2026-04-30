@@ -1361,7 +1361,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathSingleNonReturnMethodTest() {
+        public void CodePathsReturnWithSingleNonReturnMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -1381,7 +1381,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathNotTopLevelReturnMethodTest() {
+        public void CodePathsReturnWithNotTopLevelReturnMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -1404,7 +1404,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathIfElseIfReturnMethodTest() {
+        public void CodePathsReturnWithIfElseIfMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -1429,7 +1429,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathIfNoElseReturnMethodTest() {
+        public void CodePathsReturnWithIfNoElseMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -1501,7 +1501,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathIfNoBlockMethodTest() {
+        public void CodePathsReturnWithIfNoBlockMethodTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
                         init(Int x, Int y) {}
@@ -1763,6 +1763,60 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfInWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(x == 5)
+                                { 
+                                    return 5;
+                                }
+                                else
+                                {
+                                    return 8;
+                                }
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileInIfTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            if(true)
+                            {
+                                while(true)
+                                    return 8;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
