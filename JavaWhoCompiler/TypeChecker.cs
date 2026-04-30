@@ -975,8 +975,6 @@ namespace JavaWhoCompiler
 
         private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
         {
-            //TODO add boolean expressions when implemented
-
             if (guardType != TypeBase.BooleanPrimitive)
             {
                 output.Add(new TypeException($"Invalid guard type for {astExpression}: {guardType}", position).ToString());
@@ -1044,24 +1042,6 @@ namespace JavaWhoCompiler
                         output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
                     }
 
-                    //TypeBase returnExpressionType = TypeBase.VoidPrimitive;
-                    //if (returnStatement.Val is not null)
-                    //{
-                    //    returnExpressionType = GetExpressionType(returnStatement.Val, output);
-                    //}
-
-                    //if (returnExpressionType is null)
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
-                    //}
-                    //else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
-                    //}
-                    //else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
-                    //{
-                    //    output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
-                    //}
                     CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
 
                     returned = true;
