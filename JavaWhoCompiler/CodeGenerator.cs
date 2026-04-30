@@ -4,6 +4,11 @@ namespace JavaWhoCompiler
 
     public class CodeGenerator(TextWriter textWriter)
     {
+        private int targetIndent = 0;
+        private int indent = 0;
+
+        public readonly static string INDENT_TEXT = "    ";
+
         public static void Generate(ProgramNode programNode, string outPath)
         {
             StreamWriter streamWriter = new(outPath);
@@ -29,13 +34,14 @@ namespace JavaWhoCompiler
 
         private void GenerateClass(ClassDefinition classDefinition)
         {
-            textWriter.Write($"class {classDefinition.Name.Value}");
+            Write($"class {classDefinition.Name.Value}");
             if (classDefinition.ExtendsName is (string extendsName, _))
             {
-                textWriter.Write($" extends {extendsName}");
+                Write($" extends {extendsName}");
             }
 
-            textWriter.WriteLine("{");
+            WriteLine("{");
+            targetIndent += 1;
 
             foreach(VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
             {
@@ -49,24 +55,26 @@ namespace JavaWhoCompiler
                 GenerateMethod(methodDefinition);
             }
 
-            textWriter.WriteLine("}");
+            targetIndent -= 1;
+            WriteLine("}");
         }
 
         private void GenerateConstructor(Constructor constructor)
         {
-            textWriter.Write("constructor(");
+            Write("constructor(");
             GenerateCommaSeperated<VariableDeclaration>(constructor.Parameters, GenerateParameter);
-            textWriter.Write(")");
+            Write(")");
 
             // constructor body start
-            textWriter.WriteLine("{");
+            WriteLine("{");
+            targetIndent += 1;
             
             // super
             if (constructor.SuperArguments is List<AST> args)
             {
-                textWriter.Write("super(");
+                Write("super(");
                 GenerateCommaSeperated<AST>(args, GenerateExpression);
-                textWriter.WriteLine(");");
+                WriteLine(");");
             }
 
             // statements
@@ -75,16 +83,17 @@ namespace JavaWhoCompiler
                 GenerateStatement(statement);
             }
 
-            textWriter.WriteLine("}");
+            targetIndent -= 1;
+            WriteLine("}");
         }
 
         private void GenerateMethod(MethodDefinition methodDefinition)
         {
-            textWriter.Write($"{methodDefinition.Name.Value}");
+            Write($"{methodDefinition.Name.Value}");
 
-            textWriter.Write("(");
+            Write("(");
             GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateParameter);
-            textWriter.Write(")");
+            Write(")");
             
             GenerateBlockStatement((BlockStatement)methodDefinition.Body);
         }
@@ -113,34 +122,36 @@ namespace JavaWhoCompiler
 
         private void GenerateBlockStatement(BlockStatement blockStatement)
         {
-            textWriter.WriteLine("{");
+            WriteLine("{");
+            targetIndent += 1;
             foreach(AST statement in blockStatement.Statements)
             {
                 GenerateStatement(statement);
             }
-            textWriter.WriteLine("}");
+            targetIndent -= 1;
+            WriteLine("}");
         }
 
         private void GenerateReturnStatement(ReturnStatement returnStatement)
         {
-            textWriter.Write("return");
+            Write("return");
             if(returnStatement.Val is AST expression)
             {
-                textWriter.Write(" ");
+                Write(" ");
                 GenerateExpression(expression);
             }
 
-            textWriter.WriteLine(";");
+            WriteLine(";");
         }
 
         private void GenerateIdentifiedNode(IdentifiedNode identifiedNode)
         {
             if (identifiedNode.IsField)
             {
-                textWriter.Write("this.");
+                Write("this.");
             }
 
-            textWriter.Write(identifiedNode.Value);
+            Write(identifiedNode.Value);
         }
 
         private void GenerateExpression(AST expression)
@@ -151,10 +162,10 @@ namespace JavaWhoCompiler
                     GenerateIdentifiedNode(identifiedNode);
                     break;
                 case BooleanLiteral(bool value, _):
-                    textWriter.Write(value.ToString().ToLower());
+                    Write(value.ToString().ToLower());
                     break;
                 case IntLiteral(int value, _):
-                    textWriter.Write(value);
+                    Write(value.ToString());
                     break;
                 default:
                     throw new NotImplementedException();
@@ -165,26 +176,26 @@ namespace JavaWhoCompiler
 
         private void GenerateField(VariableDeclaration fieldVariableDeclaration)
         {
-            textWriter.WriteLine($"{fieldVariableDeclaration.Var.Value};");
+            WriteLine($"{fieldVariableDeclaration.Var.Value};");
         }
 
         private void GenerateParameter(VariableDeclaration fieldVariableDeclaration)
         {
-            textWriter.Write(fieldVariableDeclaration.Var.Value);
+            Write(fieldVariableDeclaration.Var.Value);
         }
 
         private void GenerateVariableDeclarationStatement(VariableDeclaration variableDeclaration)
         {
-            textWriter.WriteLine($"let {variableDeclaration.Var.Value};");
+            WriteLine($"let {variableDeclaration.Var.Value};");
         }
 
         private void GenerateAssignmentStatement(AssignmentStatement assignmentStatement)
         {
             GenerateIdentifiedNode(assignmentStatement.Var);
-            textWriter.Write("=");
+            Write("=");
             GenerateExpression(assignmentStatement.Val);
 
-            textWriter.WriteLine(";");
+            WriteLine(";");
         }
 
         private void GenerateCommaSeperated<T>(List<AST> items, Action<T> generate)
@@ -193,10 +204,28 @@ namespace JavaWhoCompiler
             for(int i = 0; i < items.Count - 1; i++)
             {
                 generate((T)items[i]);
-                textWriter.Write(",");
+                Write(",");
             }
 
             generate((T)items[^1]);
+        }
+
+        private void Write(string text)
+        {
+            while(indent < targetIndent)
+            {
+                textWriter.Write(INDENT_TEXT);
+                indent += 1;
+            }
+
+            textWriter.Write(text);
+        }
+
+        private void WriteLine(string text)
+        {
+            Write(text);
+            textWriter.WriteLine();
+            indent = 0;
         }
     }
 }

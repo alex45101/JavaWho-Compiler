@@ -11,7 +11,10 @@ namespace CompilerTests
             // vardec
             yield return new object[] {
                 "Int x;",
-                $"let x;{Environment.NewLine}"
+                $"""
+                let x;
+
+                """
             };
 
             // assign
@@ -20,6 +23,18 @@ namespace CompilerTests
                 $"""
                 let x;
                 x=5;
+
+                """
+            };
+
+            // block
+            yield return new object[] {
+                "{ Int x; x = 5; }",
+                $$"""
+                {
+                    let x;
+                    x=5;
+                }
 
                 """
             };
@@ -46,6 +61,7 @@ namespace CompilerTests
 
             stringWriter.Close();
             string result = stringBuilder.ToString();
+            Console.WriteLine(result);
             Assert.Equal(expected, result);
         }
         
