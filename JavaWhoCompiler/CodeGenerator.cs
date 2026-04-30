@@ -204,6 +204,11 @@ namespace JavaWhoCompiler
         private void GenerateCommaSeperated<T>(List<AST> items, Action<T> generate)
             where T: AST
         {
+            if(items.Count == 0)
+            {
+                return;
+            }
+
             for(int i = 0; i < items.Count - 1; i++)
             {
                 generate((T)items[i]);
