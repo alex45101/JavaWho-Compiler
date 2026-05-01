@@ -18,12 +18,14 @@ namespace JavaWhoCompiler
     {
         public Scope Parent { get; init; }
         public TypeBase ReturnType { get; init; }
+        public bool InLoop { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent, TypeBase returnType = null)
+        public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false)
         {
             Parent = parent;
             ReturnType = returnType;
+            InLoop = inLoop;
         }
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
@@ -923,9 +925,25 @@ namespace JavaWhoCompiler
 
                     CheckTypeHelper(ifStatement.IfBody, output);
 
-                    if (ifStatement.ElseBody is not null)
+                    // if (false)
+                    if (NodeIsBoolLiteral(ifStatement.Guard, false))
+                    {
+                        // unreachable code
+                        output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
+                    }
+
+                    bool hasElse = ifStatement.ElseBody is not null;
+
+                    if (hasElse)
                     {
                         CheckTypeHelper(ifStatement.ElseBody, output);
+
+                        // if (true)
+                        if (NodeIsBoolLiteral(ifStatement.Guard, true))
+                        {
+                            // else would be unreachable
+                            output.Add(new TypeException("Unreachable code in else body", ifStatement.ElseBody.Position).ToString());
+                        }
                     }
 
                     break;
@@ -937,16 +955,35 @@ namespace JavaWhoCompiler
                         break;
                     }
 
-                    if (whileStatement.Statement is not null)
+                    if (whileStatement.Statement is AST whileBody)
                     {
-                        CheckTypeHelper(whileStatement.Statement, output);
+                        CheckTypeHelper(whileBody, output);
+
+                        // while(false)
+                        if (NodeIsBoolLiteral(whileStatement.Guard, false))
+                        {
+                            // unreachable
+                            output.Add(new TypeException("Unreachable code in while body", whileBody.Position).ToString());
+                        }
                     }
 
                     break;
                 case ReturnStatement returnStatement:
+                    if (scope.ReturnType is null)
+                    {
+                        output.Add(new TypeException("Cannot return outside of a method", returnStatement.Position).ToString());
+                        break;
+                    }
                     
                     //did not pass in method name recursively
                     CheckMethodReturnType(scope.ReturnType, returnStatement, output);
+                    break;
+                case BreakStatement breakStatement:
+                    if (!scope.InLoop)
+                    {
+                        output.Add(new TypeException("Cannot break outside of a loop context", breakStatement.Position).ToString());
+                    }
+
                     break;
                 case ExpressionStatement expressionStatement:
                     if (expressionStatement.Expression is not MethodCallExpression)
@@ -1033,11 +1070,11 @@ namespace JavaWhoCompiler
             // if (true)
             if (NodeIsBoolLiteral(ifStatement.Guard, true))
             {
-                // else would be unreachable
-                if (ifStatement.ElseBody is AST elseBody)
-                {
-                    output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
-                }
+                // // else would be unreachable
+                // if (ifStatement.ElseBody is AST elseBody)
+                // {
+                //     output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
+                // }
 
                 // only check if body
                 return CheckCodePath([ifStatement.IfBody], output);
@@ -1046,8 +1083,8 @@ namespace JavaWhoCompiler
             // if (false)
             if (NodeIsBoolLiteral(ifStatement.Guard, false))
             {
-                // unreachable code
-                output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
+                // // unreachable code
+                // output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
 
                 // will still check else body in case there are more errors
                 return CheckElseCodePath(ifStatement.ElseBody, output);
@@ -1077,12 +1114,12 @@ namespace JavaWhoCompiler
                 return CheckCodePath([whileStatement.Statement], output);
             }
 
-            // while(false)
-            if (NodeIsBoolLiteral(whileStatement.Guard, false))
-            {
-                // unreachable
-                output.Add(new TypeException("Unreachable code in while body", whileStatement.Statement.Position).ToString());
-            }
+            // // while(false)
+            // if (NodeIsBoolLiteral(whileStatement.Guard, false))
+            // {
+            //     // unreachable
+            //     output.Add(new TypeException("Unreachable code in while body", whileStatement.Statement.Position).ToString());
+            // }
 
             // return false so that CheckCodePath is forced to check next statement
             return false;
@@ -1221,9 +1258,9 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void EnterScope(TypeBase returnType = null)
+        private void EnterScope(TypeBase returnType = null, bool inLoop = false)
         {
-            scope = new Scope(scope, returnType);
+            scope = new Scope(scope, returnType, inLoop || scope.InLoop);
         }
 
         private void ExitScope()
