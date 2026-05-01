@@ -1028,7 +1028,7 @@ namespace JavaWhoCompiler
             };
         }
 
-        private bool CheckIfCodePath(IfStatement ifStatement, TypeBase methodReturnType, List<string> output)
+        private bool CheckIfCodePath(IfStatement ifStatement, List<string> output)
         {
             // if (true)
             if (NodeIsBoolLiteral(ifStatement.Guard, true))
@@ -1040,7 +1040,7 @@ namespace JavaWhoCompiler
                 }
 
                 // only check if body
-                return CheckCodePath([ifStatement.IfBody], methodReturnType, output);
+                return CheckCodePath([ifStatement.IfBody], output);
             }
 
             // if (false)
@@ -1050,31 +1050,31 @@ namespace JavaWhoCompiler
                 output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
 
                 // will still check else body in case there are more errors
-                return CheckElseCodePath(ifStatement.ElseBody, methodReturnType, output);
+                return CheckElseCodePath(ifStatement.ElseBody, output);
             }
 
 
-            bool ifPathResult = CheckCodePath([ifStatement.IfBody], methodReturnType, output);
+            bool ifPathResult = CheckCodePath([ifStatement.IfBody], output);
             List<AST> elseBodyStatements = ifStatement.ElseBody != null ? [ifStatement.ElseBody] : [];
-            bool elsePathResult = CheckCodePath(elseBodyStatements, methodReturnType, output);
+            bool elsePathResult = CheckCodePath(elseBodyStatements, output);
 
             return ifPathResult && elsePathResult;
 
         }
 
-        private bool CheckElseCodePath(AST elseBody, TypeBase methodReturnType, List<string> output)
+        private bool CheckElseCodePath(AST elseBody, List<string> output)
         {
             List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
-            return CheckCodePath(elseBodyStatements, methodReturnType, output);
+            return CheckCodePath(elseBodyStatements, output);
         }
 
-        private bool CheckWhileCodePath(WhileStatement whileStatement, TypeBase methodReturnType, List<string> output)
+        private bool CheckWhileCodePath(WhileStatement whileStatement, List<string> output)
         {
             // while(true)
             if (NodeIsBoolLiteral(whileStatement.Guard, true))
             {
                 // guaranteed to hit body, check if body returns
-                return CheckCodePath([whileStatement.Statement], methodReturnType, output);
+                return CheckCodePath([whileStatement.Statement], output);
             }
 
             // while(false)
@@ -1088,7 +1088,7 @@ namespace JavaWhoCompiler
             return false;
         }
 
-        private bool CheckCodePath(List<AST> statements, TypeBase methodReturnType, List<string> output)
+        private bool CheckCodePath(List<AST> statements, List<string> output)
         {
             if (statements.Count == 0)
             {
@@ -1101,9 +1101,9 @@ namespace JavaWhoCompiler
             bool statementReturns = statement switch
             {
                 ReturnStatement => true,
-                IfStatement ifStatement => CheckIfCodePath(ifStatement, methodReturnType, output),
-                WhileStatement whileStatement => CheckWhileCodePath(whileStatement, methodReturnType, output),
-                BlockStatement blockStatement => CheckCodePath(blockStatement.Statements, methodReturnType, output),
+                IfStatement ifStatement => CheckIfCodePath(ifStatement, output),
+                WhileStatement whileStatement => CheckWhileCodePath(whileStatement, output),
+                BlockStatement blockStatement => CheckCodePath(blockStatement.Statements, output),
                 _ => false,
             };
 
@@ -1113,7 +1113,7 @@ namespace JavaWhoCompiler
             } 
             else if(!statementReturns)
             {
-                return CheckCodePath(statements.Slice(1, statements.Count - 1), methodReturnType, output);
+                return CheckCodePath(statements.Slice(1, statements.Count - 1), output);
             }
 
             return statementReturns;
@@ -1141,7 +1141,7 @@ namespace JavaWhoCompiler
 
             // only check code path if return is not void
             if (methodReturnType != TypeBase.VoidPrimitive &&
-                !CheckCodePath(body.Statements, methodReturnType, output))
+                !CheckCodePath(body.Statements, output))
             {
                 output.Add(new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position).ToString());
             }
