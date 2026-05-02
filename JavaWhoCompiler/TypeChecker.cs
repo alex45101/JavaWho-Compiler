@@ -1157,15 +1157,6 @@ namespace JavaWhoCompiler
             }
 
             AST statement = statements.First();
-            
-            // early return on break
-            // type checking will flag a misplaced break,
-            // and to prevent more complexity we'll just assume
-            // the break is well placed when checking code paths
-            if (statement is BreakStatement)
-            {
-                return false;
-            }
 
             bool statementReturns = statement switch
             {
@@ -1193,14 +1184,12 @@ namespace JavaWhoCompiler
             // if (true)
             if (NodeIsBoolLiteral(ifStatement.Guard, true))
             {
-                // only check if body
                 return FindLoopBreak([ifStatement.IfBody]);
             }
 
             // if (false)
             if (NodeIsBoolLiteral(ifStatement.Guard, false))
             {
-                // will still check else body in case there are more errors
                 return FindBreakInElseBody(ifStatement.ElseBody);
             }
 

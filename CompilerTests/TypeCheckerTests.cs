@@ -1022,11 +1022,13 @@ namespace CompilerTests
         public void IfElseLinkTests()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(true)
+                Int x;
+                x = 5;
+                if(x == 8)
                 {
                 
                 }
-                else if(true)
+                else if(x == 9)
                 {
                 
                 }
@@ -1040,8 +1042,7 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            // TODO: change test to not have dead code
-            Assert.NotEmpty(errors);
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -1059,7 +1060,6 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            // TODO: change test to not have dead code
             Assert.NotEmpty(errors);
         }
 
@@ -1201,7 +1201,6 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            // TODO: change test to not have dead code
             Assert.NotEmpty(errors);
         }
 
@@ -1915,6 +1914,29 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithNormalWhileTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(x == 5)
+                            {
+                                return 7;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
         public void CodePathsReturnWithNestedWhileBreakTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
@@ -1939,6 +1961,27 @@ namespace CompilerTests
                                 }
                             }
 
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithEmptyWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                            }
                         }
                     }
                     """);
@@ -2304,7 +2347,7 @@ namespace CompilerTests
                         z = x + y;
                     }
                 }
-                else if(true)
+                else if(x == 8)
                 {
                     x = 6;
                 }
@@ -2322,8 +2365,7 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            // TODO: change test to not have dead code
-            Assert.NotEmpty(errors);
+            Assert.Empty(errors);
         }
 
         [Fact]
@@ -2576,6 +2618,32 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 break;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BreakStatement")]
+        public void BreakOutsideLoopInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                class Test {
+                    init() {}
+                    method a(Int x) Int {
+                        break;
+                        while(x == 5)
+                        {
+                            x = x + 1;
+                        }
+
+                        return 7;
+                    }
+                }
                 """);
 
             AST root = Parser.Parse(tokens);
