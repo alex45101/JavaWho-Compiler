@@ -19,6 +19,7 @@ namespace JavaWhoCompiler
         public Scope Parent { get; init; }
         public TypeBase ReturnType { get; init; }
         public bool InLoop { get; init; }
+        public bool HasBreak { get; set; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
         public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false)
@@ -26,6 +27,7 @@ namespace JavaWhoCompiler
             Parent = parent;
             ReturnType = returnType;
             InLoop = inLoop;
+            HasBreak = false;
         }
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
@@ -867,6 +869,11 @@ namespace JavaWhoCompiler
 
         private void CheckTypeHelper(AST node, List<string> output)
         {
+            if (scope.HasBreak)
+            {
+                output.Add(new TypeException("Unreachable code after break", node.Position).ToString());
+            }
+
             switch (node)
             {
                 case ProgramNode prog:
@@ -915,58 +922,10 @@ namespace JavaWhoCompiler
 
                     break;
                 case IfStatement ifStatement:
-
-                    TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
-
-                    if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    CheckTypeHelper(ifStatement.IfBody, output);
-
-                    // if (false)
-                    if (NodeIsBoolLiteral(ifStatement.Guard, false))
-                    {
-                        // unreachable code
-                        output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
-                    }
-
-                    bool hasElse = ifStatement.ElseBody is not null;
-
-                    if (hasElse)
-                    {
-                        CheckTypeHelper(ifStatement.ElseBody, output);
-
-                        // if (true)
-                        if (NodeIsBoolLiteral(ifStatement.Guard, true))
-                        {
-                            // else would be unreachable
-                            output.Add(new TypeException("Unreachable code in else body", ifStatement.ElseBody.Position).ToString());
-                        }
-                    }
-
+                    CheckIfStatement(ifStatement, output);
                     break;
                 case WhileStatement whileStatement:
-                    TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
-
-                    if (!CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    if (whileStatement.Statement is AST whileBody)
-                    {
-                        CheckTypeHelper(whileBody, output);
-
-                        // while(false)
-                        if (NodeIsBoolLiteral(whileStatement.Guard, false))
-                        {
-                            // unreachable
-                            output.Add(new TypeException("Unreachable code in while body", whileBody.Position).ToString());
-                        }
-                    }
-
+                    CheckWhileStatement(whileStatement, output);
                     break;
                 case ReturnStatement returnStatement:
                     if (scope.ReturnType is null)
@@ -979,7 +938,11 @@ namespace JavaWhoCompiler
                     CheckMethodReturnType(scope.ReturnType, returnStatement, output);
                     break;
                 case BreakStatement breakStatement:
-                    if (!scope.InLoop)
+                    if(scope.InLoop)
+                    {
+                        scope.HasBreak = true;
+                    }
+                    else
                     {
                         output.Add(new TypeException("Cannot break outside of a loop context", breakStatement.Position).ToString());
                     }
@@ -1007,6 +970,82 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Type is not supported: {node.GetType()}", node.Position).ToString());
                     break;
             }
+        }
+
+        private void CheckIfStatement(IfStatement ifStatement, List<string> output)
+        {
+            // although not always technically a new scope, 
+            // entering a scope here prevents single line
+            // break statements as a body from marking the rest
+            // of the code in this scope as unreachable
+
+            // restriction of vardec as a single body statement
+            // makes this scope acceptable
+            EnterScope(scope.ReturnType);
+
+            TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
+
+            CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output);
+
+            AST ifBody = ifStatement.IfBody;
+
+            if (ifBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single if statement body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(ifBody, output);
+
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // unreachable code
+                output.Add(new TypeException("Unreachable code in if body", ifBody.Position).ToString());
+            }
+
+
+            if (ifStatement.ElseBody is AST elseBody)
+            {
+                CheckTypeHelper(elseBody, output);
+
+                // if (true)
+                if (NodeIsBoolLiteral(ifStatement.Guard, true))
+                {
+                    // else would be unreachable
+                    output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
+                }
+            }
+            
+            ExitScope();
+        }
+
+        private void CheckWhileStatement(WhileStatement whileStatement, List<string> output)
+        {
+            // see CheckIfStatement for scope reasoning
+            EnterScope(scope.ReturnType, true);
+
+            TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
+
+            CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output);
+
+            AST whileBody = whileStatement.Statement;
+
+            // while(false)
+            if (NodeIsBoolLiteral(whileStatement.Guard, false))
+            {
+                // unreachable
+                output.Add(new TypeException("Unreachable code in while(false) body", whileBody.Position).ToString());
+            }
+
+            if (whileBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single line loop body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(whileBody, output);
+
+            ExitScope();
         }
 
         private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
@@ -1070,12 +1109,6 @@ namespace JavaWhoCompiler
             // if (true)
             if (NodeIsBoolLiteral(ifStatement.Guard, true))
             {
-                // // else would be unreachable
-                // if (ifStatement.ElseBody is AST elseBody)
-                // {
-                //     output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
-                // }
-
                 // only check if body
                 return CheckCodePath([ifStatement.IfBody], output);
             }
@@ -1083,17 +1116,13 @@ namespace JavaWhoCompiler
             // if (false)
             if (NodeIsBoolLiteral(ifStatement.Guard, false))
             {
-                // // unreachable code
-                // output.Add(new TypeException("Unreachable code in if body", ifStatement.IfBody.Position).ToString());
-
                 // will still check else body in case there are more errors
                 return CheckElseCodePath(ifStatement.ElseBody, output);
             }
 
 
             bool ifPathResult = CheckCodePath([ifStatement.IfBody], output);
-            List<AST> elseBodyStatements = ifStatement.ElseBody != null ? [ifStatement.ElseBody] : [];
-            bool elsePathResult = CheckCodePath(elseBodyStatements, output);
+            bool elsePathResult = CheckElseCodePath(ifStatement.ElseBody, output);
 
             return ifPathResult && elsePathResult;
 
@@ -1107,19 +1136,14 @@ namespace JavaWhoCompiler
 
         private bool CheckWhileCodePath(WhileStatement whileStatement, List<string> output)
         {
-            // while(true)
+            // while(true) always treated as return unless break
             if (NodeIsBoolLiteral(whileStatement.Guard, true))
             {
-                // guaranteed to hit body, check if body returns
-                return CheckCodePath([whileStatement.Statement], output);
+                // guaranteed to hit body, check if there is a break
+                // if no break, then infinite loop or return in loop, and
+                // we can consider either valid
+                return !FindLoopBreak([whileStatement.Statement]);
             }
-
-            // // while(false)
-            // if (NodeIsBoolLiteral(whileStatement.Guard, false))
-            // {
-            //     // unreachable
-            //     output.Add(new TypeException("Unreachable code in while body", whileStatement.Statement.Position).ToString());
-            // }
 
             // return false so that CheckCodePath is forced to check next statement
             return false;
@@ -1134,6 +1158,14 @@ namespace JavaWhoCompiler
 
             AST statement = statements.First();
             
+            // early return on break
+            // type checking will flag a misplaced break,
+            // and to prevent more complexity we'll just assume
+            // the break is well placed when checking code paths
+            if (statement is BreakStatement)
+            {
+                return false;
+            }
 
             bool statementReturns = statement switch
             {
@@ -1154,6 +1186,58 @@ namespace JavaWhoCompiler
             }
 
             return statementReturns;
+        }
+
+        private bool FindBreakInIfStatement(IfStatement ifStatement)
+        {
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                // only check if body
+                return FindLoopBreak([ifStatement.IfBody]);
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // will still check else body in case there are more errors
+                return FindBreakInElseBody(ifStatement.ElseBody);
+            }
+
+
+            bool ifPathResult = FindLoopBreak([ifStatement.IfBody]);
+            bool elsePathResult = FindBreakInElseBody(ifStatement.ElseBody);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool FindBreakInElseBody(AST elseBody)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return FindLoopBreak(elseBodyStatements);
+        }
+
+
+        private bool FindLoopBreak(List<AST> statements)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+
+            bool found = statement switch
+            {
+                BreakStatement => true,
+                IfStatement ifStatement => FindBreakInIfStatement(ifStatement),
+                BlockStatement blockStatement => FindLoopBreak(blockStatement.Statements),
+
+                _ => false,
+            };
+
+            return found || FindLoopBreak(statements.Slice(1, statements.Count - 1));
         }
 
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)

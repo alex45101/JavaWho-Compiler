@@ -1206,6 +1206,73 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    break;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileNestedBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    if (x == 0)
+                        break;
+
+                    while(x == 8)
+                        break;
+
+                    break;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileBreakDeadCodeTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    break;
+                    Int x;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "Class")]
         public void SimpleClassTypeEqualityTest()
         {
@@ -1823,6 +1890,94 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithEarlyBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                break;
+                                return 5;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithNestedWhileBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(x == 5)
+                                {
+                                    while(true)
+                                    {
+                                        if(x == 7)
+                                            break;
+
+                                        return 7;
+                                    }
+                                }
+                                else
+                                {
+                                    return 7;
+                                }
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithNestedIfBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(true)
+                                    if(true)
+                                        if(true) {
+                                            break;
+                                        }
+                                    
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "BuiltInFunctions")]
         public void PrintLnTest()
         {
@@ -2406,6 +2561,36 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 5 / 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BreakStatement")]
+        public void BreakOutsideLoopTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                break;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ReturnStatement")]
+        public void ReturnOutsideMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                return;
                 """);
 
             AST root = Parser.Parse(tokens);
