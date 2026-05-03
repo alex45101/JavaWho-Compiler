@@ -117,6 +117,10 @@ namespace JavaWhoCompiler
                 case ReturnStatement returnStatement:
                     GenerateReturnStatement(returnStatement);
                     break;
+                case ExpressionStatement expressionStatement:
+                    GenerateExpression(expressionStatement.Expression);
+                    WriteLine(";");
+                    break;
                 default:
                     throw new NotImplementedException();
                     // throw new CodeGeneratorException("Something is deeply wrong...");
@@ -169,6 +173,14 @@ namespace JavaWhoCompiler
                     break;
                 case IntLiteral(int value, _):
                     Write(value.ToString());
+                    break;
+                case StringLiteral(string value, _):
+                    Write(value);
+                    break;
+                case PrintLnStatement printLnStatement:
+                    Write($"console.log(");
+                    GenerateExpression(printLnStatement.Argument);
+                    Write(")");
                     break;
                 default:
                     throw new NotImplementedException();
