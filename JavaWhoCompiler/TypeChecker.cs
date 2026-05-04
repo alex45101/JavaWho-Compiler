@@ -362,6 +362,11 @@ namespace JavaWhoCompiler
 
         public override string ToString()
         {
+            if (Types.Count == 0)
+            {
+                return "()";
+            }
+
             StringBuilder stringBuilder = new StringBuilder("(");
             for (int i = 0; i < Types.Count - 1; i++)
             {
@@ -539,6 +544,7 @@ namespace JavaWhoCompiler
         public void PopulateWithTypeMap(TypeMap typeMap, List<string> output)
         {
             if (isChecked) return;
+            isChecked = true;
 
             // populate parent class first
             if (ParentClassType is not null)
@@ -552,8 +558,6 @@ namespace JavaWhoCompiler
 
             InitializeLocalMethodSignatures(typeMap, output);
             CheckInheritedMethods(output);
-
-            isChecked = true;
         }
 
         private void InitializeConstructor(TypeMap typeMap, List<string> output)
@@ -1384,6 +1388,12 @@ namespace JavaWhoCompiler
         {
             TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
             TypeBase rightType = GetExpressionType(binaryExpression.Right, output);            
+
+            if (leftType is null || rightType is null)
+            {
+                output.Add(new TypeException("Cannot construct a boolean operator with unknown types", binaryExpression.Position).ToString());
+                return null;
+            }
 
             if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
             {
