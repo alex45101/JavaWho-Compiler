@@ -13,7 +13,7 @@ namespace JavaWhoCompiler
     public class InvalidTokenException(string Message) : Exception(Message);
 
     public sealed record UnknownToken(string Value, Position Position) : IToken;
-
+    public sealed record CommentToken(string Value, Position Position) : IToken;
     public sealed record IdentifierToken(string Value, Position Position) : IToken;
     public sealed record WhiteSpaceToken(string Value, Position Position) : IToken;
     public sealed record NewLineToken(string Value, Position Position) : IToken;
@@ -67,7 +67,7 @@ namespace JavaWhoCompiler
     {
         public static IReadOnlyDictionary<string, Func<string, int, int, IToken>> PatternToToken = new Dictionary<string, Func<string, int, int, IToken>>()
         {
-
+            [@"\G//[^\n]*|/\*[\s\S]*?\*/"] = (value, line, col) => new CommentToken(value, new Position(line, col)),
             [@"\G[\p{Zs}\t]+"] = (value, line, col) => new WhiteSpaceToken(value, new Position(line, col)),
             [@"\G(\r?\n|\r)"] = (value, line, col) => new NewLineToken(value, new Position(line, col)),
 
@@ -142,12 +142,10 @@ namespace JavaWhoCompiler
                     }
                 }
 
-
                 if (tokenMatch.Value is UnknownToken)
                 {
                     throw new InvalidTokenException($"Invalid token '{code[i]}' on line {line} position {position}");
                 }
-
 
                 i += tokenMatch.Key.Length - 1;
                 position += tokenMatch.Key.Length;
@@ -155,6 +153,11 @@ namespace JavaWhoCompiler
                 if (tokenMatch.Value is NewLineToken) {
                     line += 1;
                     position = 1;
+                }
+
+                if (tokenMatch.Value is CommentToken)
+                {
+                    continue;
                 }
 
                 // ignore whitespace
