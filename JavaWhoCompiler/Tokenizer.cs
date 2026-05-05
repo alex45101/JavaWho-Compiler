@@ -67,7 +67,7 @@ namespace JavaWhoCompiler
     {
         public static IReadOnlyDictionary<string, Func<string, int, int, IToken>> PatternToToken = new Dictionary<string, Func<string, int, int, IToken>>()
         {
-            [@"\G//[^\n]*|/\*[\s\S]*?\*/"] = (value, line, col) => new CommentToken(value, new Position(line, col)),
+            [@"\G//[^\n]*|\G/\*[\s\S]*?\*/"] = (value, line, col) => new CommentToken(value, new Position(line, col)),
             [@"\G[\p{Zs}\t]+"] = (value, line, col) => new WhiteSpaceToken(value, new Position(line, col)),
             [@"\G(\r?\n|\r)"] = (value, line, col) => new NewLineToken(value, new Position(line, col)),
 
