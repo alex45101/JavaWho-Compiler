@@ -686,16 +686,15 @@ namespace JavaWhoCompiler
 
             foreach (VariableDeclaration variableDeclaration in VariableDeclarations)
             {
-                if (Fields.ContainsKey(variableDeclaration.Var.Value))
+                bool added = Fields.TryAdd(
+                        variableDeclaration.Var.Value,
+                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output), variableDeclaration.Type.Position)
+                        );
+
+                if (!added)
                 {
                     output.Add(new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}", variableDeclaration.Position).ToString());
                 }
-
-                Fields.Add(
-                        variableDeclaration.Var.Value,
-                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output),
-                        variableDeclaration.Type.Position)
-                        );
             }
         }
 

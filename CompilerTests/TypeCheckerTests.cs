@@ -102,6 +102,44 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "ClassFields")]
+        public void ClassDuplicateFieldTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Int x;
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void InheritedClassDuplicateFieldTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() {}
+                    }
+
+                    class MyType extends Base {
+                        Int x;
+                        init() { super(); }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
         public void ClassUseVardecTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
