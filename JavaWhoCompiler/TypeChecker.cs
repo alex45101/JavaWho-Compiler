@@ -97,6 +97,7 @@ namespace JavaWhoCompiler
         public string Name { get; } = name;
         public TypeBase Base;
         public int DistanceFromBase { get; protected set; } = 0;
+        public abstract IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes { get; }
 
         public abstract bool CanBeAssignedTo(TypeBase other);
 
@@ -107,58 +108,129 @@ namespace JavaWhoCompiler
 
 
         // primitives
-        public readonly static PrimitiveType IntPrimitive = new("Int");
-        public readonly static PrimitiveType BooleanPrimitive = new("Boolean");
-        public readonly static PrimitiveType VoidPrimitive = new("Void");
-        public static readonly HashSet<PrimitiveType> Primitives = [
-            IntPrimitive,
-            BooleanPrimitive,
-            VoidPrimitive
-        ];
+        public readonly static PrimitiveType IntPrimitive;          
+        public readonly static PrimitiveType BooleanPrimitive;          
+        public readonly static PrimitiveType VoidPrimitive;
+        public static readonly HashSet<PrimitiveType> Primitives;
 
 
         // built ins
-        public readonly static ClassType ObjectBuiltIn = new(
-                new ClassDefinition(
-                    new IdentifiedNode("Object", null),
-                    null,
-                    [], // vardecs
-                    new Constructor([], null, [], null),
-                    [], // methods
-                    null
-                )
-                );
+        public readonly static ClassType ObjectBuiltIn;
+        public readonly static ClassType StringBuiltIn;
 
-        public readonly static ClassType StringBuiltIn = new(
-                new ClassDefinition(
-                    new IdentifiedNode("String", null),
-                    new IdentifiedNode("Object", null),
-                    [], // vardecs
-                    new Constructor([], null, [], null),
-                    [], // methods
-                    null
-                ),
-                ObjectBuiltIn // extending class
-                );
+        public readonly static HashSet<ClassType> BuiltIns;
+        public readonly static HashSet<TypeBase> Predefined;
 
-        public readonly static HashSet<ClassType> BuiltIns = [
-            ObjectBuiltIn,
+        static TypeBase()
+        {
+            IntPrimitive = new("Int",
+                new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+
+            BooleanPrimitive = new("Boolean",
+                new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+            VoidPrimitive = new("Void", new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>());
+            Primitives = [
+                IntPrimitive,
+                BooleanPrimitive,
+                VoidPrimitive
+            ];
+
+
+            // built ins
+            ObjectBuiltIn = new(
+                    new ClassDefinition(
+                        new IdentifiedNode("Object", null),
+                        null,
+                        [], // vardecs
+                        new Constructor([], null, [], null),
+                        [], // methods
+                        null
+                    )
+            );
+
+            StringBuiltIn = new(
+                    new ClassDefinition(
+                        new IdentifiedNode("String", null),
+                        new IdentifiedNode("Object", null),
+                        [], // vardecs
+                        new Constructor([], null, [], null),
+                        [], // methods
+                        null
+                    ),
+                    ObjectBuiltIn, // extending class
+                    new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+
+            IntPrimitive.SetOperator(OperatorType.Add, 
+                (IntPrimitive, IntPrimitive), 
+                (StringBuiltIn, StringBuiltIn)
+            );
+            IntPrimitive.SetOperator(OperatorType.Subtract, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.Multiply, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.Divide, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.LessThan, 
+                (IntPrimitive, BooleanPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.Equal, 
+                (IntPrimitive, BooleanPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.NotEqual, 
+                (IntPrimitive, BooleanPrimitive)
+            );
+
+            BooleanPrimitive.SetOperator(OperatorType.Equal, 
+                (BooleanPrimitive, BooleanPrimitive)
+            );
+            BooleanPrimitive.SetOperator(OperatorType.NotEqual, 
+                (BooleanPrimitive, BooleanPrimitive)
+            );
+
+            StringBuiltIn.SetOperator(OperatorType.Add, 
+                (IntPrimitive, StringBuiltIn), 
+                (StringBuiltIn, StringBuiltIn)
+            );
+            StringBuiltIn.SetOperator(OperatorType.Equal, 
+                (StringBuiltIn, BooleanPrimitive)
+            );
+            StringBuiltIn.SetOperator(OperatorType.NotEqual, 
+                (StringBuiltIn, BooleanPrimitive)
+            );
+
+            BuiltIns = [
+                ObjectBuiltIn,
             StringBuiltIn
-        ];
+            ];
 
 
-        public readonly static HashSet<TypeBase> Predefined = new([
-                ..Primitives,
+            Predefined = new([
+                    ..Primitives,
                 ..BuiltIns
-        ]);
+            ]);
+        }
     }
 
     public class PrimitiveType : TypeBase
     {
-        public PrimitiveType(string name) : base(name)
+        public override IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes => compOperatorTypes;
+
+        private Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compOperatorTypes;
+
+        public PrimitiveType(string name, Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes) : base(name)
         {
             Base = this;
+            compOperatorTypes = compatibleOperatorTypes;
         }
+
+        internal void SetOperator(OperatorType op, params (TypeBase Other, TypeBase Result)[] mappings)
+        => compOperatorTypes[op] = mappings.ToDictionary(m => m.Other, m => m.Result);
 
         public override bool CanBeAssignedTo(TypeBase other)
         {
@@ -263,9 +335,7 @@ namespace JavaWhoCompiler
         {
             return GetEnumerator();
         }
-
     }
-
 
     public sealed record TypeList(ImmutableList<TypeBase> Types)
     {
@@ -433,7 +503,7 @@ namespace JavaWhoCompiler
         private List<AST> VariableDeclarations;
         private List<AST> MethodDefinitions;
         private Constructor Constructor;
-
+        private Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compOperatorTypes;
 
         public ClassType ParentClassType { get; }
 
@@ -444,6 +514,7 @@ namespace JavaWhoCompiler
 
         public TypeList ConstructorTypes { get; private set; }
 
+        public override IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes => compOperatorTypes;
 
         private bool isChecked = false;
 
@@ -464,14 +535,16 @@ namespace JavaWhoCompiler
         //This constructor is for built in types, as in StringBuiltIn variable
         public ClassType(
                 ClassDefinition classDefinition,
-                TypeBase parentClassType
+                TypeBase parentClassType,
+                Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes
             )
-            : this(classDefinition, parentClassType, null)
+            : this(classDefinition, parentClassType, compatibleOperatorTypes, null)
         { }
 
         public ClassType(
                 ClassDefinition classDefinition,
                 TypeBase parentClassType,
+                Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes,
                 List<string> output
                 )
                 : base(classDefinition.Name.Value)
@@ -479,6 +552,8 @@ namespace JavaWhoCompiler
             // default to inheriting from Object
             Base = TypeBase.ObjectBuiltIn;
             ParentClassType = TypeBase.ObjectBuiltIn;
+
+            compOperatorTypes = compatibleOperatorTypes;
 
             if (parentClassType is not null && ValidateParentClass(classDefinition, parentClassType, output))
             {
@@ -492,6 +567,9 @@ namespace JavaWhoCompiler
 
             Constructor = (Constructor)classDefinition.Constructor;
         }
+
+        internal void SetOperator(OperatorType op, params (TypeBase Other, TypeBase Result)[] mappings)
+        => compOperatorTypes[op] = mappings.ToDictionary(m => m.Other, m => m.Result);
 
         private bool ValidateParentClass(ClassDefinition classDefinition, TypeBase parentClassType, List<string> output)
         {
@@ -821,6 +899,7 @@ namespace JavaWhoCompiler
                 new ClassType(
                     classDefinition,
                     extendingClassType,
+                    new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>(),
                     output
                 ),
                 classDefinition.Position,
@@ -948,7 +1027,7 @@ namespace JavaWhoCompiler
 
                     break;
                 case ReturnStatement returnStatement:
-                    
+
                     //did not pass in method name recursively
                     CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
 
@@ -967,7 +1046,7 @@ namespace JavaWhoCompiler
 
                     GetExpressionType(methodCallExpression, output);
 
-                    break;                
+                    break;
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -1022,7 +1101,7 @@ namespace JavaWhoCompiler
         }
 
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
-        {            
+        {
             AddParamsToScope(methodDefinition.Parameters, output);
 
             BlockStatement body = methodDefinition.Body as BlockStatement;
@@ -1174,77 +1253,36 @@ namespace JavaWhoCompiler
         {
             return binaryExpression.OperatorType switch
             {
-                OperatorType.Add or 
+                OperatorType.Add or
                 OperatorType.Subtract or
                 OperatorType.Multiply or
-                OperatorType.Divide => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.Divide or
                 OperatorType.LessThan or
                 OperatorType.Equal or
-                OperatorType.NotEqual => DeriveBooleanOperatorType(binaryExpression, output),
+                OperatorType.NotEqual => CheckAndGetResultTypeOfBinaryExpression(binaryExpression, output),                                            
                 _ => throw new Exception("Something went horribly wrong...") //should never happen
             };
         }
 
-        private TypeBase DeriveBooleanOperatorType(BinaryExpression binaryExpression, List<string> output)
-        {
-            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
-            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);            
-
-            if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
-            {
-                output.Add(new TypeException($"Can not compare {leftType} to {rightType}", binaryExpression.Position).ToString());
-                return null;
-            }
-
-            //if we arent doing LessThan op then we just return otherwise make sure left and right are ints
-            if (binaryExpression.OperatorType != OperatorType.LessThan)
-            {
-                return TypeBase.BooleanPrimitive;
-            }
-
-            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
-            {
-                return null;
-            }
-
-            return TypeBase.BooleanPrimitive;
-        }
-
-        private TypeBase DeriveMathOperatorType(BinaryExpression binaryExpression, List<string> output)
+        private TypeBase CheckAndGetResultTypeOfBinaryExpression(BinaryExpression binaryExpression, List<string> output)
         {
             TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
             TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
 
-            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
+            if (leftType.CompatibleOperatorTypes.TryGetValue(binaryExpression.OperatorType, out var leftMap)
+                && leftMap.TryGetValue(rightType, out TypeBase resultType))
             {
-                return null;
+                return resultType;
             }
 
-            return TypeBase.IntPrimitive;
-        }
-
-        private bool BinaryExpressionIntCheck(BinaryExpression binaryExpression, TypeBase leftType, TypeBase rightType, List<string> output)
-        {
-            if (leftType != TypeBase.IntPrimitive)
-            {
-                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
-                return false;
-            }
-
-            if (rightType != TypeBase.IntPrimitive)
-            {
-                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
-                return false;
-            }
-
-            return true;
+            output.Add(new TypeException($"Can not {binaryExpression.OperatorType} with Type {leftType.Name} and Type {rightType.Name}", binaryExpression.Position).ToString());
+            return null;
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes, List<string> output)
         {
             return new TypeList(nodes.Select(n => GetExpressionType(n, output)).ToImmutableList());
         }
-
 
         private TypeBase DerivePrintLnStatementType(PrintLnStatement printLnStatement, List<string> output)
         {
@@ -1253,7 +1291,7 @@ namespace JavaWhoCompiler
             {
                 output.Add(new TypeException($"Cannot call println with an unknown typed argument", printLnStatement.Position).ToString());
             }
-            
+
             return TypeBase.VoidPrimitive;
         }
 

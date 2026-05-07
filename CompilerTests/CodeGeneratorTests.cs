@@ -407,6 +407,132 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "CodeExamples")]
+        public void InheritanceClassExampleTest()
+        {
+            string code = """
+                class Pet
+                {
+                    String Name;
+                    Int Age;
+
+                    init(String name, Int age)
+                    {
+                        Name = name;
+                        Age = age;
+                    } 
+
+                    method Info() Void
+                    {
+                        println("Pet Name: " + Name + ", Age: " + Age);
+                    }
+                }
+
+                class Cat extends Pet
+                {
+                    Int Lives;
+
+                    init(String name, Int age, Int lives)
+                    {
+                        super(name, age);
+
+                        Lives = lives;
+                    }
+
+                    method Lives() Void
+                    {
+                        println("Lives: " + Lives);
+                    }
+
+                    method LoseLives(Int livesToLose) Boolean
+                    {
+                        Int tempLives;
+                        tempLives = Lives - livesToLose;
+
+                        if (tempLives < 0)
+                        {
+                            return false;
+                        }
+
+                        Lives = tempLives;
+
+                        return true;
+                    }
+                }
+
+                Pet john;
+                john = new Pet("john", 8);
+
+                john.Info();
+
+                Cat sam;
+                sam = new Cat("sam", 1, 9);
+
+                sam.Info();
+                sam.Lives();
+
+                Boolean result;
+                result = sam.LoseLives(1);
+                println(result);
+                sam.Lives();
+
+                result = sam.LoseLives(67);
+                println(result);
+                sam.Lives();
+                """;
+
+            string expected = """
+                class Pet {
+                    Name;
+                    Age;
+                    constructor(name, age) {
+                        this.Name = name;
+                        this.Age = age;
+                    }
+                    Empty_Info_Void() {
+                        console.log("Pet Name: " + this.Name + ", Age: " + this.Age);
+                    }
+                }
+                class Cat extends Pet {
+                    Lives;
+                    constructor(name, age, lives) {
+                        super(name, age);
+                        this.Lives = lives;
+                    }
+                    Empty_Lives_Void() {
+                        console.log("Lives: " + this.Lives);
+                    }
+                    Int_LoseLives_Boolean(livesToLose) {
+                        let tempLives;
+                        tempLives = this.Lives - livesToLose;
+                        if(tempLives < 0) {
+                            return false;
+                        }
+                        this.Lives = tempLives;
+                        return true;
+                    }
+                }
+                let john;
+                john = new Pet("john", 8);
+                john.Empty_Info_Void();
+                let sam;
+                sam = new Cat("sam", 1, 9);
+                sam.Empty_Info_Void();
+                sam.Empty_Lives_Void();
+                let result;
+                result = sam.Int_LoseLives_Boolean(1);
+                console.log(result);
+                sam.Empty_Lives_Void();
+                result = sam.Int_LoseLives_Boolean(67);
+                console.log(result);
+                sam.Empty_Lives_Void();
+                
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
         public void TmpTest()
         {
             string code = """

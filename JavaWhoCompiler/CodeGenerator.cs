@@ -12,7 +12,7 @@ namespace JavaWhoCompiler
         private void Indent() => targetIndent += 1;
         private void Dedent() => targetIndent -= 1;
 
-        public readonly static string INDENT_TEXT = "    ";
+        private readonly static string INDENT_TEXT = "    ";
 
         public static string Generate(ProgramNode programNode)
         {
