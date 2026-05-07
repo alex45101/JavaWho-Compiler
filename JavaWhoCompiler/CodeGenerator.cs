@@ -169,6 +169,8 @@ namespace JavaWhoCompiler
                         GenerateConditional("else if", currIfStatement.Guard, currIfStatement.IfBody);
                         currentElse = currIfStatement.ElseBody;
                         break;
+                    default:
+                        throw new CodeGeneratorException("Something went wrong...");
                 }
             }
         }
