@@ -593,10 +593,10 @@ namespace CompilerTests
                         method a(Boolean y) Boolean { return y; }
                         method a(SubType s) SubType { return s; }
                     }
-                    
+
                     SubTestType s;
                     s = new SubTestType(new SubType());
-                    
+
                     Int a;
                     a = s.a(new MyType());
 
@@ -756,7 +756,7 @@ namespace CompilerTests
 
             Assert.NotEmpty(errors);
         }
-        
+
         [Fact]
         [Trait("Category", "ClassDeclaration")]
         public void MismatchConstructorCallTest() {
@@ -821,6 +821,315 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     Int x;
                     Int y;
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    } else {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarBadIfElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    } else {
+                        num = 98;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfTrueTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    if(true) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfFalseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    if(false) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    while(num < 10) {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(true) {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(true) {
+                        y = 5;
+                        break;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueNestedBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            y = 3;
+                            break;
+                        } else {
+                            y = 7;
+                            break;
+                        }
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBadNestedIfElseBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            y = 3;
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBadIfBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            break;
+                        }
+                        
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueNestedWhileTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+
+                    while(true) {
+                        while(true) {
+                            if (true) {
+                                y = 5;
+                                break;
+                            }
+                        }
+
+                        num = y;
+                        break;
+                    }
+
+                    x = y;
+                    x = num;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileFalseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(false) {
+                        y = 5;
+                        break;
+                    }
 
                     x = y;
                     """);
@@ -1044,7 +1353,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 if(true)
                 {
-                
+
                 }
                 """);
 
@@ -1064,15 +1373,15 @@ namespace CompilerTests
                 x = 5;
                 if(x == 8)
                 {
-                
+
                 }
                 else if(x == 9)
                 {
-                
+
                 }
                 else
                 {
-                
+
                 }
                 """);
 
@@ -1090,7 +1399,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 if(false)
                 {
-                
+
                 }
                 """);
 
@@ -1114,7 +1423,7 @@ namespace CompilerTests
 
                 if(x == y)
                 {
-                
+
                 }
                 """);
 
@@ -1154,7 +1463,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 x = 5;
-                
+
                 if(x < 6)
                 {
                     Int y;
@@ -1213,7 +1522,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 while(true)
                 {
-                
+
                 }
                 """);
 
@@ -1231,7 +1540,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 while(false)
                 {
-                
+
                 }
                 """);
 
@@ -1318,7 +1627,7 @@ namespace CompilerTests
                     {
                         init(){}
                     }
-                    
+
                     MyType a;
                     MyType b;
 
@@ -1327,7 +1636,7 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -1373,7 +1682,7 @@ namespace CompilerTests
                     {
                         init(){ super(); }
                     }
-                    
+
                     MyType a;
                     SubType b;
 
@@ -1382,12 +1691,12 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
 
                     if(b == a)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -1414,7 +1723,7 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -2045,7 +2354,7 @@ namespace CompilerTests
                                         if(true) {
                                             break;
                                         }
-                                    
+
                             }
 
                         }
@@ -2262,10 +2571,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x - y;
                 """);
@@ -2284,10 +2593,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x * y;
                 """);
@@ -2306,10 +2615,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x / y;
                 """);
@@ -2328,10 +2637,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Int y;
-                
+
                 x = 5;
                 y = 7;
-                
+
                 Boolean result;
                 result = x < y;
                 """);
@@ -2350,10 +2659,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Boolean result;
                 result = x < y;
                 """);
@@ -2371,7 +2680,7 @@ namespace CompilerTests
         { 
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
-                
+
                 x = 5;
 
                 if(x < 8)
@@ -2412,7 +2721,7 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
-                
+
                 x = 5;
 
                 if(x < 8)
@@ -2462,7 +2771,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == false)
                 {
-                
+
                 }
                 """);
 
@@ -2486,7 +2795,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == (1 + 2))
                 {
-                
+
                 }
                 """);
 
@@ -2510,7 +2819,7 @@ namespace CompilerTests
 
                 while(((x + 7) < (y + 3)) == false)
                 {
-                
+
                 }
                 """);
 
@@ -2534,7 +2843,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == (1 + 2))
                 {
-                
+
                 }
                 """);
 

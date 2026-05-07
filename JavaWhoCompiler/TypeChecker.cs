@@ -12,7 +12,7 @@ namespace JavaWhoCompiler
     public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
 
 
-    public record VarInfo(TypeBase Type, bool IsAssigned, bool IsField);
+    public record VarInfo(TypeBase Type, bool IsField);
 
     public class Scope
     {
@@ -32,15 +32,7 @@ namespace JavaWhoCompiler
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, false)))
-            {
-                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
-            }
-        }
-
-        public void DefineAssigned(string name, TypeBase type, Position position, List<string> output)
-        {
-            if (!lookUp.TryAdd(name, new VarInfo(type, true, false)))
+            if (!lookUp.TryAdd(name, new VarInfo(type, false)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
@@ -48,7 +40,7 @@ namespace JavaWhoCompiler
 
         public void DefineField(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, true)))
+            if (!lookUp.TryAdd(name, new VarInfo(type, true)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
@@ -62,8 +54,6 @@ namespace JavaWhoCompiler
                 {
                     output.Add(new TypeException($"Can not assign {type} to {info.Type}", position).ToString());
                 }
-
-                lookUp[name] = new VarInfo(info.Type, true, info.IsField);
             }
             else if (Parent != null)
             {
@@ -891,6 +881,8 @@ namespace JavaWhoCompiler
                     {
                         CheckTypeHelper(statement, output);
                     }
+
+                    CheckAssignment(prog.Statements, [], output);
                     break;
                 case BlockStatement blockStatement:
 
@@ -1077,7 +1069,7 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            scope.DefineAssigned("this", classType, classDefinition.Position, output);
+            // scope.DefineAssigned("this", classType, classDefinition.Position, output);
 
             // add fields to scope
             foreach ((string name, (TypeBase type, Position position)) in classType.Fields)
@@ -1232,6 +1224,123 @@ namespace JavaWhoCompiler
             return found || FindLoopBreak(statements.Slice(1, statements.Count - 1));
         }
 
+        private HashSet<string> CheckIfAssignment(IfStatement ifStatement, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            CheckExpressionAssignment(ifStatement.Guard, prevAssignSet, output);
+
+            HashSet<string> ifBodySet = CheckAssignment([ifStatement.IfBody], prevAssignSet, output, breakAssignmentSets);
+            HashSet<string> elseBodySet = CheckElseAssignment(ifStatement.ElseBody, prevAssignSet, output, breakAssignmentSets);
+
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                return ifBodySet;
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                return elseBodySet;
+            }
+
+            return ifBodySet.Intersect(elseBodySet).ToHashSet();
+        }
+
+        private HashSet<string> CheckElseAssignment(AST elseBody, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            return elseBody is null ? new() : CheckAssignment([elseBody], prevAssignSet, output, breakAssignmentSets);
+        }
+
+        private HashSet<string> CheckWhileAssignment(WhileStatement whileStatement, HashSet<string> prevAssignSet, List<string> output)
+        {
+            CheckExpressionAssignment(whileStatement.Guard, prevAssignSet, output);
+            
+            List<HashSet<string>> breakAssignmentSets = new();
+            CheckAssignment([whileStatement.Statement], prevAssignSet, output, breakAssignmentSets);
+
+            // while(true)
+            if (NodeIsBoolLiteral(whileStatement.Guard, true) && breakAssignmentSets.Count > 0)
+            {
+                return breakAssignmentSets.Aggregate((acc, next) => acc.Intersect(next).ToHashSet());
+            }
+
+            // anything other than while(true) we can't determine if assignment outlives the while statement
+            return new();
+        }
+
+        private HashSet<string> CheckAssignment(List<AST> statements, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            if (statements.Count == 0)
+            {
+                return prevAssignSet;
+            }
+
+            AST statement = statements.First();
+
+            if (statement is BreakStatement && breakAssignmentSets is not null)
+            {
+                breakAssignmentSets.Add(prevAssignSet);
+                return prevAssignSet;
+            }
+
+            HashSet<string> statementAssignSet;
+            switch (statement)
+            {
+                case AssignmentStatement(IdentifiedNode var, AST val, _):
+                    statementAssignSet = new HashSet<string>([var.Value]);
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case IfStatement ifStatement:
+                    statementAssignSet = CheckIfAssignment(ifStatement, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case WhileStatement whileStatement:
+                    statementAssignSet = CheckWhileAssignment(whileStatement, prevAssignSet, output);
+                    break;
+                case BlockStatement(List<AST> blockStatements, _):
+                    statementAssignSet = CheckAssignment(blockStatements, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case ReturnStatement(AST val, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case ExpressionStatement(AST expression, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(expression, prevAssignSet, output);
+                    break;
+                default:
+                    statementAssignSet = new();
+                    break;
+            };
+
+
+            statementAssignSet = prevAssignSet.Union(statementAssignSet).ToHashSet();
+            HashSet<string> nextStatementAssignSet = CheckAssignment(statements.Slice(1, statements.Count - 1), statementAssignSet, output, breakAssignmentSets);
+            return statementAssignSet.Union(nextStatementAssignSet).ToHashSet();
+        }
+
+        private void CheckExpressionAssignment(AST expression, HashSet<string> assignSet, List<string> output)
+        {
+            switch (expression)
+            {
+                case IdentifiedNode identifiedNode:
+                    if (!assignSet.Contains(identifiedNode.Value))
+                    {
+                        output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
+                    }
+                    break;
+                case BinaryExpression(AST left, _, AST right, _):
+                    CheckExpressionAssignment(left, assignSet, output);
+                    CheckExpressionAssignment(right, assignSet, output);
+                    break;
+                case MethodCallExpression(_, _, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+                case NewObjectExpression(_, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+            }
+        }
+
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
         {            
             BlockStatement body = methodDefinition.Body as BlockStatement;
@@ -1330,7 +1439,7 @@ namespace JavaWhoCompiler
             {
                 VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
 
-                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                // scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
             }
         }
 
@@ -1470,10 +1579,10 @@ namespace JavaWhoCompiler
                 return null;
             }
 
-            if (!varInfo.IsAssigned)
-            {
-                output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
-            }
+            // if (!varInfo.IsAssigned)
+            // {
+            //     output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
+            // }
 
             identifiedNode.IsField = varInfo.IsField;
 
