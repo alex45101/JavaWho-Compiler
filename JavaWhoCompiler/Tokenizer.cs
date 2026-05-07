@@ -150,18 +150,22 @@ namespace JavaWhoCompiler
                 i += tokenMatch.Key.Length - 1;
                 position += tokenMatch.Key.Length;
 
-                if (tokenMatch.Value is NewLineToken) {
+                if (tokenMatch.Value is NewLineToken)
+                {
                     line += 1;
                     position = 1;
                 }
 
                 if (tokenMatch.Value is CommentToken)
                 {
+                    line += Regex.Matches(tokenMatch.Value.Value, Environment.NewLine).Count;
+                    position = 1;
                     continue;
                 }
 
                 // ignore whitespace
-                if (tokenMatch.Value is not WhiteSpaceToken && tokenMatch.Value is not NewLineToken) {
+                if (tokenMatch.Value is not WhiteSpaceToken && tokenMatch.Value is not NewLineToken)
+                {
                     tokens.Add(tokenMatch.Value);
                 }
 
