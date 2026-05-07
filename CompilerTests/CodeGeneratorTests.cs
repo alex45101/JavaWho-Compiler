@@ -38,21 +38,9 @@ namespace CompilerTests
 
                 """
             };
-
-            // return
-            yield return new object[] {
-                "return 5;",
-                $$"""
-                return 5;
-
-                """
-            };
         }
 
-        [Theory]
-        [Trait("Category", "Statement")]
-        [MemberData(nameof(StatementCodeResults))]
-        public void GenerateStatementTest(string code, string expected)
+        private void AssertHelperExpectedResultCode(string expected, string code)
         {
             var tokens = Tokenizer.Tokenize(code);
             var ast = Parser.Parse(tokens);
@@ -64,7 +52,7 @@ namespace CompilerTests
             Assert.Empty(errors);
 
             ProgramNode programNode = (ProgramNode)ast;
-            
+
             CodeGenerator codeGenerator = new(stringWriter);
             codeGenerator.GenerateProgram(programNode);
 
@@ -72,6 +60,14 @@ namespace CompilerTests
             string result = stringBuilder.ToString();
             Console.WriteLine(result);
             Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [Trait("Category", "Statement")]
+        [MemberData(nameof(StatementCodeResults))]
+        public void GenerateStatementTest(string code, string expected)
+        {
+            AssertHelperExpectedResultCode(expected, code);
         }
 
         [Fact]
@@ -89,24 +85,8 @@ namespace CompilerTests
                 }
 
                 """;
-            var tokens = Tokenizer.Tokenize(code);
-            var ast = Parser.Parse(tokens);
 
-            StringBuilder stringBuilder = new();
-            StringWriter stringWriter = new(stringBuilder);
-
-            List<string> errors = TypeChecker.CheckType(ast);
-            Assert.Empty(errors);
-
-            ProgramNode programNode = (ProgramNode)ast;
-            
-            CodeGenerator codeGenerator = new(stringWriter);
-            codeGenerator.GenerateProgram(programNode);
-
-            stringWriter.Close();
-            string result = stringBuilder.ToString();
-            Console.WriteLine(result);
-            Assert.Equal(expected, result);
+            AssertHelperExpectedResultCode(expected, code);
         }
 
         [Fact]
@@ -124,24 +104,8 @@ namespace CompilerTests
                 }
 
                 """;
-            var tokens = Tokenizer.Tokenize(code);
-            var ast = Parser.Parse(tokens);
 
-            StringBuilder stringBuilder = new();
-            StringWriter stringWriter = new(stringBuilder);
-
-            List<string> errors = TypeChecker.CheckType(ast);
-            Assert.Empty(errors);
-
-            ProgramNode programNode = (ProgramNode)ast;
-            
-            CodeGenerator codeGenerator = new(stringWriter);
-            codeGenerator.GenerateProgram(programNode);
-
-            stringWriter.Close();
-            string result = stringBuilder.ToString();
-            Console.WriteLine(result);
-            Assert.Equal(expected, result);
+            AssertHelperExpectedResultCode(expected, code);
         }
 
         [Fact]
@@ -164,28 +128,100 @@ namespace CompilerTests
                 }
 
                 """;
-            var tokens = Tokenizer.Tokenize(code);
-            var ast = Parser.Parse(tokens);
 
-            StringBuilder stringBuilder = new();
-            StringWriter stringWriter = new(stringBuilder);
-
-            List<string> errors = TypeChecker.CheckType(ast);
-            Assert.Empty(errors);
-
-            ProgramNode programNode = (ProgramNode)ast;
-            
-            CodeGenerator codeGenerator = new(stringWriter);
-            codeGenerator.GenerateProgram(programNode);
-
-            stringWriter.Close();
-            string result = stringBuilder.ToString();
-            Console.WriteLine(result);
-            Assert.Equal(expected, result);
+            AssertHelperExpectedResultCode(expected, code);
         }
-        
+
         [Fact]
-        public void TmpTest() {
+        public void PrintlnExpression()
+        {
+            string code = """
+                println(4);
+                """;
+
+            string expected = """
+                console.log(4);
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        public void BinaryIntAddExpression()
+        {
+            string code = """
+                Int x;
+
+                x = 4 + 5;
+                """;
+
+            string expected = """
+                let x;
+                x = 4 + 5;
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        public void BinaryIntSubtractExpression()
+        {
+            string code = """
+                Int x;
+
+                x = 4 - 5;
+                """;
+
+            string expected = """
+                let x;
+                x = 4 - 5;
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        public void BinaryIntMultiplyExpression()
+        {
+            string code = """
+                Int x;
+
+                x = 4 * 5;
+                """;
+
+            string expected = """
+                let x;
+                x = 4 * 5;
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        public void BinaryIntDivideExpression()
+        {
+            string code = """
+                Int x;
+
+                x = 4 / 5;
+                """;
+
+            string expected = """
+                let x;
+                x = 4 / 5;
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        public void TmpTest()
+        {
             string code = """
                 class Pet
                 {
@@ -224,24 +260,24 @@ namespace CompilerTests
                 }
                 """;
 
-                var tokens = Tokenizer.Tokenize(code);
-                var ast = Parser.Parse(tokens);
+            var tokens = Tokenizer.Tokenize(code);
+            var ast = Parser.Parse(tokens);
 
-                StringBuilder stringBuilder = new();
-                StringWriter stringWriter = new(stringBuilder);
+            StringBuilder stringBuilder = new();
+            StringWriter stringWriter = new(stringBuilder);
 
-                List<string> errors = TypeChecker.CheckType(ast);
-                Assert.Empty(errors);
+            List<string> errors = TypeChecker.CheckType(ast);
+            Assert.Empty(errors);
 
-                ProgramNode programNode = (ProgramNode)ast;
-                
-                CodeGenerator codeGenerator = new(stringWriter);
-                codeGenerator.GenerateProgram(programNode);
+            ProgramNode programNode = (ProgramNode)ast;
 
-                stringWriter.Close();
-                
-                string result = stringBuilder.ToString();
-                Console.WriteLine(result);
+            CodeGenerator codeGenerator = new(stringWriter);
+            codeGenerator.GenerateProgram(programNode);
+
+            stringWriter.Close();
+
+            string result = stringBuilder.ToString();
+            Console.WriteLine(result);
         }
     }
 }
