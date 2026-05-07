@@ -53,12 +53,8 @@ namespace CompilerTests
 
             ProgramNode programNode = (ProgramNode)ast;
 
-            CodeGenerator codeGenerator = new(stringWriter);
-            codeGenerator.GenerateProgram(programNode);
+            string result = CodeGenerator.Generate(programNode);
 
-            stringWriter.Close();
-            string result = stringBuilder.ToString();
-            Console.WriteLine(result);
             Assert.Equal(expected, result);
         }
 
@@ -214,6 +210,197 @@ namespace CompilerTests
                 let x;
                 x = 4 / 5;
 
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatments")]
+        public void IfStatementTest()
+        {
+            string code = """
+                Int x;
+
+                x = 4;
+
+                if(x < 5)
+                {
+                    println("Well hello, there");
+                }
+                """;
+
+            string expected = """
+                let x;
+                x = 4;
+                if(x < 5) {
+                    console.log("Well hello, there");
+                }
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatments")]
+
+        public void IfElseStatementTest()
+        {
+            string code = """
+                Int x;
+
+                x = 4;
+
+                if(x < 5)
+                {
+                    println("Well hello, there");
+                }
+                else
+                {
+                    println("No hello, there");
+                }
+                """;
+
+            string expected = """
+                let x;
+                x = 4;
+                if(x < 5) {
+                    console.log("Well hello, there");
+                }
+                else {
+                    console.log("No hello, there");
+                }
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatments")]
+        public void IfElseIfElseStatementTest()
+        {
+            string code = """
+                Int x;
+
+                x = 4;
+
+                if(x < 5)
+                {
+                    println("Well hello, there");
+                }
+                else if (x < 3)
+                {
+                    println("No hello, there");
+                }
+                else
+                {
+                    println("ooops");
+                }
+                """;
+
+            string expected = """
+                let x;
+                x = 4;
+                if(x < 5) {
+                    console.log("Well hello, there");
+                }
+                else if(x < 3) {
+                    console.log("No hello, there");
+                }
+                else {
+                    console.log("ooops");
+                }
+
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "IfStatments")]
+        public void IfElseNestedTest()
+        {
+            string code = """
+                Int x;
+
+                x = 4;
+
+                if(x < 5)
+                {
+                    Int y;
+                    y = 3;
+
+                    if(y < 4)
+                    {
+                        println("Well hello, there");
+                    }
+                    else
+                    {
+                        if(x < 4)
+                        {
+                            println("Thing");
+                        }
+                        println("Nope");
+                    }
+                    
+                }
+                else if (x < 3)
+                {
+                    if(x == 3)
+                    {
+                        println("swag");
+                    }
+
+                    println("No hello, there");
+                }
+                else
+                {
+                    if(x == 5)
+                    {
+                        println("cool");
+                    }
+                    else if (x == 4)
+                    {
+                        println("sup");
+                    }
+                    println("ooops");
+                }
+                """;
+
+            string expected = """
+                let x;
+                x = 4;
+                if(x < 5) {
+                    let y;
+                    y = 3;
+                    if(y < 4) {
+                        console.log("Well hello, there");
+                    }
+                    else {
+                        if(x < 4) {
+                            console.log("Thing");
+                        }
+                        console.log("Nope");
+                    }
+                }
+                else if(x < 3) {
+                    if(x == 3) {
+                        console.log("swag");
+                    }
+                    console.log("No hello, there");
+                }
+                else {
+                    if(x == 5) {
+                        console.log("cool");
+                    }
+                    else if(x == 4) {
+                        console.log("sup");
+                    }
+                    console.log("ooops");
+                }
+                
                 """;
 
             AssertHelperExpectedResultCode(expected, code);

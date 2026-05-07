@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace JavaWhoCompiler
 {
     public class CodeGeneratorException(string message) : Exception(message);
@@ -12,6 +14,19 @@ namespace JavaWhoCompiler
 
         public readonly static string INDENT_TEXT = "    ";
 
+        public static string Generate(ProgramNode programNode)
+        {
+            StringBuilder builder = new();
+            StringWriter writer = new(builder);
+
+            CodeGenerator codeGenerator = new(writer);
+            codeGenerator.GenerateProgram(programNode);
+
+            writer.Close();
+
+            return builder.ToString();
+        }
+
         public static void Generate(ProgramNode programNode, string outPath)
         {
             StreamWriter streamWriter = new(outPath);
@@ -24,12 +39,12 @@ namespace JavaWhoCompiler
 
         public void GenerateProgram(ProgramNode programNode)
         {
-            foreach(ClassDefinition classDefinition in programNode.Classes)
+            foreach (ClassDefinition classDefinition in programNode.Classes)
             {
                 GenerateClass(classDefinition);
             }
 
-            foreach(AST statement in programNode.Statements)
+            foreach (AST statement in programNode.Statements)
             {
                 GenerateStatement(statement);
             }
@@ -46,14 +61,14 @@ namespace JavaWhoCompiler
             WriteLine(" {");
             Indent();
 
-            foreach(VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
+            foreach (VariableDeclaration variableDeclaration in classDefinition.VariableDeclarations)
             {
                 GenerateField(variableDeclaration);
             }
 
             GenerateConstructor((Constructor)classDefinition.Constructor);
 
-            foreach(MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
+            foreach (MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
             {
                 GenerateMethod(methodDefinition);
             }
@@ -71,7 +86,7 @@ namespace JavaWhoCompiler
             // constructor body start
             WriteLine(" {");
             Indent();
-            
+
             // super
             if (constructor.SuperArguments is List<AST> args)
             {
@@ -81,7 +96,7 @@ namespace JavaWhoCompiler
             }
 
             // statements
-            foreach(AST statement in constructor.Statements)
+            foreach (AST statement in constructor.Statements)
             {
                 GenerateStatement(statement);
             }
@@ -97,13 +112,13 @@ namespace JavaWhoCompiler
             Write("(");
             GenerateCommaSeperated<VariableDeclaration>(methodDefinition.Parameters, GenerateParameter);
             Write(") ");
-            
+
             GenerateBlockStatement((BlockStatement)methodDefinition.Body);
         }
 
         private void GenerateStatement(AST statement)
         {
-            switch(statement)
+            switch (statement)
             {
                 case VariableDeclaration variableDeclaration:
                     GenerateVariableDeclarationStatement(variableDeclaration);
@@ -139,6 +154,23 @@ namespace JavaWhoCompiler
         private void GenerateIfStatement(IfStatement ifStatement)
         {
             GenerateConditional("if", ifStatement.Guard, ifStatement.IfBody);
+
+            AST currentElse = ifStatement.ElseBody;
+
+            while (currentElse is not null)
+            {
+                switch (currentElse)
+                {
+                    case BlockStatement:
+                        GenerateConditional("else", null, currentElse);
+                        currentElse = null;
+                        break;
+                    case IfStatement currIfStatement:                        
+                        GenerateConditional("else if", currIfStatement.Guard, currIfStatement.IfBody);
+                        currentElse = currIfStatement.ElseBody;
+                        break;
+                }
+            }
         }
 
         private void GenerateWhileStatement(WhileStatement whileStatement)
@@ -149,9 +181,13 @@ namespace JavaWhoCompiler
         private void GenerateConditional(string conditionalName, AST guard, AST body)
         {
             Write(conditionalName);
-            Write("(");
-            GenerateExpression(guard);
-            Write(")");
+
+            if (guard is not null)
+            {
+                Write("(");
+                GenerateExpression(guard);
+                Write(")");
+            }
 
             if (body is BlockStatement blockStatement)
             {
@@ -170,7 +206,7 @@ namespace JavaWhoCompiler
         {
             WriteLine("{");
             Indent();
-            foreach(AST statement in blockStatement.Statements)
+            foreach (AST statement in blockStatement.Statements)
             {
                 GenerateStatement(statement);
             }
@@ -181,7 +217,7 @@ namespace JavaWhoCompiler
         private void GenerateReturnStatement(ReturnStatement returnStatement)
         {
             Write("return");
-            if(returnStatement.Val is AST expression)
+            if (returnStatement.Val is AST expression)
             {
                 Write(" ");
                 GenerateExpression(expression);
@@ -202,7 +238,7 @@ namespace JavaWhoCompiler
 
         private void GenerateExpression(AST expression)
         {
-            switch(expression)
+            switch (expression)
             {
                 case IdentifiedNode identifiedNode:
                     GenerateIdentifiedNode(identifiedNode);
@@ -296,14 +332,14 @@ namespace JavaWhoCompiler
         }
 
         private void GenerateCommaSeperated<T>(List<AST> items, Action<T> generate)
-            where T: AST
+            where T : AST
         {
-            if(items.Count == 0)
+            if (items.Count == 0)
             {
                 return;
             }
 
-            for(int i = 0; i < items.Count - 1; i++)
+            for (int i = 0; i < items.Count - 1; i++)
             {
                 generate((T)items[i]);
                 Write(", ");
@@ -314,7 +350,7 @@ namespace JavaWhoCompiler
 
         private void Write(string text)
         {
-            while(curIndent < targetIndent)
+            while (curIndent < targetIndent)
             {
                 textWriter.Write(INDENT_TEXT);
                 curIndent += 1;
