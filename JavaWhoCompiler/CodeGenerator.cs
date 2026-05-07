@@ -121,9 +121,48 @@ namespace JavaWhoCompiler
                     GenerateExpression(expressionStatement.Expression);
                     WriteLine(";");
                     break;
+                case WhileStatement whileStatement:
+                    GenerateWhileStatement(whileStatement);
+                    break;
+                case IfStatement ifStatement:
+                    GenerateIfStatement(ifStatement);
+                    break;
+                case BreakStatement:
+                    WriteLine("break;");
+                    break;
                 default:
                     throw new NotImplementedException();
                     // throw new CodeGeneratorException("Something is deeply wrong...");
+            }
+        }
+
+        private void GenerateIfStatement(IfStatement ifStatement)
+        {
+            GenerateConditional("if", ifStatement.Guard, ifStatement.IfBody);
+        }
+
+        private void GenerateWhileStatement(WhileStatement whileStatement)
+        {
+            GenerateConditional("while", whileStatement.Guard, whileStatement.Statement);
+        }
+
+        private void GenerateConditional(string conditionalName, AST guard, AST body)
+        {
+            Write(conditionalName);
+            Write("(");
+            GenerateExpression(guard);
+            Write(")");
+
+            if (body is BlockStatement blockStatement)
+            {
+                Write(" ");
+                GenerateBlockStatement(blockStatement);
+            }
+            else
+            {
+                Indent();
+                GenerateStatement(body);
+                Dedent();
             }
         }
 
@@ -177,16 +216,59 @@ namespace JavaWhoCompiler
                 case StringLiteral(string value, _):
                     Write(value);
                     break;
+                case ThisExpression:
+                    Write("this");
+                    break;
                 case PrintLnStatement printLnStatement:
                     Write($"console.log(");
                     GenerateExpression(printLnStatement.Argument);
                     Write(")");
+                    break;
+                case MethodCallExpression methodCallExpression:
+                    GenerateExpression(methodCallExpression.Target);
+                    Write($".{methodCallExpression.AnnotatedMethodName}(");
+                    GenerateCommaSeperated<AST>(methodCallExpression.Arguments, GenerateExpression);
+                    Write(")");
+                    break;
+                case BinaryExpression(AST left, OperatorType operatorType, AST right, _):
+                    GenerateExpression(left);
+                    Write(" ");
+                    GenerateOperator(operatorType);
+                    Write(" ");
+                    GenerateExpression(right);
+                    break;
+                case NewObjectExpression newObjectExpression:
+                    GenerateNewObjectExpression(newObjectExpression);
                     break;
                 default:
                     throw new NotImplementedException();
                     // throw new CodeGeneratorException("Something is deeply wrong...");
 
             }
+        }
+
+        private void GenerateNewObjectExpression(NewObjectExpression newObjectExpression)
+        {
+            Write($"new {newObjectExpression.ClassName.Value}(");
+            GenerateCommaSeperated<AST>(newObjectExpression.Arguments, GenerateExpression);
+            Write(")");
+        }
+
+        private void GenerateOperator(OperatorType operatorType)
+        {
+            string operatorString = operatorType switch
+            {
+                OperatorType.LessThan => "<",
+                OperatorType.Add => "+",
+                OperatorType.Subtract => "-",
+                OperatorType.Multiply => "*",
+                OperatorType.Divide => "/",
+                OperatorType.Equal => "==",
+                OperatorType.NotEqual => "!=",
+                _ => throw new CodeGeneratorException("Something is deeply wrong..."),
+            };
+
+            Write(operatorString);
         }
 
         private void GenerateField(VariableDeclaration fieldVariableDeclaration)
