@@ -1516,6 +1516,22 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfVardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(true)
+                    Int x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "WhileStatement")]
         public void WhileTrueTest()
         {
@@ -1609,6 +1625,22 @@ namespace CompilerTests
                     break;
                     Int x;
                 }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileVardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(true)
+                    Int x;
                 """);
 
             AST root = Parser.Parse(tokens);
