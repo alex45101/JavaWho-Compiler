@@ -1,5 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Headers;
+using System.Reflection.Metadata;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -14,13 +17,14 @@ namespace JavaWhoCompiler
     public class Scope
     {
         public Scope Parent { get; init; }
+        public TypeBase ReturnType { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent)
+        public Scope(Scope parent, TypeBase returnType = null)
         {
             Parent = parent;
+            ReturnType = returnType;
         }
-
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
@@ -308,7 +312,7 @@ namespace JavaWhoCompiler
             int numGT = 0;
             for (int i = 0; i < Types.Count; i++)
             {
-                if(Types[i] is null || other.Types[i] is null)
+                if (Types[i] is null || other.Types[i] is null)
                 {
                     return MorePreciseResult.False;
                 }
@@ -880,6 +884,18 @@ namespace JavaWhoCompiler
                         CheckTypeHelper(statement, output);
                     }
                     break;
+                case BlockStatement blockStatement:
+
+                    EnterScope(scope.ReturnType);
+
+                    foreach (AST statement in blockStatement.Statements)
+                    {
+                        CheckTypeHelper(statement, output);
+                    }
+
+                    ExitScope();
+
+                    break;
                 case ClassDefinition classDefinition:
                     CheckClass(classDefinition, output);
 
@@ -890,7 +906,7 @@ namespace JavaWhoCompiler
                     break;
                 case AssignmentStatement assignmentStatement:
                     TypeBase rightType = GetExpressionType(assignmentStatement.Val, output);
-                    
+
                     if (rightType is null)
                     {
                         output.Add(new TypeException("Assignment Error: Unable to determine type of right side", assignmentStatement.Position).ToString());
@@ -900,6 +916,58 @@ namespace JavaWhoCompiler
                     scope.Assign(assignmentStatement.Var, rightType, assignmentStatement.Position, output);
 
                     break;
+                case IfStatement ifStatement:
+
+                    TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
+
+                    if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
+                    {
+                        break;
+                    }
+
+                    CheckTypeHelper(ifStatement.IfBody, output);
+
+                    if (ifStatement.ElseBody is not null)
+                    {
+                        CheckTypeHelper(ifStatement.ElseBody, output);
+                    }
+
+                    break;
+                case WhileStatement whileStatement:
+                    TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
+
+                    if (!CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output))
+                    {
+                        break;
+                    }
+
+                    if (whileStatement.Statement is not null)
+                    {
+                        CheckTypeHelper(whileStatement.Statement, output);
+                    }
+
+                    break;
+                case ReturnStatement returnStatement:
+                    
+                    //did not pass in method name recursively
+                    CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
+
+                    break;
+                case ExpressionStatement expressionStatement:
+                    if (expressionStatement.Expression is not MethodCallExpression)
+                    {
+                        output.Add(new TypeException("Only assignment, and method call expressions can be used as a statement", expressionStatement.Position).ToString());
+                        break;
+                    }
+
+                    GetExpressionType(expressionStatement.Expression, output);
+
+                    break;
+                case MethodCallExpression methodCallExpression:
+
+                    GetExpressionType(methodCallExpression, output);
+
+                    break;                
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -907,6 +975,17 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Type is not supported: {node.GetType()}", node.Position).ToString());
                     break;
             }
+        }
+
+        private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
+        {
+            if (guardType != TypeBase.BooleanPrimitive)
+            {
+                output.Add(new TypeException($"Invalid guard type for {astExpression}: {guardType}", position).ToString());
+                return false;
+            }
+
+            return true;
         }
 
         private void CheckClass(ClassDefinition classDefinition, List<string> output)
@@ -943,9 +1022,7 @@ namespace JavaWhoCompiler
         }
 
         private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
-        {
-            EnterScope();
-
+        {            
             AddParamsToScope(methodDefinition.Parameters, output);
 
             BlockStatement body = methodDefinition.Body as BlockStatement;
@@ -955,6 +1032,8 @@ namespace JavaWhoCompiler
             {
                 methodReturnType = Types.GetType(methodDefinition.ReturnType.Value, methodDefinition.ReturnType.Position, output);
             }
+
+            EnterScope(methodReturnType);
 
             bool returned = false;
             for (int i = 0; i < body.Statements.Count; i++)
@@ -967,20 +1046,7 @@ namespace JavaWhoCompiler
                         output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
                     }
 
-                    TypeBase returnExpressionType = TypeBase.VoidPrimitive;
-                    if (returnStatement.Val is not null)
-                    {
-                        returnExpressionType = GetExpressionType(returnStatement.Val, output);
-
-                    }
-
-                    if (returnExpressionType is null) {
-                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return unknown expression type", returnStatement.Val.Position).ToString());
-                    } 
-                    else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
-                    {
-                        output.Add(new TypeException($"Method {methodDefinition.Name.Value} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
-                    }
+                    CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
 
                     returned = true;
                 }
@@ -996,6 +1062,28 @@ namespace JavaWhoCompiler
             }
 
             ExitScope();
+        }
+
+        private void CheckMethodReturnType(string methodName, TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
+        {
+            TypeBase returnExpressionType = TypeBase.VoidPrimitive;
+            if (returnStatement.Val is not null)
+            {
+                returnExpressionType = GetExpressionType(returnStatement.Val, output);
+            }
+
+            if (returnExpressionType is null)
+            {
+                output.Add(new TypeException($"Method {methodName} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+            }
+            else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
+            {
+                output.Add(new TypeException($"Method {methodName} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+            }
+            else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
+            {
+                output.Add(new TypeException($"Method {methodName} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+            }
         }
 
         private void CheckClassConstructor(Constructor constructor, ClassType classType, List<string> output)
@@ -1048,9 +1136,9 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void EnterScope()
+        private void EnterScope(TypeBase returnType = null)
         {
-            scope = new Scope(scope);
+            scope = new Scope(scope, returnType);
         }
 
         private void ExitScope()
@@ -1069,6 +1157,7 @@ namespace JavaWhoCompiler
                 NewObjectExpression newObjectExpression => DeriveNewObjectExpressionType(newObjectExpression, output),
                 ThisExpression(Position position) => scope.LookUp("this", position, output)?.Type,
                 PrintLnStatement printLnStatement => DerivePrintLnStatementType(printLnStatement, output),
+                BinaryExpression binaryExpression => DeriveBinaryExpressionStmt(binaryExpression, output),
                 MethodCallExpression methodCallExpression => DeriveMethodCallExpressionType(methodCallExpression, output),
                 _ => AddAndReturnNull(output,
                     new TypeException($"Cannot obtain type of {node}", node.Position).ToString())
@@ -1079,6 +1168,76 @@ namespace JavaWhoCompiler
         {
             output.Add(message);
             return null;
+        }
+
+        private TypeBase DeriveBinaryExpressionStmt(BinaryExpression binaryExpression, List<string> output)
+        {
+            return binaryExpression.OperatorType switch
+            {
+                OperatorType.Add or 
+                OperatorType.Subtract or
+                OperatorType.Multiply or
+                OperatorType.Divide => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.LessThan or
+                OperatorType.Equal or
+                OperatorType.NotEqual => DeriveBooleanOperatorType(binaryExpression, output),
+                _ => throw new Exception("Something went horribly wrong...") //should never happen
+            };
+        }
+
+        private TypeBase DeriveBooleanOperatorType(BinaryExpression binaryExpression, List<string> output)
+        {
+            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
+            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);            
+
+            if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
+            {
+                output.Add(new TypeException($"Can not compare {leftType} to {rightType}", binaryExpression.Position).ToString());
+                return null;
+            }
+
+            //if we arent doing LessThan op then we just return otherwise make sure left and right are ints
+            if (binaryExpression.OperatorType != OperatorType.LessThan)
+            {
+                return TypeBase.BooleanPrimitive;
+            }
+
+            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
+            {
+                return null;
+            }
+
+            return TypeBase.BooleanPrimitive;
+        }
+
+        private TypeBase DeriveMathOperatorType(BinaryExpression binaryExpression, List<string> output)
+        {
+            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
+            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
+
+            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
+            {
+                return null;
+            }
+
+            return TypeBase.IntPrimitive;
+        }
+
+        private bool BinaryExpressionIntCheck(BinaryExpression binaryExpression, TypeBase leftType, TypeBase rightType, List<string> output)
+        {
+            if (leftType != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return false;
+            }
+
+            if (rightType != TypeBase.IntPrimitive)
+            {
+                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
+                return false;
+            }
+
+            return true;
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes, List<string> output)
@@ -1101,7 +1260,7 @@ namespace JavaWhoCompiler
         private TypeBase DeriveIdentifiedNodeExpressionType(IdentifiedNode identifiedNode, List<string> output)
         {
             VarInfo varInfo = scope.LookUp(identifiedNode.Value, identifiedNode.Position, output);
-            if(varInfo is null)
+            if (varInfo is null)
             {
                 output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
                 return null;
@@ -1137,7 +1296,7 @@ namespace JavaWhoCompiler
             TypeBase targetType = GetExpressionType(methodCallExpression.Target, output);
             Position targetPosition = methodCallExpression.Target.Position;
 
-            switch(targetType)
+            switch (targetType)
             {
                 case ClassType targetClassType:
                     MethodSignature matchingSignature = targetClassType.GetMatchingSignature(
