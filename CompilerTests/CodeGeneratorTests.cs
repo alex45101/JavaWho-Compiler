@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using JavaWhoCompiler;
+using Newtonsoft.Json.Bson;
 
 namespace CompilerTests
 {
@@ -408,6 +409,55 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "CodeExamples")]
+        public void SimpleClassExampleTest()
+        { 
+            string code = """
+                class Pet
+                {
+                    String Name;
+                    Int Age;
+
+                    init(String name, Int age)
+                    {
+                        Name = name;
+                        Age = age;
+                    } 
+
+                    method Info() Void
+                    {
+                        println("Pet Name: " + Name + ", Age: " + Age);
+                    }
+                }
+
+                Pet john;
+                john = new Pet("john", 8);
+
+                john.Info();
+                """;
+
+            string expected = """
+                class Pet {
+                    Name;
+                    Age;
+                    constructor(name, age) {
+                        this.Name = name;
+                        this.Age = age;
+                    }
+                    Empty_Info_Void() {
+                        console.log("Pet Name: " + this.Name + ", Age: " + this.Age);
+                    }
+                }
+                let john;
+                john = new Pet("john", 8);
+                john.Empty_Info_Void();
+                
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "CodeExamples")]
         public void InheritanceClassExampleTest()
         {
             string code = """
@@ -526,6 +576,90 @@ namespace CompilerTests
                 result = sam.Int_LoseLives_Boolean(67);
                 console.log(result);
                 sam.Empty_Lives_Void();
+                
+                """;
+
+            AssertHelperExpectedResultCode(expected, code);
+        }
+
+        [Fact]
+        [Trait("Category", "CodeExamples")]
+        public void LoopExamplesTest()
+        { 
+            string code = """
+                println("Normal while loop counter:");
+
+                Int a;
+                a = 0;
+
+                while(a < 5)
+                {
+                    println(a);
+                    a = a + 1;
+                }
+
+                println("Do while loop counter:");
+
+                Int b;
+                b = 0;
+
+                while(true)
+                {
+                    println(b);
+
+                    b = b + 1;
+
+                    if(b < 4)
+                    {
+                        break;
+                    }
+                }
+
+                println("String loop counter with a's:");
+
+                String text;
+                text = "";
+
+                while (text != "aaaa")
+                {
+                    if(text == "aa")
+                    {
+                        println("double aa, yaya");
+                    }
+
+                    println(text);
+                    text = text + "a";
+                }
+                """;
+
+            string expected = """
+                console.log("Normal while loop counter:");
+                let a;
+                a = 0;
+                while(a < 5) {
+                    console.log(a);
+                    a = a + 1;
+                }
+                console.log("Do while loop counter:");
+                let b;
+                b = 0;
+                while(true) {
+                    console.log(b);
+                    b = b + 1;
+                    if(b < 4) {
+                        break;
+                    }
+                }
+                console.log("String loop counter with a's:");
+                let text;
+                text = "";
+                while(text != "aaaa") {
+                    if(text == "aa") {
+                        console.log("double aa, yaya");
+                    }
+                    console.log(text);
+                    text = text + "a";
+                }
                 
                 """;
 
