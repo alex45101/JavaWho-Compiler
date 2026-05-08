@@ -37,6 +37,52 @@ namespace CompilerTests
         }
 
         [Fact]
+        public void SingleCommentTokenTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                //this is a comment
+                """);
+
+            Assert.Empty(tokens);
+        }
+
+        [Fact]
+        public void MultiSingleCommentTokenTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                //this is a comment
+                Int x; //another comment
+                //another another comment
+                """);
+
+            List<IToken> expectedTokens = [
+                new IdentifierToken("Int", new Position(0, 0)), new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0))];
+
+            AssertTokenListEqualIgnoreLinePos(expectedTokens, tokens);
+        }
+
+        [Fact]
+        public void MultiCommentTokenTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                /*
+                This is a comment
+
+                Here is some real code that should not be tokenized
+                
+                if(x == 5){}
+                */
+                Int x; /*<- this should be tokenized*/
+                //Here is another comment lol
+                """);
+
+            List<IToken> expectedTokens = [
+                new IdentifierToken("Int", new Position(0, 0)), new IdentifierToken("x", new Position(0, 0)), new SemiColonToken(";", new Position(0, 0))];
+
+            AssertTokenListEqualIgnoreLinePos(expectedTokens, tokens);
+        }
+
+        [Fact]
         public void NoTokensWhitespaceTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("     ");
