@@ -176,7 +176,18 @@ namespace JavaWhoCompiler
                         new IdentifiedNode("String", null),
                         new IdentifiedNode("Object", null),
                         [], // vardecs
-                        new Constructor([], null, [], null),
+                        new Constructor(
+                            [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("value", null),
+                                    null
+                                )
+                            ], 
+                            null, 
+                            [], 
+                            null
+                        ),
                         [], // methods
                         null
                     ),

@@ -68,7 +68,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void ClassDeclarationTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -947,7 +947,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void MismatchConstructorCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -965,7 +965,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void MalformedConstructorCallTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
