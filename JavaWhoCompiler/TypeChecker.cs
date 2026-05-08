@@ -1,9 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata;
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace JavaWhoCompiler
@@ -20,21 +16,50 @@ namespace JavaWhoCompiler
         public TypeBase ReturnType { get; init; }
         public bool InLoop { get; init; }
         public bool HasBreak { get; set; }
+        public bool Initializing { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false)
+        public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
             Parent = parent;
             ReturnType = returnType;
             InLoop = inLoop;
             HasBreak = false;
+            Initializing = initializing;
         }
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
+            if (Initializing)
+            {
+                DefineWhileInitializing(name, type, position, output);
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
+            }
+        }
+
+        private void DefineStandard(string name, TypeBase type, Position position, List<string> output)
+        {
             if (!lookUp.TryAdd(name, new VarInfo(type, false)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+            }
+        }
+
+        private void DefineWhileInitializing(string name, TypeBase type, Position position, List<string> output)
+        {
+            // ignore output on look up
+            VarInfo varInfo = LookUp(name, position, []);
+
+            if (varInfo is not null && varInfo.IsField)
+            {
+                output.Add(new TypeException("Cannot shadow local or inherited class fields while initializing class", position).ToString());
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
             }
         }
 
@@ -954,6 +979,10 @@ namespace JavaWhoCompiler
 
                     break;
                 case MethodCallExpression methodCallExpression:
+                    if (scope.Initializing)
+                    {
+                        output.Add("Cannot use `this.` method calls in class constructor");
+                    }
 
                     GetExpressionType(methodCallExpression, output);
 
@@ -1069,7 +1098,7 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            // scope.DefineAssigned("this", classType, classDefinition.Position, output);
+            scope.Define("this", classType, classDefinition.Position, output);
 
             // add fields to scope
             foreach ((string name, (TypeBase type, Position position)) in classType.Fields)
@@ -1078,11 +1107,24 @@ namespace JavaWhoCompiler
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
-            CheckClassConstructor(constructor, classType, output);
+
+            // includes inherited fields, methods need access to all
+            HashSet<string> fieldAssignSet = new(classType.Fields.Keys);
+            // constructor needs to initialize *local* class fields
+            HashSet<string> localFieldAssignSet = new(
+                                                    classDefinition.VariableDeclarations
+                                                    .Select(vd => (VariableDeclaration)vd)
+                                                    .Select(vd => vd.Var.Value)
+                                                    );
+            // class constructor can use inherited fields
+            HashSet<string> inheritedFieldAssignSet = fieldAssignSet.Except(localFieldAssignSet).ToHashSet();
+
+            CheckClassConstructor(constructor, classType, localFieldAssignSet, inheritedFieldAssignSet, output);
+
 
             foreach (MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
             {
-                CheckClassMethod(methodDefinition, output);
+                CheckClassMethod(methodDefinition, fieldAssignSet, output);
             }
 
             // exit class scope
@@ -1286,8 +1328,11 @@ namespace JavaWhoCompiler
             HashSet<string> statementAssignSet;
             switch (statement)
             {
-                case AssignmentStatement(IdentifiedNode var, AST val, _):
-                    statementAssignSet = new HashSet<string>([var.Value]);
+                case VariableDeclaration(_, IdentifiedNode varName, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
+                    break;
+                case AssignmentStatement(IdentifiedNode varName, AST val, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
                     CheckExpressionAssignment(val, prevAssignSet, output);
                     break;
                 case IfStatement ifStatement:
@@ -1313,7 +1358,16 @@ namespace JavaWhoCompiler
             };
 
 
-            statementAssignSet = prevAssignSet.Union(statementAssignSet).ToHashSet();
+            if (statement is VariableDeclaration)
+            {
+                // remove var from assign set as it was just redeclared
+                statementAssignSet = prevAssignSet.Except(statementAssignSet).ToHashSet();
+            }
+            else
+            {
+                statementAssignSet = prevAssignSet.Union(statementAssignSet).ToHashSet();
+            }
+
             HashSet<string> nextStatementAssignSet = CheckAssignment(statements.Slice(1, statements.Count - 1), statementAssignSet, output, breakAssignmentSets);
             return statementAssignSet.Union(nextStatementAssignSet).ToHashSet();
         }
@@ -1341,7 +1395,7 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
+        private void CheckClassMethod(MethodDefinition methodDefinition, HashSet<string> fieldAssignSet, List<string> output)
         {            
             BlockStatement body = methodDefinition.Body as BlockStatement;
 
@@ -1353,13 +1407,16 @@ namespace JavaWhoCompiler
 
             EnterScope(methodReturnType);
 
-            AddParamsToScope(methodDefinition.Parameters, output);
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(methodDefinition.Parameters, output);
 
             // validate types first
             for (int i = 0; i < body.Statements.Count; i++)
             {
                 CheckTypeHelper(body.Statements[i], output);
             }
+
+            HashSet<string> fullAssignSet = fieldAssignSet.Union(paramAssignSet).ToHashSet();
+            CheckAssignment(body.Statements, fullAssignSet, output);
 
             // only check code path if return is not void
             if (methodReturnType != TypeBase.VoidPrimitive &&
@@ -1393,12 +1450,12 @@ namespace JavaWhoCompiler
             }
         }
 
-        private void CheckClassConstructor(Constructor constructor, ClassType classType, List<string> output)
+        private void CheckClassConstructor(Constructor constructor, ClassType classType, HashSet<string> localFieldAssignSet, HashSet<string> inheritedFieldAssignSet, List<string> output)
         {
             // enter constructor scope
-            EnterScope();
+            EnterScope(initializing:true);
 
-            AddParamsToScope(constructor.Parameters, output);
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(constructor.Parameters, output);
 
             // check super call
             if (classType.ParentClassType is not null)
@@ -1424,28 +1481,46 @@ namespace JavaWhoCompiler
                 output.Add(new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class", constructor.Position).ToString());
             }
 
+            // type check statements
             foreach (AST statement in constructor.Statements)
             {
                 CheckTypeHelper(statement, output);
+            }
+
+            // check assignment
+            HashSet<string> initialAssignSet = paramAssignSet.Union(inheritedFieldAssignSet).ToHashSet();
+            HashSet<string> constructorAssignSet = CheckAssignment(constructor.Statements, initialAssignSet, output);
+
+            // class local field set should be subset of constructor assign set
+            if (!localFieldAssignSet.IsSubsetOf(constructorAssignSet))
+            {
+                output.Add(new TypeException($"Constructor of class {classType.Name} does not initialize all local fields", constructor.Position).ToString());
             }
 
             // exit constructor scope
             ExitScope();
         }
 
-        private void AddParamsToScope(List<AST> astVariableDeclarations, List<string> output)
+        private HashSet<string> DefineAndGetParamAssignSet(List<AST> astVariableDeclarations, List<string> output)
         {
+            HashSet<string> paramAssignSet = new();
             foreach (AST astVariableDeclaration in astVariableDeclarations)
             {
                 VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
 
-                // scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                string varName = variableDeclaration.Var.Value;
+
+                scope.Define(varName, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                paramAssignSet.Add(varName);
             }
+
+            return paramAssignSet;
         }
 
-        private void EnterScope(TypeBase returnType = null, bool inLoop = false)
+        private void EnterScope(TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
-            scope = new Scope(scope, returnType, inLoop || scope.InLoop);
+            // or's are in place to persist loop or initializing states when entering a new scope
+            scope = new Scope(scope, returnType, inLoop || scope.InLoop, initializing || scope.Initializing);
         }
 
         private void ExitScope()
@@ -1578,11 +1653,6 @@ namespace JavaWhoCompiler
                 output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
                 return null;
             }
-
-            // if (!varInfo.IsAssigned)
-            // {
-            //     output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
-            // }
 
             identifiedNode.IsField = varInfo.IsField;
 

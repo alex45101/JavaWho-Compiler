@@ -1,5 +1,4 @@
 ﻿using JavaWhoCompiler;
-using System.ComponentModel;
 
 namespace CompilerTests
 {
@@ -90,7 +89,10 @@ namespace CompilerTests
                     class MyType {
                         Int x;
                         Boolean y;
-                        init() {}
+                        init() {
+                            x = 5;
+                            y = true;
+                        }
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -98,6 +100,145 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecAssignPathTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int z) {
+                            if(z == 5) {
+                                x = 5;
+                                y = true;
+                            } else {
+                                x = 8;
+                                y = false;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecIncompleteAssignPathTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int z) {
+                            if(z == 5) {
+                                x = 5;
+                            } else {
+                                x = 8;
+                                y = false;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecParamShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int x) {
+                            x = 5;
+                            y = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecVarShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init() {
+                            Int x;
+                            x = 5;
+                            y = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassInheritedVardecParamShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class MyType extends Base {
+                        Int y;
+                        init(Int x) {
+                            super();
+                            y = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassInheritedVardecVarShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class MyType extends Base {
+                        Int y;
+                        init() {
+                            super();
+                            Int x;
+                            y = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -165,7 +306,10 @@ namespace CompilerTests
                     class MyType {
                         Int x;
                         Boolean y;
-                        init() {}
+                        init() {
+                            x = 5;
+                            y = true;
+                        }
                     }
 
                     class SubType extends MyType {
@@ -318,6 +462,32 @@ namespace CompilerTests
 
                     class SubTestType extends TestType {
                         init(SubType s) { super(s); }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassInheritence")]
+        public void InheritedFieldInClassConstructorTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        init(Int _x) {
+                            x = _x;
+                        }
+                    }
+
+                    class SubType extends MyType {
+                        Int y;
+                        init() {
+                            super(5);
+                            y = x;
+                        }
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -833,6 +1003,25 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Assignment")]
+        public void UseUnassignedShadowedVarTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+                    y = 5;
+                    if(y == 7) {
+                        Int y;
+                        x = y;
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
         public void AssignVarIfTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     Int x;
@@ -1075,7 +1264,7 @@ namespace CompilerTests
                         if(num == 2) {
                             break;
                         }
-                        
+
                         y = 5;
                     }
 
@@ -1679,7 +1868,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Assignment")]
-        public void ClassInheritenceAssignemntTest()
+        public void ClassInheritenceAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 class MyType 
@@ -2397,6 +2586,95 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void AssignPathInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int num) Int {
+                            Int x;
+                            Int y;
+
+                            if(num == 7) {
+                                y = 2;
+                            } else {
+                                y = 5;
+                            }
+
+                            x = y;
+                            return y;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void AssignPathInMethodWithFieldTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        Int z;
+                        init() { z = 5; }
+                        method a(Int num) Int {
+                            Int x;
+                            Int y;
+
+                            if(num == 7) {
+                                y = z;
+                            } else {
+                                y = 5;
+                            }
+
+                            x = y;
+                            return y;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void InheritedFieldInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class Test extends Base {
+                        init() {
+                            super();
+                        }
+
+                        method a() Int {
+                            Int y;
+                            y = x;
+
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
         }
 
         [Fact]
