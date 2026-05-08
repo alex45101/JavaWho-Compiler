@@ -200,29 +200,15 @@ namespace JavaWhoCompiler
             IntPrimitive.SetOperator(OperatorType.LessThan, 
                 (IntPrimitive, BooleanPrimitive)
             );
-            IntPrimitive.SetOperator(OperatorType.Equal, 
-                (IntPrimitive, BooleanPrimitive)
-            );
-            IntPrimitive.SetOperator(OperatorType.NotEqual, 
-                (IntPrimitive, BooleanPrimitive)
-            );
 
-            BooleanPrimitive.SetOperator(OperatorType.Equal, 
-                (BooleanPrimitive, BooleanPrimitive)
-            );
-            BooleanPrimitive.SetOperator(OperatorType.NotEqual, 
-                (BooleanPrimitive, BooleanPrimitive)
+            BooleanPrimitive.SetOperator(OperatorType.Add,
+                (StringBuiltIn, StringBuiltIn)
             );
 
             StringBuiltIn.SetOperator(OperatorType.Add, 
-                (IntPrimitive, StringBuiltIn), 
+                (IntPrimitive, StringBuiltIn),
+                (BooleanPrimitive, StringBuiltIn),
                 (StringBuiltIn, StringBuiltIn)
-            );
-            StringBuiltIn.SetOperator(OperatorType.Equal, 
-                (StringBuiltIn, BooleanPrimitive)
-            );
-            StringBuiltIn.SetOperator(OperatorType.NotEqual, 
-                (StringBuiltIn, BooleanPrimitive)
             );
 
             BuiltIns = [
@@ -1662,6 +1648,20 @@ namespace JavaWhoCompiler
             TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
             TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
 
+            //if we are doing equality comparison check if they can be assigned otherwise continue
+            if (binaryExpression.OperatorType == OperatorType.Equal 
+                || binaryExpression.OperatorType == OperatorType.NotEqual)
+            {
+                if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
+                {
+                    output.Add(new TypeException($"Can not {binaryExpression.OperatorType} with Type {leftType.Name} and Type {rightType.Name}", binaryExpression.Position).ToString());
+                    return null;
+                }
+
+                return TypeBase.BooleanPrimitive;
+            }
+
+            //check if ops are compatible
             if (leftType.CompatibleOperatorTypes.TryGetValue(binaryExpression.OperatorType, out var leftMap)
                 && leftMap.TryGetValue(rightType, out TypeBase resultType))
             {

@@ -2829,6 +2829,50 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringBooleanAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleBooleanStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = y + x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
         public void SimpleStringIntAddExpressionTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
