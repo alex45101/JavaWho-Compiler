@@ -16,11 +16,11 @@ b = 0;
 
 while(true)
 {
-    println(a);
+    println(b);
 
-    a = a + 1;
+    b = b + 1;
 
-    if(a > 4)
+    if(b < 4)
     {
         break;
     }
