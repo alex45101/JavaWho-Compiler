@@ -12,15 +12,15 @@ while(a < 5)
 println("Do while loop counter:");
 
 Int b;
-b = 0;
+b = 4;
 
 while(true)
 {
     println(b);
 
-    b = b + 1;
+    b = b - 1;
 
-    if(b < 4)
+    if(b < 0)
     {
         break;
     }
