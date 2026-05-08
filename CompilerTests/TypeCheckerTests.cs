@@ -928,6 +928,25 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
+        public void MissingSuperCallTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType extends OtherType {
+                        init() { }
+                    }
+
+                    class OtherType {
+                        init(Int x, String y) { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassDeclaration")]
         public void MismatchConstructorCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""

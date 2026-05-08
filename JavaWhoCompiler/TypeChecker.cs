@@ -1450,6 +1450,28 @@ namespace JavaWhoCompiler
             }
         }
 
+        private void CheckSuperCall(Constructor constructor, ClassType classType, List<string> output)
+        {
+            // insert empty super call if a super isnt provided and parent is Object
+            List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
+                                       ? []
+                                       : constructor.SuperArguments;
+
+            if (superArguments is null)
+            {
+                output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
+            }
+            else
+            {
+                TypeList superCallTypes = GetExpressionTypeList(superArguments, output);
+                if (!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes))
+                {
+                    output.Add(new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor", constructor.Position).ToString());
+                }
+            }
+
+        }
+
         private void CheckClassConstructor(Constructor constructor, ClassType classType, HashSet<string> localFieldAssignSet, HashSet<string> inheritedFieldAssignSet, List<string> output)
         {
             // enter constructor scope
@@ -1460,21 +1482,7 @@ namespace JavaWhoCompiler
             // check super call
             if (classType.ParentClassType is not null)
             {
-                // insert empty super call if a super isnt provided and parent is Object
-                List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
-                                           ? []
-                                           : constructor.SuperArguments;
-
-                if (superArguments is null)
-                {
-                    output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
-                }
-
-                TypeList superCallTypes = GetExpressionTypeList(superArguments, output);
-                if (!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes))
-                {
-                    output.Add(new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor", constructor.Position).ToString());
-                }
+                CheckSuperCall(constructor, classType, output);
             }
             else if (constructor.SuperArguments is not null)
             {
