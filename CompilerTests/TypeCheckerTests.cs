@@ -68,7 +68,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void ClassDeclarationTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -947,7 +947,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void MismatchConstructorCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -965,7 +965,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void MalformedConstructorCallTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -2818,6 +2818,50 @@ namespace CompilerTests
 
                 String result;
                 result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringBooleanAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleBooleanStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = y + x;
                 """);
 
             AST root = Parser.Parse(tokens);
