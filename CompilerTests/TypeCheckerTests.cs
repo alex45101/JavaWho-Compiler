@@ -2785,7 +2785,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "BinaryExpressions")]
-        public void SimpleAddExpressionTest()
+        public void SimpleIntAddExpressionTest()
         { 
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
@@ -2795,6 +2795,72 @@ namespace CompilerTests
                 y = 7;
 
                 Int result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleIntStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Int y;
+
+                x = "Number: ";
+                y = 7;
+
+                String result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringIntAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Int y;
+
+                x = "Number: ";
+                y = 7;
+
+                String result;
+                result = y + x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                String y;
+
+                x = "hello ";
+                y = "world";
+
+                String result;
                 result = x + y;
                 """);
 
