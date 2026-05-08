@@ -1,9 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata;
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace JavaWhoCompiler
@@ -12,39 +8,64 @@ namespace JavaWhoCompiler
     public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
 
 
-    public record VarInfo(TypeBase Type, bool IsAssigned, bool IsField);
+    public record VarInfo(TypeBase Type, bool IsField);
 
     public class Scope
     {
         public Scope Parent { get; init; }
         public TypeBase ReturnType { get; init; }
+        public bool InLoop { get; init; }
+        public bool HasBreak { get; set; }
+        public bool Initializing { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent, TypeBase returnType = null)
+        public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
             Parent = parent;
             ReturnType = returnType;
+            InLoop = inLoop;
+            HasBreak = false;
+            Initializing = initializing;
         }
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, false)))
+            if (Initializing)
+            {
+                DefineWhileInitializing(name, type, position, output);
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
+            }
+        }
+
+        private void DefineStandard(string name, TypeBase type, Position position, List<string> output)
+        {
+            if (!lookUp.TryAdd(name, new VarInfo(type, false)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
         }
 
-        public void DefineAssigned(string name, TypeBase type, Position position, List<string> output)
+        private void DefineWhileInitializing(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, true, false)))
+            // ignore output on look up
+            VarInfo varInfo = LookUp(name, position, []);
+
+            if (varInfo is not null && varInfo.IsField)
             {
-                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+                output.Add(new TypeException("Cannot shadow local or inherited class fields while initializing class", position).ToString());
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
             }
         }
 
         public void DefineField(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, true)))
+            if (!lookUp.TryAdd(name, new VarInfo(type, true)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
@@ -60,7 +81,7 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Can not assign {type} to {info.Type}", position).ToString());
                 }
 
-                lookUp[name] = new VarInfo(info.Type, true, info.IsField);
+                lookUp[name] = new VarInfo(info.Type, info.IsField);
 
                 // annotate varNode
                 varNode.IsField = info.IsField;
@@ -432,6 +453,11 @@ namespace JavaWhoCompiler
 
         public override string ToString()
         {
+            if (Types.Count == 0)
+            {
+                return "()";
+            }
+
             StringBuilder stringBuilder = new StringBuilder("(");
             for (int i = 0; i < Types.Count - 1; i++)
             {
@@ -617,6 +643,7 @@ namespace JavaWhoCompiler
         public void PopulateWithTypeMap(TypeMap typeMap, List<string> output)
         {
             if (isChecked) return;
+            isChecked = true;
 
             // populate parent class first
             if (ParentClassType is not null)
@@ -630,8 +657,6 @@ namespace JavaWhoCompiler
 
             InitializeLocalMethodSignatures(typeMap, output);
             CheckInheritedMethods(output);
-
-            isChecked = true;
         }
 
         private void InitializeConstructor(TypeMap typeMap, List<string> output)
@@ -760,16 +785,15 @@ namespace JavaWhoCompiler
 
             foreach (VariableDeclaration variableDeclaration in VariableDeclarations)
             {
-                if (Fields.ContainsKey(variableDeclaration.Var.Value))
+                bool added = Fields.TryAdd(
+                        variableDeclaration.Var.Value,
+                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output), variableDeclaration.Type.Position)
+                        );
+
+                if (!added)
                 {
                     output.Add(new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}", variableDeclaration.Position).ToString());
                 }
-
-                Fields.Add(
-                        variableDeclaration.Var.Value,
-                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output),
-                        variableDeclaration.Type.Position)
-                        );
             }
         }
 
@@ -948,6 +972,11 @@ namespace JavaWhoCompiler
 
         private void CheckTypeHelper(AST node, List<string> output)
         {
+            if (scope.HasBreak)
+            {
+                output.Add(new TypeException("Unreachable code after break", node.Position).ToString());
+            }
+
             switch (node)
             {
                 case ProgramNode prog:
@@ -962,6 +991,8 @@ namespace JavaWhoCompiler
                     {
                         CheckTypeHelper(statement, output);
                     }
+
+                    CheckAssignment(prog.Statements, [], output);
                     break;
                 case BlockStatement blockStatement:
 
@@ -996,40 +1027,30 @@ namespace JavaWhoCompiler
 
                     break;
                 case IfStatement ifStatement:
-
-                    TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
-
-                    if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    CheckTypeHelper(ifStatement.IfBody, output);
-
-                    if (ifStatement.ElseBody is not null)
-                    {
-                        CheckTypeHelper(ifStatement.ElseBody, output);
-                    }
-
+                    CheckIfStatement(ifStatement, output);
                     break;
                 case WhileStatement whileStatement:
-                    TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
-
-                    if (!CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    if (whileStatement.Statement is not null)
-                    {
-                        CheckTypeHelper(whileStatement.Statement, output);
-                    }
-
+                    CheckWhileStatement(whileStatement, output);
                     break;
                 case ReturnStatement returnStatement:
-
+                    if (scope.ReturnType is null)
+                    {
+                        output.Add(new TypeException("Cannot return outside of a method", returnStatement.Position).ToString());
+                        break;
+                    }
+                    
                     //did not pass in method name recursively
-                    CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
+                    CheckMethodReturnType(scope.ReturnType, returnStatement, output);
+                    break;
+                case BreakStatement breakStatement:
+                    if(scope.InLoop)
+                    {
+                        scope.HasBreak = true;
+                    }
+                    else
+                    {
+                        output.Add(new TypeException("Cannot break outside of a loop context", breakStatement.Position).ToString());
+                    }
 
                     break;
                 case ExpressionStatement expressionStatement:
@@ -1043,6 +1064,10 @@ namespace JavaWhoCompiler
 
                     break;
                 case MethodCallExpression methodCallExpression:
+                    if (scope.Initializing)
+                    {
+                        output.Add("Cannot use `this.` method calls in class constructor");
+                    }
 
                     GetExpressionType(methodCallExpression, output);
 
@@ -1056,6 +1081,82 @@ namespace JavaWhoCompiler
             }
         }
 
+        private void CheckIfStatement(IfStatement ifStatement, List<string> output)
+        {
+            // although not always technically a new scope, 
+            // entering a scope here prevents single line
+            // break statements as a body from marking the rest
+            // of the code in this scope as unreachable
+
+            // restriction of vardec as a single body statement
+            // makes this scope acceptable
+            EnterScope(scope.ReturnType);
+
+            TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
+
+            CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output);
+
+            AST ifBody = ifStatement.IfBody;
+
+            if (ifBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single if statement body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(ifBody, output);
+
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // unreachable code
+                output.Add(new TypeException("Unreachable code in if body", ifBody.Position).ToString());
+            }
+
+
+            if (ifStatement.ElseBody is AST elseBody)
+            {
+                CheckTypeHelper(elseBody, output);
+
+                // if (true)
+                if (NodeIsBoolLiteral(ifStatement.Guard, true))
+                {
+                    // else would be unreachable
+                    output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
+                }
+            }
+            
+            ExitScope();
+        }
+
+        private void CheckWhileStatement(WhileStatement whileStatement, List<string> output)
+        {
+            // see CheckIfStatement for scope reasoning
+            EnterScope(scope.ReturnType, true);
+
+            TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
+
+            CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output);
+
+            AST whileBody = whileStatement.Statement;
+
+            // while(false)
+            if (NodeIsBoolLiteral(whileStatement.Guard, false))
+            {
+                // unreachable
+                output.Add(new TypeException("Unreachable code in while(false) body", whileBody.Position).ToString());
+            }
+
+            if (whileBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single line loop body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(whileBody, output);
+
+            ExitScope();
+        }
+
         private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
         {
             if (guardType != TypeBase.BooleanPrimitive)
@@ -1065,6 +1166,269 @@ namespace JavaWhoCompiler
             }
 
             return true;
+        }
+
+        private bool NodeIsBoolLiteral(AST node, bool valueToCheck)
+        {
+            return node switch
+            {
+                BooleanLiteral(bool value, _) when value == valueToCheck => true,
+                _ => false
+            };
+        }
+
+        private bool CheckIfCodePath(IfStatement ifStatement, List<string> output)
+        {
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                // only check if body
+                return CheckCodePath([ifStatement.IfBody], output);
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // will still check else body in case there are more errors
+                return CheckElseCodePath(ifStatement.ElseBody, output);
+            }
+
+
+            bool ifPathResult = CheckCodePath([ifStatement.IfBody], output);
+            bool elsePathResult = CheckElseCodePath(ifStatement.ElseBody, output);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool CheckElseCodePath(AST elseBody, List<string> output)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return CheckCodePath(elseBodyStatements, output);
+        }
+
+        private bool CheckWhileCodePath(WhileStatement whileStatement, List<string> output)
+        {
+            // while(true) always treated as return unless break
+            if (NodeIsBoolLiteral(whileStatement.Guard, true))
+            {
+                // guaranteed to hit body, check if there is a break
+                // if no break, then infinite loop or return in loop, and
+                // we can consider either valid
+                return !FindLoopBreak([whileStatement.Statement]);
+            }
+
+            // return false so that CheckCodePath is forced to check next statement
+            return false;
+        }
+
+        private bool CheckCodePath(List<AST> statements, List<string> output)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+
+            bool statementReturns = statement switch
+            {
+                ReturnStatement => true,
+                IfStatement ifStatement => CheckIfCodePath(ifStatement, output),
+                WhileStatement whileStatement => CheckWhileCodePath(whileStatement, output),
+                BlockStatement blockStatement => CheckCodePath(blockStatement.Statements, output),
+                _ => false,
+            };
+
+            if(statementReturns && statements.Count > 1)
+            {
+                output.Add(new TypeException($"Unreachable code after return", statement.Position).ToString());
+            } 
+            else if(!statementReturns)
+            {
+                return CheckCodePath(statements.Slice(1, statements.Count - 1), output);
+            }
+
+            return statementReturns;
+        }
+
+        private bool FindBreakInIfStatement(IfStatement ifStatement)
+        {
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                return FindLoopBreak([ifStatement.IfBody]);
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                return FindBreakInElseBody(ifStatement.ElseBody);
+            }
+
+
+            bool ifPathResult = FindLoopBreak([ifStatement.IfBody]);
+            bool elsePathResult = FindBreakInElseBody(ifStatement.ElseBody);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool FindBreakInElseBody(AST elseBody)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return FindLoopBreak(elseBodyStatements);
+        }
+
+
+        private bool FindLoopBreak(List<AST> statements)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+
+            bool found = statement switch
+            {
+                BreakStatement => true,
+                IfStatement ifStatement => FindBreakInIfStatement(ifStatement),
+                BlockStatement blockStatement => FindLoopBreak(blockStatement.Statements),
+
+                _ => false,
+            };
+
+            return found || FindLoopBreak(statements.Slice(1, statements.Count - 1));
+        }
+
+        private HashSet<string> CheckIfAssignment(IfStatement ifStatement, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            CheckExpressionAssignment(ifStatement.Guard, prevAssignSet, output);
+
+            HashSet<string> ifBodySet = CheckAssignment([ifStatement.IfBody], prevAssignSet, output, breakAssignmentSets);
+            HashSet<string> elseBodySet = CheckElseAssignment(ifStatement.ElseBody, prevAssignSet, output, breakAssignmentSets);
+
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                return ifBodySet;
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                return elseBodySet;
+            }
+
+            return ifBodySet.Intersect(elseBodySet).ToHashSet();
+        }
+
+        private HashSet<string> CheckElseAssignment(AST elseBody, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            return elseBody is null ? new() : CheckAssignment([elseBody], prevAssignSet, output, breakAssignmentSets);
+        }
+
+        private HashSet<string> CheckWhileAssignment(WhileStatement whileStatement, HashSet<string> prevAssignSet, List<string> output)
+        {
+            CheckExpressionAssignment(whileStatement.Guard, prevAssignSet, output);
+            
+            List<HashSet<string>> breakAssignmentSets = new();
+            CheckAssignment([whileStatement.Statement], prevAssignSet, output, breakAssignmentSets);
+
+            // while(true)
+            if (NodeIsBoolLiteral(whileStatement.Guard, true) && breakAssignmentSets.Count > 0)
+            {
+                return breakAssignmentSets.Aggregate((acc, next) => acc.Intersect(next).ToHashSet());
+            }
+
+            // anything other than while(true) we can't determine if assignment outlives the while statement
+            return new();
+        }
+
+        private HashSet<string> CheckAssignment(List<AST> statements, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            if (statements.Count == 0)
+            {
+                return prevAssignSet;
+            }
+
+            AST statement = statements.First();
+
+            if (statement is BreakStatement && breakAssignmentSets is not null)
+            {
+                breakAssignmentSets.Add(prevAssignSet);
+                return prevAssignSet;
+            }
+
+            HashSet<string> statementAssignSet;
+            switch (statement)
+            {
+                case VariableDeclaration(_, IdentifiedNode varName, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
+                    break;
+                case AssignmentStatement(IdentifiedNode varName, AST val, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case IfStatement ifStatement:
+                    statementAssignSet = CheckIfAssignment(ifStatement, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case WhileStatement whileStatement:
+                    statementAssignSet = CheckWhileAssignment(whileStatement, prevAssignSet, output);
+                    break;
+                case BlockStatement(List<AST> blockStatements, _):
+                    statementAssignSet = CheckAssignment(blockStatements, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case ReturnStatement(AST val, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case ExpressionStatement(AST expression, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(expression, prevAssignSet, output);
+                    break;
+                default:
+                    statementAssignSet = new();
+                    break;
+            };
+
+
+            if (statement is VariableDeclaration)
+            {
+                // remove var from assign set as it was just redeclared
+                statementAssignSet = prevAssignSet.Except(statementAssignSet).ToHashSet();
+            }
+            else
+            {
+                statementAssignSet = prevAssignSet.Union(statementAssignSet).ToHashSet();
+            }
+
+            HashSet<string> nextStatementAssignSet = CheckAssignment(statements.Slice(1, statements.Count - 1), statementAssignSet, output, breakAssignmentSets);
+            return statementAssignSet.Union(nextStatementAssignSet).ToHashSet();
+        }
+
+        private void CheckExpressionAssignment(AST expression, HashSet<string> assignSet, List<string> output)
+        {
+            switch (expression)
+            {
+                case IdentifiedNode identifiedNode:
+                    if (!assignSet.Contains(identifiedNode.Value))
+                    {
+                        output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
+                    }
+                    break;
+                case BinaryExpression(AST left, _, AST right, _):
+                    CheckExpressionAssignment(left, assignSet, output);
+                    CheckExpressionAssignment(right, assignSet, output);
+                    break;
+                case MethodCallExpression(_, _, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+                case NewObjectExpression(_, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+            }
         }
 
         private void CheckClass(ClassDefinition classDefinition, List<string> output)
@@ -1080,7 +1444,7 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            scope.DefineAssigned("this", classType, classDefinition.Position, output);
+            scope.Define("this", classType, classDefinition.Position, output);
 
             // add fields to scope
             foreach ((string name, (TypeBase type, Position position)) in classType.Fields)
@@ -1089,21 +1453,32 @@ namespace JavaWhoCompiler
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
-            CheckClassConstructor(constructor, classType, output);
+
+            // includes inherited fields, methods need access to all
+            HashSet<string> fieldAssignSet = new(classType.Fields.Keys);
+            // constructor needs to initialize *local* class fields
+            HashSet<string> localFieldAssignSet = new(
+                                                    classDefinition.VariableDeclarations
+                                                    .Select(vd => (VariableDeclaration)vd)
+                                                    .Select(vd => vd.Var.Value)
+                                                    );
+            // class constructor can use inherited fields
+            HashSet<string> inheritedFieldAssignSet = fieldAssignSet.Except(localFieldAssignSet).ToHashSet();
+
+            CheckClassConstructor(constructor, classType, localFieldAssignSet, inheritedFieldAssignSet, output);
+
 
             foreach (MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
             {
-                CheckClassMethod(methodDefinition, output);
+                CheckClassMethod(methodDefinition, fieldAssignSet, output);
             }
 
             // exit class scope
             ExitScope();
         }
 
-        private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
-        {
-            AddParamsToScope(methodDefinition.Parameters, output);
-
+        private void CheckClassMethod(MethodDefinition methodDefinition, HashSet<string> fieldAssignSet, List<string> output)
+        {            
             BlockStatement body = methodDefinition.Body as BlockStatement;
 
             TypeBase methodReturnType = TypeBase.VoidPrimitive;
@@ -1114,28 +1489,20 @@ namespace JavaWhoCompiler
 
             EnterScope(methodReturnType);
 
-            bool returned = false;
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(methodDefinition.Parameters, output);
+
+            // validate types first
             for (int i = 0; i < body.Statements.Count; i++)
             {
-                AST statement = body.Statements[i];
-                if (statement is ReturnStatement returnStatement)
-                {
-                    if (i < body.Statements.Count - 1)
-                    {
-                        output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
-                    }
-
-                    CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
-
-                    returned = true;
-                }
-                else
-                {
-                    CheckTypeHelper(statement, output);
-                }
+                CheckTypeHelper(body.Statements[i], output);
             }
 
-            if (methodReturnType != TypeBase.VoidPrimitive && !returned)
+            HashSet<string> fullAssignSet = fieldAssignSet.Union(paramAssignSet).ToHashSet();
+            CheckAssignment(body.Statements, fullAssignSet, output);
+
+            // only check code path if return is not void
+            if (methodReturnType != TypeBase.VoidPrimitive &&
+                !CheckCodePath(body.Statements, output))
             {
                 output.Add(new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position).ToString());
             }
@@ -1143,7 +1510,7 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
-        private void CheckMethodReturnType(string methodName, TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
+        private void CheckMethodReturnType(TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
         {
             TypeBase returnExpressionType = TypeBase.VoidPrimitive;
             if (returnStatement.Val is not null)
@@ -1153,71 +1520,97 @@ namespace JavaWhoCompiler
 
             if (returnExpressionType is null)
             {
-                output.Add(new TypeException($"Method {methodName} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Cannot return unknown expression type", returnStatement.Val.Position).ToString());
             }
             else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
             {
-                output.Add(new TypeException($"Method {methodName} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+                output.Add(new TypeException($"Attempting to explicitly return a void value. Try `return;` instead", returnStatement.Position).ToString());
             }
             else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
             {
-                output.Add(new TypeException($"Method {methodName} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Return type {returnExpressionType} does not match method return type", returnStatement.Val.Position).ToString());
             }
         }
 
-        private void CheckClassConstructor(Constructor constructor, ClassType classType, List<string> output)
+        private void CheckSuperCall(Constructor constructor, ClassType classType, List<string> output)
         {
-            // enter constructor scope
-            EnterScope();
+            // insert empty super call if a super isnt provided and parent is Object
+            List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
+                                       ? []
+                                       : constructor.SuperArguments;
 
-            AddParamsToScope(constructor.Parameters, output);
-
-            // check super call
-            if (classType.ParentClassType is not null)
+            if (superArguments is null)
             {
-                // insert empty super call if a super isnt provided and parent is Object
-                List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
-                                           ? []
-                                           : constructor.SuperArguments;
-
-                if (superArguments is null)
-                {
-                    output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
-                }
-
+                output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
+            }
+            else
+            {
                 TypeList superCallTypes = GetExpressionTypeList(superArguments, output);
                 if (!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes))
                 {
                     output.Add(new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor", constructor.Position).ToString());
                 }
             }
+
+        }
+
+        private void CheckClassConstructor(Constructor constructor, ClassType classType, HashSet<string> localFieldAssignSet, HashSet<string> inheritedFieldAssignSet, List<string> output)
+        {
+            // enter constructor scope
+            EnterScope(initializing:true);
+
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(constructor.Parameters, output);
+
+            // check super call
+            if (classType.ParentClassType is not null)
+            {
+                CheckSuperCall(constructor, classType, output);
+            }
             else if (constructor.SuperArguments is not null)
             {
                 output.Add(new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class", constructor.Position).ToString());
             }
 
+            // type check statements
             foreach (AST statement in constructor.Statements)
             {
                 CheckTypeHelper(statement, output);
+            }
+
+            // check assignment
+            HashSet<string> initialAssignSet = paramAssignSet.Union(inheritedFieldAssignSet).ToHashSet();
+            HashSet<string> constructorAssignSet = CheckAssignment(constructor.Statements, initialAssignSet, output);
+
+            // class local field set should be subset of constructor assign set
+            if (!localFieldAssignSet.IsSubsetOf(constructorAssignSet))
+            {
+                output.Add(new TypeException($"Constructor of class {classType.Name} does not initialize all local fields", constructor.Position).ToString());
             }
 
             // exit constructor scope
             ExitScope();
         }
 
-        private void AddParamsToScope(List<AST> astVariableDeclarations, List<string> output)
+        private HashSet<string> DefineAndGetParamAssignSet(List<AST> astVariableDeclarations, List<string> output)
         {
+            HashSet<string> paramAssignSet = new();
             foreach (AST astVariableDeclaration in astVariableDeclarations)
             {
                 VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
 
-                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                string varName = variableDeclaration.Var.Value;
+
+                scope.Define(varName, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                paramAssignSet.Add(varName);
             }
+
+            return paramAssignSet;
         }
 
-        private void EnterScope(TypeBase returnType = null)
+        private void EnterScope(TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
-            scope = new Scope(scope, returnType);
+            // or's are in place to persist loop or initializing states when entering a new scope
+            scope = new Scope(scope, returnType, inLoop || scope.InLoop, initializing || scope.Initializing);
         }
 
         private void ExitScope()
@@ -1302,11 +1695,6 @@ namespace JavaWhoCompiler
             {
                 output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
                 return null;
-            }
-
-            if (!varInfo.IsAssigned)
-            {
-                output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
             }
 
             identifiedNode.IsField = varInfo.IsField;
