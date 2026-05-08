@@ -601,15 +601,15 @@ namespace CompilerTests
                 println("Do while loop counter:");
 
                 Int b;
-                b = 0;
+                b = 4;
 
                 while(true)
                 {
                     println(b);
 
-                    b = b + 1;
+                    b = b - 1;
 
-                    if(b < 4)
+                    if(b < 0)
                     {
                         break;
                     }
@@ -642,11 +642,11 @@ namespace CompilerTests
                 }
                 console.log("Do while loop counter:");
                 let b;
-                b = 0;
+                b = 4;
                 while(true) {
                     console.log(b);
-                    b = b + 1;
-                    if(b < 4) {
+                    b = b - 1;
+                    if(b < 0) {
                         break;
                     }
                 }
