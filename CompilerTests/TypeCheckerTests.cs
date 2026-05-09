@@ -700,6 +700,81 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Void { }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Void { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodWithCovariantReturnTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) String { return ""; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void BadOverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
         public void BadMethodOverridingTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class Animal { init() {} }

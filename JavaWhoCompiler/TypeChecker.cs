@@ -671,13 +671,28 @@ namespace JavaWhoCompiler
             }
         }
 
+        public bool TryGetMethodTypeDict(string methodName, out Dictionary<TypeList, MethodSignature> methodTypeDict)
+        {
+            if (!MethodSignatures.TryGetValue(methodName, out methodTypeDict))
+            {
+                if (ParentClassType is null)
+                {
+                    return false;
+                }
+
+                return ParentClassType.TryGetMethodTypeDict(methodName, out methodTypeDict);
+            }
+
+            return true;
+        }
+
         private void CheckInheritedMethods(List<string> output)
         {
             if (ParentClassType is null) return;
 
-            foreach ((string parentMethodName, Dictionary<TypeList, MethodSignature> parentMethodTypeDict) in ParentClassType.MethodSignatures)
+            foreach ((string localMethodName, Dictionary<TypeList, MethodSignature> localMethodTypeDict) in MethodSignatures)
             {
-                if (MethodSignatures.TryGetValue(parentMethodName, out Dictionary<TypeList, MethodSignature> localMethodTypeDict))
+                if (ParentClassType.TryGetMethodTypeDict(localMethodName, out Dictionary<TypeList, MethodSignature> parentMethodTypeDict))
                 {
                     CheckMatchingParentMethodSet(parentMethodTypeDict, localMethodTypeDict, output);
                 }
@@ -755,15 +770,10 @@ namespace JavaWhoCompiler
 
         public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments, Position position, List<string> output)
         {
-            if (!MethodSignatures.TryGetValue(queryMethodName, out Dictionary<TypeList, MethodSignature> methodTypeDict))
+            if(!TryGetMethodTypeDict(queryMethodName, out Dictionary<TypeList, MethodSignature> methodTypeDict))
             {
-                if (ParentClassType is null)
-                {
-                    output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName}", position).ToString());
-                    return null;
-                }
-
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
+                output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName}", position).ToString());
+                return null;
             }
 
             // check for exact match
