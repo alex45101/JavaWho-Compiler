@@ -13,7 +13,7 @@ namespace CompilerTests
             yield return new object[] {
                 "Int x;",
                 $"""
-                let x;
+                let _x;
 
                 """
             };
@@ -22,8 +22,8 @@ namespace CompilerTests
             yield return new object[] {
                 "Int x; x = 5;",
                 $"""
-                let x;
-                x = 5;
+                let _x;
+                _x = 5;
 
                 """
             };
@@ -33,8 +33,8 @@ namespace CompilerTests
                 "{ Int x; x = 5; }",
                 $$"""
                 {
-                    let x;
-                    x = 5;
+                    let _x;
+                    _x = 5;
                 }
 
                 """
@@ -76,7 +76,7 @@ namespace CompilerTests
                 }
                 """;
             string expected = """
-                class Test {
+                class _Test {
                     constructor() {
                     }
                 }
@@ -95,7 +95,7 @@ namespace CompilerTests
                 }
                 """;
             string expected = """
-                class Test extends Object {
+                class _Test extends Object {
                     constructor() {
                     }
                 }
@@ -117,10 +117,10 @@ namespace CompilerTests
                 }
                 """;
             string expected = """
-                class ExtString extends String {
-                    constructor(arg) {
-                        super(arg);
-                        let x;
+                class _ExtString extends String {
+                    constructor(_arg) {
+                        super(_arg);
+                        let _x;
                     }
                 }
 
@@ -154,8 +154,8 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4 + 5;
+                let _x;
+                _x = 4 + 5;
 
                 """;
 
@@ -172,8 +172,8 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4 - 5;
+                let _x;
+                _x = 4 - 5;
 
                 """;
 
@@ -190,8 +190,8 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4 * 5;
+                let _x;
+                _x = 4 * 5;
 
                 """;
 
@@ -208,8 +208,8 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4 / 5;
+                let _x;
+                _x = 4 / 5;
 
                 """;
 
@@ -232,9 +232,9 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4;
-                if(x < 5) {
+                let _x;
+                _x = 4;
+                if(_x < 5) {
                     console.log("Well hello, there");
                 }
 
@@ -264,9 +264,9 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4;
-                if(x < 5) {
+                let _x;
+                _x = 4;
+                if(_x < 5) {
                     console.log("Well hello, there");
                 }
                 else {
@@ -302,12 +302,12 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4;
-                if(x < 5) {
+                let _x;
+                _x = 4;
+                if(_x < 5) {
                     console.log("Well hello, there");
                 }
-                else if(x < 3) {
+                else if(_x < 3) {
                     console.log("No hello, there");
                 }
                 else {
@@ -371,32 +371,32 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                let x;
-                x = 4;
-                if(x < 5) {
-                    let y;
-                    y = 3;
-                    if(y < 4) {
+                let _x;
+                _x = 4;
+                if(_x < 5) {
+                    let _y;
+                    _y = 3;
+                    if(_y < 4) {
                         console.log("Well hello, there");
                     }
                     else {
-                        if(x < 4) {
+                        if(_x < 4) {
                             console.log("Thing");
                         }
                         console.log("Nope");
                     }
                 }
-                else if(x < 3) {
-                    if(x == 3) {
+                else if(_x < 3) {
+                    if(_x == 3) {
                         console.log("swag");
                     }
                     console.log("No hello, there");
                 }
                 else {
-                    if(x == 5) {
+                    if(_x == 5) {
                         console.log("cool");
                     }
-                    else if(x == 4) {
+                    else if(_x == 4) {
                         console.log("sup");
                     }
                     console.log("ooops");
@@ -436,20 +436,20 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                class Pet {
-                    Name;
-                    Age;
-                    constructor(name, age) {
-                        this.Name = name;
-                        this.Age = age;
+                class _Pet {
+                    _Name;
+                    _Age;
+                    constructor(_name, _age) {
+                        this._Name = _name;
+                        this._Age = _age;
                     }
                     Empty_Info_Void() {
-                        console.log("Pet Name: " + this.Name + ", Age: " + this.Age);
+                        console.log("Pet Name: " + this._Name + ", Age: " + this._Age);
                     }
                 }
-                let john;
-                john = new Pet("john", 8);
-                john.Empty_Info_Void();
+                let _john;
+                _john = new _Pet("john", 8);
+                _john.Empty_Info_Void();
                 
                 """;
 
@@ -532,50 +532,50 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                class Pet {
-                    Name;
-                    Age;
-                    constructor(name, age) {
-                        this.Name = name;
-                        this.Age = age;
+                class _Pet {
+                    _Name;
+                    _Age;
+                    constructor(_name, _age) {
+                        this._Name = _name;
+                        this._Age = _age;
                     }
                     Empty_Info_Void() {
-                        console.log("Pet Name: " + this.Name + ", Age: " + this.Age);
+                        console.log("Pet Name: " + this._Name + ", Age: " + this._Age);
                     }
                 }
-                class Cat extends Pet {
-                    Lives;
-                    constructor(name, age, lives) {
-                        super(name, age);
-                        this.Lives = lives;
+                class _Cat extends _Pet {
+                    _Lives;
+                    constructor(_name, _age, _lives) {
+                        super(_name, _age);
+                        this._Lives = _lives;
                     }
                     Empty_Lives_Void() {
-                        console.log("Lives: " + this.Lives);
+                        console.log("Lives: " + this._Lives);
                     }
-                    Int_LoseLives_Boolean(livesToLose) {
-                        let tempLives;
-                        tempLives = this.Lives - livesToLose;
-                        if(tempLives < 0) {
+                    Int_LoseLives_Boolean(_livesToLose) {
+                        let _tempLives;
+                        _tempLives = this._Lives - _livesToLose;
+                        if(_tempLives < 0) {
                             return false;
                         }
-                        this.Lives = tempLives;
+                        this._Lives = _tempLives;
                         return true;
                     }
                 }
-                let john;
-                john = new Pet("john", 8);
-                john.Empty_Info_Void();
-                let sam;
-                sam = new Cat("sam", 1, 9);
-                sam.Empty_Info_Void();
-                sam.Empty_Lives_Void();
-                let result;
-                result = sam.Int_LoseLives_Boolean(1);
-                console.log(result);
-                sam.Empty_Lives_Void();
-                result = sam.Int_LoseLives_Boolean(67);
-                console.log(result);
-                sam.Empty_Lives_Void();
+                let _john;
+                _john = new _Pet("john", 8);
+                _john.Empty_Info_Void();
+                let _sam;
+                _sam = new _Cat("sam", 1, 9);
+                _sam.Empty_Info_Void();
+                _sam.Empty_Lives_Void();
+                let _result;
+                _result = _sam.Int_LoseLives_Boolean(1);
+                console.log(_result);
+                _sam.Empty_Lives_Void();
+                _result = _sam.Int_LoseLives_Boolean(67);
+                console.log(_result);
+                _sam.Empty_Lives_Void();
                 
                 """;
 
@@ -634,97 +634,36 @@ namespace CompilerTests
 
             string expected = """
                 console.log("Normal while loop counter:");
-                let a;
-                a = 0;
-                while(a < 5) {
-                    console.log(a);
-                    a = a + 1;
+                let _a;
+                _a = 0;
+                while(_a < 5) {
+                    console.log(_a);
+                    _a = _a + 1;
                 }
                 console.log("Do while loop counter:");
-                let b;
-                b = 4;
+                let _b;
+                _b = 4;
                 while(true) {
-                    console.log(b);
-                    b = b - 1;
-                    if(b < 0) {
+                    console.log(_b);
+                    _b = _b - 1;
+                    if(_b < 0) {
                         break;
                     }
                 }
                 console.log("String loop counter with a's:");
-                let text;
-                text = "";
-                while(text != "aaaa") {
-                    if(text == "aa") {
+                let _text;
+                _text = "";
+                while(_text != "aaaa") {
+                    if(_text == "aa") {
                         console.log("double aa, yaya");
                     }
-                    console.log(text);
-                    text = text + "a";
+                    console.log(_text);
+                    _text = _text + "a";
                 }
                 
                 """;
 
             AssertHelperExpectedResultCode(expected, code);
-        }
-
-        [Fact]
-        public void TmpTest()
-        {
-            string code = """
-                class Pet
-                {
-                    String Name;
-                    Int Age;
-
-                    init(String name, Int age)
-                    {
-                        Name = name;
-                        Age = age;
-                        Int x;
-                        x = Age;
-                    } 
-                }
-
-                class Cat extends Pet
-                {
-                    Int Lives;
-
-                    init(String name, Int age, Int lives)
-                    {
-                        super(name, age);
-
-                        Lives = lives;
-                    }
-
-                    method LoseLives(Int livesToLose) Boolean
-                    {
-                        Int tempLives;
-                        tempLives = 0;
-
-                        Lives = tempLives;
-
-                        return true;
-                    }
-                }
-                """;
-
-            var tokens = Tokenizer.Tokenize(code);
-            var ast = Parser.Parse(tokens);
-
-            StringBuilder stringBuilder = new();
-            StringWriter stringWriter = new(stringBuilder);
-
-            List<string> errors = TypeChecker.CheckType(ast);
-            Assert.Empty(errors);
-
-            ProgramNode programNode = (ProgramNode)ast;
-
-            CodeGenerator codeGenerator = new(stringWriter);
-            codeGenerator.GenerateProgram(programNode);
-
-            stringWriter.Close();
-
-            string result = stringBuilder.ToString();
-            Console.WriteLine(result);
         }
     }
 }
