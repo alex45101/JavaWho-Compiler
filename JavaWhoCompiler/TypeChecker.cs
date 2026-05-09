@@ -956,6 +956,11 @@ namespace JavaWhoCompiler
 
                     break;
                 case VariableDeclaration varDec:
+                    if (Types.TypeDefined(varDec.Var.Value))
+                    {
+                        output.Add(new TypeException("Variable name cannot be a type", varDec.Var.Position).ToString());
+                    }
+
                     scope.Define(varDec.Var.Value, Types.GetType(varDec.Type, output), varDec.Position, output);
 
                     break;

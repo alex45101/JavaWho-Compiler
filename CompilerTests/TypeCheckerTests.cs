@@ -32,6 +32,46 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int a;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadPrimitiveNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int Int;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadClassNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType { init() {} }
+
+                    Int MyType;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "Assignment")]
         public void IntAssignmentTest()
         {
