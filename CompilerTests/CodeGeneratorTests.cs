@@ -137,7 +137,7 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                console.log(4);
+                console.log((4).toString());
 
                 """;
 
@@ -235,7 +235,7 @@ namespace CompilerTests
                 let _x;
                 _x = 4;
                 if(_x < 5) {
-                    console.log("Well hello, there");
+                    console.log(("Well hello, there").toString());
                 }
 
                 """;
@@ -267,10 +267,10 @@ namespace CompilerTests
                 let _x;
                 _x = 4;
                 if(_x < 5) {
-                    console.log("Well hello, there");
+                    console.log(("Well hello, there").toString());
                 }
                 else {
-                    console.log("No hello, there");
+                    console.log(("No hello, there").toString());
                 }
 
                 """;
@@ -305,13 +305,13 @@ namespace CompilerTests
                 let _x;
                 _x = 4;
                 if(_x < 5) {
-                    console.log("Well hello, there");
+                    console.log(("Well hello, there").toString());
                 }
                 else if(_x < 3) {
-                    console.log("No hello, there");
+                    console.log(("No hello, there").toString());
                 }
                 else {
-                    console.log("ooops");
+                    console.log(("ooops").toString());
                 }
 
                 """;
@@ -377,29 +377,29 @@ namespace CompilerTests
                     let _y;
                     _y = 3;
                     if(_y < 4) {
-                        console.log("Well hello, there");
+                        console.log(("Well hello, there").toString());
                     }
                     else {
                         if(_x < 4) {
-                            console.log("Thing");
+                            console.log(("Thing").toString());
                         }
-                        console.log("Nope");
+                        console.log(("Nope").toString());
                     }
                 }
                 else if(_x < 3) {
                     if(_x == 3) {
-                        console.log("swag");
+                        console.log(("swag").toString());
                     }
-                    console.log("No hello, there");
+                    console.log(("No hello, there").toString());
                 }
                 else {
                     if(_x == 5) {
-                        console.log("cool");
+                        console.log(("cool").toString());
                     }
                     else if(_x == 4) {
-                        console.log("sup");
+                        console.log(("sup").toString());
                     }
-                    console.log("ooops");
+                    console.log(("ooops").toString());
                 }
                 
                 """;
@@ -444,7 +444,7 @@ namespace CompilerTests
                         this._Age = _age;
                     }
                     Empty_Info_Void() {
-                        console.log("Pet Name: " + this._Name + ", Age: " + this._Age);
+                        console.log(("Pet Name: " + this._Name + ", Age: " + this._Age).toString());
                     }
                 }
                 let _john;
@@ -540,7 +540,7 @@ namespace CompilerTests
                         this._Age = _age;
                     }
                     Empty_Info_Void() {
-                        console.log("Pet Name: " + this._Name + ", Age: " + this._Age);
+                        console.log(("Pet Name: " + this._Name + ", Age: " + this._Age).toString());
                     }
                 }
                 class _Cat extends _Pet {
@@ -550,7 +550,7 @@ namespace CompilerTests
                         this._Lives = _lives;
                     }
                     Empty_Lives_Void() {
-                        console.log("Lives: " + this._Lives);
+                        console.log(("Lives: " + this._Lives).toString());
                     }
                     Int_LoseLives_Boolean(_livesToLose) {
                         let _tempLives;
@@ -571,10 +571,10 @@ namespace CompilerTests
                 _sam.Empty_Lives_Void();
                 let _result;
                 _result = _sam.Int_LoseLives_Boolean(1);
-                console.log(_result);
+                console.log((_result).toString());
                 _sam.Empty_Lives_Void();
                 _result = _sam.Int_LoseLives_Boolean(67);
-                console.log(_result);
+                console.log((_result).toString());
                 _sam.Empty_Lives_Void();
                 
                 """;
@@ -633,31 +633,31 @@ namespace CompilerTests
                 """;
 
             string expected = """
-                console.log("Normal while loop counter:");
+                console.log(("Normal while loop counter:").toString());
                 let _a;
                 _a = 0;
                 while(_a < 5) {
-                    console.log(_a);
+                    console.log((_a).toString());
                     _a = _a + 1;
                 }
-                console.log("Do while loop counter:");
+                console.log(("Do while loop counter:").toString());
                 let _b;
                 _b = 4;
                 while(true) {
-                    console.log(_b);
+                    console.log((_b).toString());
                     _b = _b - 1;
                     if(_b < 0) {
                         break;
                     }
                 }
-                console.log("String loop counter with a's:");
+                console.log(("String loop counter with a's:").toString());
                 let _text;
                 _text = "";
                 while(_text != "aaaa") {
                     if(_text == "aa") {
-                        console.log("double aa, yaya");
+                        console.log(("double aa, yaya").toString());
                     }
-                    console.log(_text);
+                    console.log((_text).toString());
                     _text = _text + "a";
                 }
                 

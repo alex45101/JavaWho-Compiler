@@ -282,7 +282,12 @@ namespace JavaWhoCompiler
                     break;
                 case PrintLnStatement printLnStatement:
                     Write($"console.log(");
+
+                    // write (expression.toString()) to prevent String class objects from printing differently
+                    Write("(");
                     GenerateExpression(printLnStatement.Argument);
+                    Write(").toString()");
+
                     Write(")");
                     break;
                 case MethodCallExpression methodCallExpression:
