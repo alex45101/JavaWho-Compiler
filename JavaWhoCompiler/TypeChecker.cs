@@ -1659,6 +1659,12 @@ namespace JavaWhoCompiler
             TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
             TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
 
+            if (leftType is null || rightType is null)
+            {
+                output.Add(new TypeException($"Can not derive {binaryExpression.OperatorType} type with unknown operand type", binaryExpression.Position).ToString());
+                return null;
+            }
+
             //if we are doing equality comparison check if they can be assigned otherwise continue
             if (binaryExpression.OperatorType == OperatorType.Equal 
                 || binaryExpression.OperatorType == OperatorType.NotEqual)
