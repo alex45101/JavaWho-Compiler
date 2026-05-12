@@ -32,6 +32,46 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int a;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadPrimitiveNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int Int;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadClassNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType { init() {} }
+
+                    Int MyType;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "Assignment")]
         public void IntAssignmentTest()
         {
@@ -659,6 +699,106 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Void { }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Void { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodWithCovariantReturnTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) String { return ""; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void BadOverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void BadMethodOverridingTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal { init() {} }
+
+                    class TestType {
+                        init(Int x) {}
+
+                        method a(Boolean y) Animal { return new Animal(); }
+                    }
+
+                    class SubTestType extends TestType {
+                        init() { super(5); }
+
+                        method a(Boolean z) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassMethods")]
         public void BasicMethodCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -787,6 +927,83 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void MethodCallWithOverloadingAndOverridingTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+                    }
+
+                    class SubType extends MyType {
+                        init() {
+                            super();
+                        }
+                    }
+
+                    class TestType {
+                        init(MyType m) {}
+
+                        method a(MyType m) Int { return 5; }
+                        method a(Int x) MyType { return new MyType(); }
+                    }
+
+                    class SubTestType extends TestType {
+                        init(SubType s) { super(s); }
+
+                        method a(Boolean y) Boolean { return y; }
+                        method a(SubType s) SubType { return s; }
+                        method a(Int x) SubType { return new SubType(); }
+                    }
+
+                    SubTestType s;
+                    s = new SubTestType(new SubType());
+
+                    Int a;
+                    a = s.a(new MyType());
+
+                    SubType b;
+                    b = s.a(5);
+
+                    Boolean c;
+                    c = s.a(true);
+
+                    SubType sub;
+                    sub = s.a(new SubType());
+
+                    MyType m;
+                    m = s.a(5);
+
+                    TestType t;
+                    t = new TestType(m);
+
+                    m = t.a(5);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void MethodDuplicateTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+
+                        method a(Int x) Boolean { return false; }
+                        method a(Int x) Boolean { return true; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassMethods")]
         public void MethodCallWithThisTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -815,6 +1032,81 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void SameBaseNonSubtypeMethodCallTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal {
+                        init() {}
+                    }
+
+                    class Cat extends Animal {
+                        init() { super(); }
+                    }
+
+                    class Dog extends Animal {
+                        init() { super(); }
+                    }
+
+                    class Test {
+                        init() {}
+
+                        method a(Cat cat) Void {
+                            println("we got a cat!");
+                        }
+                    }
+
+                    Test t;
+                    t = new Test();
+
+                    Dog d;
+                    d = new Dog();
+
+                    t.a(d);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void BaseTypeCallSubMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal {
+                        init() {
+                        }
+
+                        method action() Void {
+                        }
+                    }
+
+                    class Cat extends Animal {
+                        init() {
+                            super();
+                        }
+
+                        method action() Void {
+                        }
+
+                        method specialCatAction() Void {
+                        }
+                    }
+                    Animal catAnimal;
+                    catAnimal = new Cat();
+
+                    // type Animal doesnt have this method
+                    catAnimal.specialCatAction();
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]

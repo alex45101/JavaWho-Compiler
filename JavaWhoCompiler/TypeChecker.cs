@@ -116,7 +116,6 @@ namespace JavaWhoCompiler
     public abstract class TypeBase(string name)
     {
         public string Name { get; } = name;
-        public TypeBase Base;
         public int DistanceFromBase { get; protected set; } = 0;
         public abstract IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes { get; }
 
@@ -243,7 +242,6 @@ namespace JavaWhoCompiler
 
         public PrimitiveType(string name, Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes) : base(name)
         {
-            Base = this;
             compOperatorTypes = compatibleOperatorTypes;
         }
 
@@ -368,11 +366,6 @@ namespace JavaWhoCompiler
                         thisType is not null &&
                         thisType.CanBeAssignedTo(otherType)
                         ));
-        }
-
-        public TypeList ToBaseList()
-        {
-            return new(Types.Select(type => type?.Base).ToImmutableList());
         }
 
         public bool IsMorePreciseThan(TypeList other)
@@ -530,8 +523,8 @@ namespace JavaWhoCompiler
 
         public ClassType ParentClassType { get; }
 
-        // name to base type list to signature set
-        public Dictionary<string, Dictionary<TypeList, HashSet<MethodSignature>>> MethodSignatures { get; } = new();
+        // name to param type list to signature
+        public Dictionary<string, Dictionary<TypeList, MethodSignature>> MethodSignatures { get; } = new();
 
         public Dictionary<string, (TypeBase, Position)> Fields { get; private set; }
 
@@ -546,7 +539,6 @@ namespace JavaWhoCompiler
                 ClassDefinition classDefinition
                 ) : base(classDefinition.Name.Value)
         {
-            Base = this;
             DistanceFromBase = 0;
 
             VariableDeclarations = classDefinition.VariableDeclarations;
@@ -573,7 +565,6 @@ namespace JavaWhoCompiler
                 : base(classDefinition.Name.Value)
         {
             // default to inheriting from Object
-            Base = TypeBase.ObjectBuiltIn;
             ParentClassType = TypeBase.ObjectBuiltIn;
 
             compOperatorTypes = compatibleOperatorTypes;
@@ -581,7 +572,6 @@ namespace JavaWhoCompiler
             if (parentClassType is not null && ValidateParentClass(classDefinition, parentClassType, output))
             {
                 ParentClassType = parentClassType as ClassType;
-                Base = parentClassType.Base;
                 DistanceFromBase = parentClassType.DistanceFromBase + 1;
             }
 
@@ -665,33 +655,14 @@ namespace JavaWhoCompiler
             );
         }
 
-        private void CheckMatchingParentMethodSet(Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict, Dictionary<TypeList, HashSet<MethodSignature>> localMethodDict, List<string> output)
+        private void CheckMatchingParentMethodSet(Dictionary<TypeList, MethodSignature> parentMethodTypeDict, Dictionary<TypeList, MethodSignature> localMethodTypeDict, List<string> output)
         {
-            // local class has matching method name to parent
-            HashSet<MethodSignature> localMethodSet = null;
-            HashSet<MethodSignature> parentMethodSet = null;
-
-            TypeList matchingBaseTypeList = parentMethodDict.Keys.SingleOrDefault(baseTypeList => localMethodDict.ContainsKey(baseTypeList), null);
-            if (matchingBaseTypeList is null)
+            foreach ((TypeList localMethodTypeList, MethodSignature localMethodSignature) in localMethodTypeDict)
             {
-                // nothing to check
-                return;
-            }
-
-            localMethodSet = localMethodDict[matchingBaseTypeList];
-            parentMethodSet = parentMethodDict[matchingBaseTypeList];
-
-
-            foreach (MethodSignature parentMethodSignature in parentMethodSet)
-            {
-                if (!localMethodSet.TryGetValue(parentMethodSignature, out MethodSignature localMethodSignature))
-                {
-                    // local method set isnt trying to override parent method
-                    continue;
-                }
-
-                // a local method is trying to override a parent method
-                if (!localMethodSignature.CanOverride(parentMethodSignature))
+                // override occurs when method param types match exactly
+                // method overrides need to have covariant return type
+                if (parentMethodTypeDict.TryGetValue(localMethodTypeList, out MethodSignature parentMethodSignature)
+                    && !localMethodSignature.CanOverride(parentMethodSignature))
                 {
                     output.Add(new TypeException($"Overriding method {localMethodSignature.Name}'s return type " +
                             $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
@@ -700,15 +671,30 @@ namespace JavaWhoCompiler
             }
         }
 
+        public bool TryGetMethodTypeDict(string methodName, out Dictionary<TypeList, MethodSignature> methodTypeDict)
+        {
+            if (!MethodSignatures.TryGetValue(methodName, out methodTypeDict))
+            {
+                if (ParentClassType is null)
+                {
+                    return false;
+                }
+
+                return ParentClassType.TryGetMethodTypeDict(methodName, out methodTypeDict);
+            }
+
+            return true;
+        }
+
         private void CheckInheritedMethods(List<string> output)
         {
             if (ParentClassType is null) return;
 
-            foreach ((string parentMethodName, Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict) in ParentClassType.MethodSignatures)
+            foreach ((string localMethodName, Dictionary<TypeList, MethodSignature> localMethodTypeDict) in MethodSignatures)
             {
-                if (MethodSignatures.TryGetValue(parentMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> localMethodSet))
+                if (ParentClassType.TryGetMethodTypeDict(localMethodName, out Dictionary<TypeList, MethodSignature> parentMethodTypeDict))
                 {
-                    CheckMatchingParentMethodSet(parentMethodDict, localMethodSet, output);
+                    CheckMatchingParentMethodSet(parentMethodTypeDict, localMethodTypeDict, output);
                 }
             }
         }
@@ -728,9 +714,6 @@ namespace JavaWhoCompiler
                 TypeList paramTypes = new(methodDefinition.Parameters.Select(
                         param => typeMap.GetType(((VariableDeclaration)param).Type, output)
                         ).ToImmutableList());
-                TypeList baseParamTypes = new(methodDefinition.Parameters.Select(
-                        param => typeMap.GetType(((VariableDeclaration)param).Type, output)?.Base
-                        ).ToImmutableList());
 
 
                 MethodSignature newMethodSignature = new(
@@ -742,37 +725,27 @@ namespace JavaWhoCompiler
 
                 methodDefinition.Annotate(newMethodSignature);
 
-                if (!MethodSignatures.ContainsKey(newMethodSignature.Name))
+                if (!MethodSignatures.TryGetValue(newMethodSignature.Name, out Dictionary<TypeList, MethodSignature> methodTypeDict))
                 {
+                    // completely new method name
                     MethodSignatures.Add(
                         newMethodSignature.Name,
-                        new Dictionary<TypeList, HashSet<MethodSignature>>{
+                        new Dictionary<TypeList, MethodSignature> {
                             {
-                                baseParamTypes,
-                                new HashSet<MethodSignature>([newMethodSignature])
+                                paramTypes,
+                                newMethodSignature
                             }
-                            }
-                        );
+                        }
+                    );
                     continue;
                 }
 
-                Dictionary<TypeList, HashSet<MethodSignature>> methodBaseTypeDict = MethodSignatures[newMethodSignature.Name];
-
-                if (!methodBaseTypeDict.ContainsKey(baseParamTypes))
+                // method overloading attempt here
+                if (!methodTypeDict.TryAdd(newMethodSignature.ParamTypes, newMethodSignature))
                 {
-                    methodBaseTypeDict.Add(baseParamTypes, new HashSet<MethodSignature>([newMethodSignature]));
-                    continue;
-                }
-
-                HashSet<MethodSignature> methodSet = methodBaseTypeDict[baseParamTypes];
-
-                if (methodSet.Contains(newMethodSignature))
-                {
-                    // exact signature match, local redeclaration
+                    // exact param type match, cannot do this
                     output.Add(new TypeException($"Redeclaration of method {newMethodSignature}", newMethodSignature.Position).ToString());
                 }
-
-                methodSet.Add(newMethodSignature);
             }
         }
 
@@ -797,56 +770,41 @@ namespace JavaWhoCompiler
 
         public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments, Position position, List<string> output)
         {
-            if (!MethodSignatures.TryGetValue(queryMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> baseDict))
+            if(!TryGetMethodTypeDict(queryMethodName, out Dictionary<TypeList, MethodSignature> methodTypeDict))
             {
-                if (ParentClassType is null)
-                {
-                    output.Add(new TypeException($"Class {Name} does not contain a method ${queryMethodName}", position).ToString());
-                    return null;
-                }
-
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
+                output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName}", position).ToString());
+                return null;
             }
 
-            if (!baseDict.TryGetValue(queryMethodArguments.ToBaseList(), out HashSet<MethodSignature> methodSet))
+            // check for exact match
+            if (methodTypeDict.TryGetValue(queryMethodArguments, out MethodSignature exactSignatureMatch))
             {
-                if (ParentClassType is null)
-                {
-                    output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}", position).ToString());
-                    return null;
-                }
-
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
+                return exactSignatureMatch;
             }
 
-            // avoid exhaustive search if exact match is found
-            if (methodSet.TryGetValue(new MethodSignature(queryMethodName, queryMethodArguments, null, null), out MethodSignature exactMatch))
-            {
-                return exactMatch;
-            }
+            // get potential method signatures
+            IEnumerable<KeyValuePair<TypeList, MethodSignature>> potentialMethodSignatureEntries = methodTypeDict.Where(d => queryMethodArguments.AreSubtypesOf(d.Key));
 
-            // do the comparison here to find most precise method or throw ambiguous error
             MethodSignature mostPrecise = null;
-            foreach (MethodSignature methodSignature in methodSet)
+            foreach (KeyValuePair<TypeList, MethodSignature> methodEntry in potentialMethodSignatureEntries)
             {
+                TypeList entryParamTypeList = methodEntry.Key;
+                MethodSignature entryMethodSignature = methodEntry.Value;
+
+                // no way to check ambiguity yet
                 if (mostPrecise is null)
                 {
-                    // look for method signature is usable with given type list
-                    if (!methodSignature.ParamTypes.IsMorePreciseThan(queryMethodArguments))
-                    {
-                        mostPrecise = methodSignature;
-                    }
-
+                    mostPrecise = entryMethodSignature;
                     continue;
                 }
 
-                mostPrecise = methodSignature.ParamTypes.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes) switch
+                mostPrecise = entryParamTypeList.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes) switch
                 {
-                    TypeList.MorePreciseResult.True => methodSignature,
+                    TypeList.MorePreciseResult.True => entryMethodSignature,
                     TypeList.MorePreciseResult.False => mostPrecise,
                     TypeList.MorePreciseResult.Ambigious => ReturnNullAndAddMessage(new TypeException(
                             $"Ambiguous method call with types {queryMethodArguments}\n" +
-                            $"Given types do not distinctly match {methodSignature} or {mostPrecise}"
+                            $"Given types do not distinctly match {entryMethodSignature} or {mostPrecise}"
                             , position).ToString(), output),
                     _ => throw new TypeException($"Unexpected error", position)
                 };
@@ -1008,6 +966,11 @@ namespace JavaWhoCompiler
 
                     break;
                 case VariableDeclaration varDec:
+                    if (Types.TypeDefined(varDec.Var.Value))
+                    {
+                        output.Add(new TypeException("Variable name cannot be a type", varDec.Var.Position).ToString());
+                    }
+
                     scope.Define(varDec.Var.Value, Types.GetType(varDec.Type, output), varDec.Position, output);
 
                     break;
