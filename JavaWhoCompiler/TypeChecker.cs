@@ -1,9 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Headers;
-using System.Reflection.Metadata;
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace JavaWhoCompiler
@@ -12,46 +8,72 @@ namespace JavaWhoCompiler
     public class TypeException(string message, Position position) : Exception($"{position.Line}:{position.Column}: {message}");
 
 
-    public record VarInfo(TypeBase Type, bool IsAssigned, bool IsField);
+    public record VarInfo(TypeBase Type, bool IsField);
 
     public class Scope
     {
         public Scope Parent { get; init; }
         public TypeBase ReturnType { get; init; }
+        public bool InLoop { get; init; }
+        public bool HasBreak { get; set; }
+        public bool Initializing { get; init; }
         private readonly Dictionary<string, VarInfo> lookUp = new();
 
-        public Scope(Scope parent, TypeBase returnType = null)
+        public Scope(Scope parent, TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
             Parent = parent;
             ReturnType = returnType;
+            InLoop = inLoop;
+            HasBreak = false;
+            Initializing = initializing;
         }
 
         public void Define(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, false)))
+            if (Initializing)
+            {
+                DefineWhileInitializing(name, type, position, output);
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
+            }
+        }
+
+        private void DefineStandard(string name, TypeBase type, Position position, List<string> output)
+        {
+            if (!lookUp.TryAdd(name, new VarInfo(type, false)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
         }
 
-        public void DefineAssigned(string name, TypeBase type, Position position, List<string> output)
+        private void DefineWhileInitializing(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, true, false)))
+            // ignore output on look up
+            VarInfo varInfo = LookUp(name, position, []);
+
+            if (varInfo is not null && varInfo.IsField)
             {
-                output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
+                output.Add(new TypeException("Cannot shadow local or inherited class fields while initializing class", position).ToString());
+            }
+            else
+            {
+                DefineStandard(name, type, position, output);
             }
         }
 
         public void DefineField(string name, TypeBase type, Position position, List<string> output)
         {
-            if (!lookUp.TryAdd(name, new VarInfo(type, false, true)))
+            if (!lookUp.TryAdd(name, new VarInfo(type, true)))
             {
                 output.Add(new TypeException($"The variable {name} is already defined", position).ToString());
             }
         }
 
-        public void Assign(string name, TypeBase type, Position position, List<string> output)
+        public void Assign(IdentifiedNode varNode, TypeBase type, Position position, List<string> output)
         {
+            string name = varNode.Value;
             if (lookUp.TryGetValue(name, out VarInfo info))
             {
                 if (!type.CanBeAssignedTo(info.Type))
@@ -59,11 +81,14 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Can not assign {type} to {info.Type}", position).ToString());
                 }
 
-                lookUp[name] = new VarInfo(info.Type, true, info.IsField);
+                lookUp[name] = new VarInfo(info.Type, info.IsField);
+
+                // annotate varNode
+                varNode.IsField = info.IsField;
             }
             else if (Parent != null)
             {
-                Parent.Assign(name, type, position, output);
+                Parent.Assign(varNode, type, position, output);
             }
             else
             {
@@ -91,8 +116,8 @@ namespace JavaWhoCompiler
     public abstract class TypeBase(string name)
     {
         public string Name { get; } = name;
-        public TypeBase Base;
         public int DistanceFromBase { get; protected set; } = 0;
+        public abstract IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes { get; }
 
         public abstract bool CanBeAssignedTo(TypeBase other);
 
@@ -103,58 +128,125 @@ namespace JavaWhoCompiler
 
 
         // primitives
-        public readonly static PrimitiveType IntPrimitive = new("Int");
-        public readonly static PrimitiveType BooleanPrimitive = new("Boolean");
-        public readonly static PrimitiveType VoidPrimitive = new("Void");
-        public static readonly HashSet<PrimitiveType> Primitives = [
-            IntPrimitive,
-            BooleanPrimitive,
-            VoidPrimitive
-        ];
+        public readonly static PrimitiveType IntPrimitive;          
+        public readonly static PrimitiveType BooleanPrimitive;          
+        public readonly static PrimitiveType VoidPrimitive;
+        public static readonly HashSet<PrimitiveType> Primitives;
 
 
         // built ins
-        public readonly static ClassType ObjectBuiltIn = new(
-                new ClassDefinition(
-                    new IdentifiedNode("Object", null),
-                    null,
-                    [], // vardecs
-                    new Constructor([], null, [], null),
-                    [], // methods
-                    null
-                )
-                );
+        public readonly static ClassType ObjectBuiltIn;
+        public readonly static ClassType StringBuiltIn;
 
-        public readonly static ClassType StringBuiltIn = new(
-                new ClassDefinition(
-                    new IdentifiedNode("String", null),
-                    new IdentifiedNode("Object", null),
-                    [], // vardecs
-                    new Constructor([], null, [], null),
-                    [], // methods
-                    null
-                ),
-                ObjectBuiltIn // extending class
-                );
+        public readonly static HashSet<ClassType> BuiltIns;
+        public readonly static HashSet<TypeBase> Predefined;
 
-        public readonly static HashSet<ClassType> BuiltIns = [
-            ObjectBuiltIn,
+        static TypeBase()
+        {
+            IntPrimitive = new("Int",
+                new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+
+            BooleanPrimitive = new("Boolean",
+                new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+            VoidPrimitive = new("Void", new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>());
+            Primitives = [
+                IntPrimitive,
+                BooleanPrimitive,
+                VoidPrimitive
+            ];
+
+
+            // built ins
+            ObjectBuiltIn = new(
+                    new ClassDefinition(
+                        new IdentifiedNode("Object", null),
+                        null,
+                        [], // vardecs
+                        new Constructor([], null, [], null),
+                        [], // methods
+                        null
+                    )
+            );
+
+            StringBuiltIn = new(
+                    new ClassDefinition(
+                        new IdentifiedNode("String", null),
+                        new IdentifiedNode("Object", null),
+                        [], // vardecs
+                        new Constructor(
+                            [
+                                new VariableDeclaration(
+                                    new IdentifiedNode("String", null),
+                                    new IdentifiedNode("value", null),
+                                    null
+                                )
+                            ], 
+                            null, 
+                            [], 
+                            null
+                        ),
+                        [], // methods
+                        null
+                    ),
+                    ObjectBuiltIn, // extending class
+                    new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>()
+            );
+
+            IntPrimitive.SetOperator(OperatorType.Add, 
+                (IntPrimitive, IntPrimitive), 
+                (StringBuiltIn, StringBuiltIn)
+            );
+            IntPrimitive.SetOperator(OperatorType.Subtract, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.Multiply, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.Divide, 
+                (IntPrimitive, IntPrimitive)
+            );
+            IntPrimitive.SetOperator(OperatorType.LessThan, 
+                (IntPrimitive, BooleanPrimitive)
+            );
+
+            BooleanPrimitive.SetOperator(OperatorType.Add,
+                (StringBuiltIn, StringBuiltIn)
+            );
+
+            StringBuiltIn.SetOperator(OperatorType.Add, 
+                (IntPrimitive, StringBuiltIn),
+                (BooleanPrimitive, StringBuiltIn),
+                (StringBuiltIn, StringBuiltIn)
+            );
+
+            BuiltIns = [
+                ObjectBuiltIn,
             StringBuiltIn
-        ];
+            ];
 
 
-        public readonly static HashSet<TypeBase> Predefined = new([
-                ..Primitives,
+            Predefined = new([
+                    ..Primitives,
                 ..BuiltIns
-        ]);
+            ]);
+        }
     }
 
     public class PrimitiveType : TypeBase
     {
-        public PrimitiveType(string name) : base(name)
+        public override IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes => compOperatorTypes;
+
+        private Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compOperatorTypes;
+
+        public PrimitiveType(string name, Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes) : base(name)
         {
-            Base = this;
+            compOperatorTypes = compatibleOperatorTypes;
         }
+
+        internal void SetOperator(OperatorType op, params (TypeBase Other, TypeBase Result)[] mappings)
+        => compOperatorTypes[op] = mappings.ToDictionary(m => m.Other, m => m.Result);
 
         public override bool CanBeAssignedTo(TypeBase other)
         {
@@ -259,9 +351,7 @@ namespace JavaWhoCompiler
         {
             return GetEnumerator();
         }
-
     }
-
 
     public sealed record TypeList(ImmutableList<TypeBase> Types)
     {
@@ -276,11 +366,6 @@ namespace JavaWhoCompiler
                         thisType is not null &&
                         thisType.CanBeAssignedTo(otherType)
                         ));
-        }
-
-        public TypeList ToBaseList()
-        {
-            return new(Types.Select(type => type?.Base).ToImmutableList());
         }
 
         public bool IsMorePreciseThan(TypeList other)
@@ -358,6 +443,11 @@ namespace JavaWhoCompiler
 
         public override string ToString()
         {
+            if (Types.Count == 0)
+            {
+                return "()";
+            }
+
             StringBuilder stringBuilder = new StringBuilder("(");
             for (int i = 0; i < Types.Count - 1; i++)
             {
@@ -429,17 +519,18 @@ namespace JavaWhoCompiler
         private List<AST> VariableDeclarations;
         private List<AST> MethodDefinitions;
         private Constructor Constructor;
-
+        private Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compOperatorTypes;
 
         public ClassType ParentClassType { get; }
 
-        // name to base type list to signature set
-        public Dictionary<string, Dictionary<TypeList, HashSet<MethodSignature>>> MethodSignatures { get; } = new();
+        // name to param type list to signature
+        public Dictionary<string, Dictionary<TypeList, MethodSignature>> MethodSignatures { get; } = new();
 
         public Dictionary<string, (TypeBase, Position)> Fields { get; private set; }
 
         public TypeList ConstructorTypes { get; private set; }
 
+        public override IReadOnlyDictionary<OperatorType, Dictionary<TypeBase, TypeBase>> CompatibleOperatorTypes => compOperatorTypes;
 
         private bool isChecked = false;
 
@@ -448,7 +539,6 @@ namespace JavaWhoCompiler
                 ClassDefinition classDefinition
                 ) : base(classDefinition.Name.Value)
         {
-            Base = this;
             DistanceFromBase = 0;
 
             VariableDeclarations = classDefinition.VariableDeclarations;
@@ -460,26 +550,28 @@ namespace JavaWhoCompiler
         //This constructor is for built in types, as in StringBuiltIn variable
         public ClassType(
                 ClassDefinition classDefinition,
-                TypeBase parentClassType
+                TypeBase parentClassType,
+                Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes
             )
-            : this(classDefinition, parentClassType, null)
+            : this(classDefinition, parentClassType, compatibleOperatorTypes, null)
         { }
 
         public ClassType(
                 ClassDefinition classDefinition,
                 TypeBase parentClassType,
+                Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>> compatibleOperatorTypes,
                 List<string> output
                 )
                 : base(classDefinition.Name.Value)
         {
             // default to inheriting from Object
-            Base = TypeBase.ObjectBuiltIn;
             ParentClassType = TypeBase.ObjectBuiltIn;
+
+            compOperatorTypes = compatibleOperatorTypes;
 
             if (parentClassType is not null && ValidateParentClass(classDefinition, parentClassType, output))
             {
                 ParentClassType = parentClassType as ClassType;
-                Base = parentClassType.Base;
                 DistanceFromBase = parentClassType.DistanceFromBase + 1;
             }
 
@@ -488,6 +580,9 @@ namespace JavaWhoCompiler
 
             Constructor = (Constructor)classDefinition.Constructor;
         }
+
+        internal void SetOperator(OperatorType op, params (TypeBase Other, TypeBase Result)[] mappings)
+        => compOperatorTypes[op] = mappings.ToDictionary(m => m.Other, m => m.Result);
 
         private bool ValidateParentClass(ClassDefinition classDefinition, TypeBase parentClassType, List<string> output)
         {
@@ -535,6 +630,7 @@ namespace JavaWhoCompiler
         public void PopulateWithTypeMap(TypeMap typeMap, List<string> output)
         {
             if (isChecked) return;
+            isChecked = true;
 
             // populate parent class first
             if (ParentClassType is not null)
@@ -548,8 +644,6 @@ namespace JavaWhoCompiler
 
             InitializeLocalMethodSignatures(typeMap, output);
             CheckInheritedMethods(output);
-
-            isChecked = true;
         }
 
         private void InitializeConstructor(TypeMap typeMap, List<string> output)
@@ -561,33 +655,14 @@ namespace JavaWhoCompiler
             );
         }
 
-        private void CheckMatchingParentMethodSet(Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict, Dictionary<TypeList, HashSet<MethodSignature>> localMethodDict, List<string> output)
+        private void CheckMatchingParentMethodSet(Dictionary<TypeList, MethodSignature> parentMethodTypeDict, Dictionary<TypeList, MethodSignature> localMethodTypeDict, List<string> output)
         {
-            // local class has matching method name to parent
-            HashSet<MethodSignature> localMethodSet = null;
-            HashSet<MethodSignature> parentMethodSet = null;
-
-            TypeList matchingBaseTypeList = parentMethodDict.Keys.SingleOrDefault(baseTypeList => localMethodDict.ContainsKey(baseTypeList), null);
-            if (matchingBaseTypeList is null)
+            foreach ((TypeList localMethodTypeList, MethodSignature localMethodSignature) in localMethodTypeDict)
             {
-                // nothing to check
-                return;
-            }
-
-            localMethodSet = localMethodDict[matchingBaseTypeList];
-            parentMethodSet = parentMethodDict[matchingBaseTypeList];
-
-
-            foreach (MethodSignature parentMethodSignature in parentMethodSet)
-            {
-                if (!localMethodSet.TryGetValue(parentMethodSignature, out MethodSignature localMethodSignature))
-                {
-                    // local method set isnt trying to override parent method
-                    continue;
-                }
-
-                // a local method is trying to override a parent method
-                if (!localMethodSignature.CanOverride(parentMethodSignature))
+                // override occurs when method param types match exactly
+                // method overrides need to have covariant return type
+                if (parentMethodTypeDict.TryGetValue(localMethodTypeList, out MethodSignature parentMethodSignature)
+                    && !localMethodSignature.CanOverride(parentMethodSignature))
                 {
                     output.Add(new TypeException($"Overriding method {localMethodSignature.Name}'s return type " +
                             $"{localMethodSignature.ReturnType} is not a subtype of the parent method's " +
@@ -596,15 +671,30 @@ namespace JavaWhoCompiler
             }
         }
 
+        public bool TryGetMethodTypeDict(string methodName, out Dictionary<TypeList, MethodSignature> methodTypeDict)
+        {
+            if (!MethodSignatures.TryGetValue(methodName, out methodTypeDict))
+            {
+                if (ParentClassType is null)
+                {
+                    return false;
+                }
+
+                return ParentClassType.TryGetMethodTypeDict(methodName, out methodTypeDict);
+            }
+
+            return true;
+        }
+
         private void CheckInheritedMethods(List<string> output)
         {
             if (ParentClassType is null) return;
 
-            foreach ((string parentMethodName, Dictionary<TypeList, HashSet<MethodSignature>> parentMethodDict) in ParentClassType.MethodSignatures)
+            foreach ((string localMethodName, Dictionary<TypeList, MethodSignature> localMethodTypeDict) in MethodSignatures)
             {
-                if (MethodSignatures.TryGetValue(parentMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> localMethodSet))
+                if (ParentClassType.TryGetMethodTypeDict(localMethodName, out Dictionary<TypeList, MethodSignature> parentMethodTypeDict))
                 {
-                    CheckMatchingParentMethodSet(parentMethodDict, localMethodSet, output);
+                    CheckMatchingParentMethodSet(parentMethodTypeDict, localMethodTypeDict, output);
                 }
             }
         }
@@ -624,9 +714,6 @@ namespace JavaWhoCompiler
                 TypeList paramTypes = new(methodDefinition.Parameters.Select(
                         param => typeMap.GetType(((VariableDeclaration)param).Type, output)
                         ).ToImmutableList());
-                TypeList baseParamTypes = new(methodDefinition.Parameters.Select(
-                        param => typeMap.GetType(((VariableDeclaration)param).Type, output)?.Base
-                        ).ToImmutableList());
 
 
                 MethodSignature newMethodSignature = new(
@@ -638,37 +725,27 @@ namespace JavaWhoCompiler
 
                 methodDefinition.Annotate(newMethodSignature);
 
-                if (!MethodSignatures.ContainsKey(newMethodSignature.Name))
+                if (!MethodSignatures.TryGetValue(newMethodSignature.Name, out Dictionary<TypeList, MethodSignature> methodTypeDict))
                 {
+                    // completely new method name
                     MethodSignatures.Add(
                         newMethodSignature.Name,
-                        new Dictionary<TypeList, HashSet<MethodSignature>>{
+                        new Dictionary<TypeList, MethodSignature> {
                             {
-                                baseParamTypes,
-                                new HashSet<MethodSignature>([newMethodSignature])
+                                paramTypes,
+                                newMethodSignature
                             }
-                            }
-                        );
+                        }
+                    );
                     continue;
                 }
 
-                Dictionary<TypeList, HashSet<MethodSignature>> methodBaseTypeDict = MethodSignatures[newMethodSignature.Name];
-
-                if (!methodBaseTypeDict.ContainsKey(baseParamTypes))
+                // method overloading attempt here
+                if (!methodTypeDict.TryAdd(newMethodSignature.ParamTypes, newMethodSignature))
                 {
-                    methodBaseTypeDict.Add(baseParamTypes, new HashSet<MethodSignature>([newMethodSignature]));
-                    continue;
-                }
-
-                HashSet<MethodSignature> methodSet = methodBaseTypeDict[baseParamTypes];
-
-                if (methodSet.Contains(newMethodSignature))
-                {
-                    // exact signature match, local redeclaration
+                    // exact param type match, cannot do this
                     output.Add(new TypeException($"Redeclaration of method {newMethodSignature}", newMethodSignature.Position).ToString());
                 }
-
-                methodSet.Add(newMethodSignature);
             }
         }
 
@@ -678,72 +755,56 @@ namespace JavaWhoCompiler
 
             foreach (VariableDeclaration variableDeclaration in VariableDeclarations)
             {
-                if (Fields.ContainsKey(variableDeclaration.Var.Value))
+                bool added = Fields.TryAdd(
+                        variableDeclaration.Var.Value,
+                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output), variableDeclaration.Type.Position)
+                        );
+
+                if (!added)
                 {
                     output.Add(new TypeException($"Redeclaration of field {variableDeclaration.Var.Value}", variableDeclaration.Position).ToString());
                 }
-
-                Fields.Add(
-                        variableDeclaration.Var.Value,
-                        (typeMap.GetType(variableDeclaration.Type.Value, variableDeclaration.Type.Position, output),
-                        variableDeclaration.Type.Position)
-                        );
             }
         }
 
 
         public MethodSignature GetMatchingSignature(string queryMethodName, TypeList queryMethodArguments, Position position, List<string> output)
         {
-            if (!MethodSignatures.TryGetValue(queryMethodName, out Dictionary<TypeList, HashSet<MethodSignature>> baseDict))
+            if(!TryGetMethodTypeDict(queryMethodName, out Dictionary<TypeList, MethodSignature> methodTypeDict))
             {
-                if (ParentClassType is null)
-                {
-                    output.Add(new TypeException($"Class {Name} does not contain a method ${queryMethodName}", position).ToString());
-                    return null;
-                }
-
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
+                output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName}", position).ToString());
+                return null;
             }
 
-            if (!baseDict.TryGetValue(queryMethodArguments.ToBaseList(), out HashSet<MethodSignature> methodSet))
+            // check for exact match
+            if (methodTypeDict.TryGetValue(queryMethodArguments, out MethodSignature exactSignatureMatch))
             {
-                if (ParentClassType is null)
-                {
-                    output.Add(new TypeException($"Class {Name} does not contain a method {queryMethodName} that matches the argument types {queryMethodArguments}", position).ToString());
-                    return null;
-                }
-
-                return ParentClassType.GetMatchingSignature(queryMethodName, queryMethodArguments, position, output);
+                return exactSignatureMatch;
             }
 
-            // avoid exhaustive search if exact match is found
-            if (methodSet.TryGetValue(new MethodSignature(queryMethodName, queryMethodArguments, null, null), out MethodSignature exactMatch))
-            {
-                return exactMatch;
-            }
+            // get potential method signatures
+            IEnumerable<KeyValuePair<TypeList, MethodSignature>> potentialMethodSignatureEntries = methodTypeDict.Where(d => queryMethodArguments.AreSubtypesOf(d.Key));
 
-            // do the comparison here to find most precise method or throw ambiguous error
             MethodSignature mostPrecise = null;
-            foreach (MethodSignature methodSignature in methodSet)
+            foreach (KeyValuePair<TypeList, MethodSignature> methodEntry in potentialMethodSignatureEntries)
             {
+                TypeList entryParamTypeList = methodEntry.Key;
+                MethodSignature entryMethodSignature = methodEntry.Value;
+
+                // no way to check ambiguity yet
                 if (mostPrecise is null)
                 {
-                    // look for method signature is usable with given type list
-                    if (!methodSignature.ParamTypes.IsMorePreciseThan(queryMethodArguments))
-                    {
-                        mostPrecise = methodSignature;
-                    }
-
+                    mostPrecise = entryMethodSignature;
                     continue;
                 }
 
-                mostPrecise = methodSignature.ParamTypes.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes) switch
+                mostPrecise = entryParamTypeList.IsMorePreciseThanNonAmbiguous(mostPrecise.ParamTypes) switch
                 {
-                    TypeList.MorePreciseResult.True => methodSignature,
+                    TypeList.MorePreciseResult.True => entryMethodSignature,
                     TypeList.MorePreciseResult.False => mostPrecise,
                     TypeList.MorePreciseResult.Ambigious => ReturnNullAndAddMessage(new TypeException(
                             $"Ambiguous method call with types {queryMethodArguments}\n" +
-                            $"Given types do not distinctly match {methodSignature} or {mostPrecise}"
+                            $"Given types do not distinctly match {entryMethodSignature} or {mostPrecise}"
                             , position).ToString(), output),
                     _ => throw new TypeException($"Unexpected error", position)
                 };
@@ -817,6 +878,7 @@ namespace JavaWhoCompiler
                 new ClassType(
                     classDefinition,
                     extendingClassType,
+                    new Dictionary<OperatorType, Dictionary<TypeBase, TypeBase>>(),
                     output
                 ),
                 classDefinition.Position,
@@ -865,6 +927,11 @@ namespace JavaWhoCompiler
 
         private void CheckTypeHelper(AST node, List<string> output)
         {
+            if (scope.HasBreak)
+            {
+                output.Add(new TypeException("Unreachable code after break", node.Position).ToString());
+            }
+
             switch (node)
             {
                 case ProgramNode prog:
@@ -879,6 +946,8 @@ namespace JavaWhoCompiler
                     {
                         CheckTypeHelper(statement, output);
                     }
+
+                    CheckAssignment(prog.Statements, [], output);
                     break;
                 case BlockStatement blockStatement:
 
@@ -897,6 +966,11 @@ namespace JavaWhoCompiler
 
                     break;
                 case VariableDeclaration varDec:
+                    if (Types.TypeDefined(varDec.Var.Value))
+                    {
+                        output.Add(new TypeException("Variable name cannot be a type", varDec.Var.Position).ToString());
+                    }
+
                     scope.Define(varDec.Var.Value, Types.GetType(varDec.Type, output), varDec.Position, output);
 
                     break;
@@ -909,44 +983,34 @@ namespace JavaWhoCompiler
                         break;
                     }
 
-                    scope.Assign(assignmentStatement.Var.Value, rightType, assignmentStatement.Position, output);
+                    scope.Assign(assignmentStatement.Var, rightType, assignmentStatement.Position, output);
 
                     break;
                 case IfStatement ifStatement:
-
-                    TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
-
-                    if (!CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    CheckTypeHelper(ifStatement.IfBody, output);
-
-                    if (ifStatement.ElseBody is not null)
-                    {
-                        CheckTypeHelper(ifStatement.ElseBody, output);
-                    }
-
+                    CheckIfStatement(ifStatement, output);
                     break;
                 case WhileStatement whileStatement:
-                    TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
-
-                    if (!CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output))
-                    {
-                        break;
-                    }
-
-                    if (whileStatement.Statement is not null)
-                    {
-                        CheckTypeHelper(whileStatement.Statement, output);
-                    }
-
+                    CheckWhileStatement(whileStatement, output);
                     break;
                 case ReturnStatement returnStatement:
+                    if (scope.ReturnType is null)
+                    {
+                        output.Add(new TypeException("Cannot return outside of a method", returnStatement.Position).ToString());
+                        break;
+                    }
                     
                     //did not pass in method name recursively
-                    CheckMethodReturnType("", scope.ReturnType, returnStatement, output);
+                    CheckMethodReturnType(scope.ReturnType, returnStatement, output);
+                    break;
+                case BreakStatement breakStatement:
+                    if(scope.InLoop)
+                    {
+                        scope.HasBreak = true;
+                    }
+                    else
+                    {
+                        output.Add(new TypeException("Cannot break outside of a loop context", breakStatement.Position).ToString());
+                    }
 
                     break;
                 case ExpressionStatement expressionStatement:
@@ -960,10 +1024,14 @@ namespace JavaWhoCompiler
 
                     break;
                 case MethodCallExpression methodCallExpression:
+                    if (scope.Initializing)
+                    {
+                        output.Add("Cannot use `this.` method calls in class constructor");
+                    }
 
                     GetExpressionType(methodCallExpression, output);
 
-                    break;                
+                    break;
                 case null:
                     output.Add(new TypeException("Null node given", new Position(1, 1)).ToString());
                     break;
@@ -971,6 +1039,82 @@ namespace JavaWhoCompiler
                     output.Add(new TypeException($"Type is not supported: {node.GetType()}", node.Position).ToString());
                     break;
             }
+        }
+
+        private void CheckIfStatement(IfStatement ifStatement, List<string> output)
+        {
+            // although not always technically a new scope, 
+            // entering a scope here prevents single line
+            // break statements as a body from marking the rest
+            // of the code in this scope as unreachable
+
+            // restriction of vardec as a single body statement
+            // makes this scope acceptable
+            EnterScope(scope.ReturnType);
+
+            TypeBase ifGuard = GetExpressionType(ifStatement.Guard, output);
+
+            CheckGuardType(ifStatement, ifGuard, ifStatement.Guard.Position, output);
+
+            AST ifBody = ifStatement.IfBody;
+
+            if (ifBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single if statement body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(ifBody, output);
+
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // unreachable code
+                output.Add(new TypeException("Unreachable code in if body", ifBody.Position).ToString());
+            }
+
+
+            if (ifStatement.ElseBody is AST elseBody)
+            {
+                CheckTypeHelper(elseBody, output);
+
+                // if (true)
+                if (NodeIsBoolLiteral(ifStatement.Guard, true))
+                {
+                    // else would be unreachable
+                    output.Add(new TypeException("Unreachable code in else body", elseBody.Position).ToString());
+                }
+            }
+            
+            ExitScope();
+        }
+
+        private void CheckWhileStatement(WhileStatement whileStatement, List<string> output)
+        {
+            // see CheckIfStatement for scope reasoning
+            EnterScope(scope.ReturnType, true);
+
+            TypeBase whileGuard = GetExpressionType(whileStatement.Guard, output);
+
+            CheckGuardType(whileStatement, whileGuard, whileStatement.Guard.Position, output);
+
+            AST whileBody = whileStatement.Statement;
+
+            // while(false)
+            if (NodeIsBoolLiteral(whileStatement.Guard, false))
+            {
+                // unreachable
+                output.Add(new TypeException("Unreachable code in while(false) body", whileBody.Position).ToString());
+            }
+
+            if (whileBody is VariableDeclaration variableDeclaration)
+            {
+                output.Add(new TypeException("Cannot have variable declaration inside single line loop body", variableDeclaration.Position).ToString());
+            }
+
+            CheckTypeHelper(whileBody, output);
+
+            ExitScope();
         }
 
         private bool CheckGuardType(AST astExpression, TypeBase guardType, Position position, List<string> output)
@@ -982,6 +1126,269 @@ namespace JavaWhoCompiler
             }
 
             return true;
+        }
+
+        private bool NodeIsBoolLiteral(AST node, bool valueToCheck)
+        {
+            return node switch
+            {
+                BooleanLiteral(bool value, _) when value == valueToCheck => true,
+                _ => false
+            };
+        }
+
+        private bool CheckIfCodePath(IfStatement ifStatement, List<string> output)
+        {
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                // only check if body
+                return CheckCodePath([ifStatement.IfBody], output);
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                // will still check else body in case there are more errors
+                return CheckElseCodePath(ifStatement.ElseBody, output);
+            }
+
+
+            bool ifPathResult = CheckCodePath([ifStatement.IfBody], output);
+            bool elsePathResult = CheckElseCodePath(ifStatement.ElseBody, output);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool CheckElseCodePath(AST elseBody, List<string> output)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return CheckCodePath(elseBodyStatements, output);
+        }
+
+        private bool CheckWhileCodePath(WhileStatement whileStatement, List<string> output)
+        {
+            // while(true) always treated as return unless break
+            if (NodeIsBoolLiteral(whileStatement.Guard, true))
+            {
+                // guaranteed to hit body, check if there is a break
+                // if no break, then infinite loop or return in loop, and
+                // we can consider either valid
+                return !FindLoopBreak([whileStatement.Statement]);
+            }
+
+            // return false so that CheckCodePath is forced to check next statement
+            return false;
+        }
+
+        private bool CheckCodePath(List<AST> statements, List<string> output)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+
+            bool statementReturns = statement switch
+            {
+                ReturnStatement => true,
+                IfStatement ifStatement => CheckIfCodePath(ifStatement, output),
+                WhileStatement whileStatement => CheckWhileCodePath(whileStatement, output),
+                BlockStatement blockStatement => CheckCodePath(blockStatement.Statements, output),
+                _ => false,
+            };
+
+            if(statementReturns && statements.Count > 1)
+            {
+                output.Add(new TypeException($"Unreachable code after return", statement.Position).ToString());
+            } 
+            else if(!statementReturns)
+            {
+                return CheckCodePath(statements.Slice(1, statements.Count - 1), output);
+            }
+
+            return statementReturns;
+        }
+
+        private bool FindBreakInIfStatement(IfStatement ifStatement)
+        {
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                return FindLoopBreak([ifStatement.IfBody]);
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                return FindBreakInElseBody(ifStatement.ElseBody);
+            }
+
+
+            bool ifPathResult = FindLoopBreak([ifStatement.IfBody]);
+            bool elsePathResult = FindBreakInElseBody(ifStatement.ElseBody);
+
+            return ifPathResult && elsePathResult;
+
+        }
+
+        private bool FindBreakInElseBody(AST elseBody)
+        {
+            List<AST> elseBodyStatements = elseBody != null ? [elseBody] : [];
+            return FindLoopBreak(elseBodyStatements);
+        }
+
+
+        private bool FindLoopBreak(List<AST> statements)
+        {
+            if (statements.Count == 0)
+            {
+                return false;
+            }
+
+            AST statement = statements.First();
+
+            bool found = statement switch
+            {
+                BreakStatement => true,
+                IfStatement ifStatement => FindBreakInIfStatement(ifStatement),
+                BlockStatement blockStatement => FindLoopBreak(blockStatement.Statements),
+
+                _ => false,
+            };
+
+            return found || FindLoopBreak(statements.Slice(1, statements.Count - 1));
+        }
+
+        private HashSet<string> CheckIfAssignment(IfStatement ifStatement, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            CheckExpressionAssignment(ifStatement.Guard, prevAssignSet, output);
+
+            HashSet<string> ifBodySet = CheckAssignment([ifStatement.IfBody], prevAssignSet, output, breakAssignmentSets);
+            HashSet<string> elseBodySet = CheckElseAssignment(ifStatement.ElseBody, prevAssignSet, output, breakAssignmentSets);
+
+            // if (true)
+            if (NodeIsBoolLiteral(ifStatement.Guard, true))
+            {
+                return ifBodySet;
+            }
+
+            // if (false)
+            if (NodeIsBoolLiteral(ifStatement.Guard, false))
+            {
+                return elseBodySet;
+            }
+
+            return ifBodySet.Intersect(elseBodySet).ToHashSet();
+        }
+
+        private HashSet<string> CheckElseAssignment(AST elseBody, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            return elseBody is null ? new() : CheckAssignment([elseBody], prevAssignSet, output, breakAssignmentSets);
+        }
+
+        private HashSet<string> CheckWhileAssignment(WhileStatement whileStatement, HashSet<string> prevAssignSet, List<string> output)
+        {
+            CheckExpressionAssignment(whileStatement.Guard, prevAssignSet, output);
+            
+            List<HashSet<string>> breakAssignmentSets = new();
+            CheckAssignment([whileStatement.Statement], prevAssignSet, output, breakAssignmentSets);
+
+            // while(true)
+            if (NodeIsBoolLiteral(whileStatement.Guard, true) && breakAssignmentSets.Count > 0)
+            {
+                return breakAssignmentSets.Aggregate((acc, next) => acc.Intersect(next).ToHashSet());
+            }
+
+            // anything other than while(true) we can't determine if assignment outlives the while statement
+            return new();
+        }
+
+        private HashSet<string> CheckAssignment(List<AST> statements, HashSet<string> prevAssignSet, List<string> output, List<HashSet<string>> breakAssignmentSets = null)
+        {
+            if (statements.Count == 0)
+            {
+                return prevAssignSet;
+            }
+
+            AST statement = statements.First();
+
+            if (statement is BreakStatement && breakAssignmentSets is not null)
+            {
+                breakAssignmentSets.Add(prevAssignSet);
+                return prevAssignSet;
+            }
+
+            HashSet<string> statementAssignSet;
+            switch (statement)
+            {
+                case VariableDeclaration(_, IdentifiedNode varName, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
+                    break;
+                case AssignmentStatement(IdentifiedNode varName, AST val, _):
+                    statementAssignSet = new HashSet<string>([varName.Value]);
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case IfStatement ifStatement:
+                    statementAssignSet = CheckIfAssignment(ifStatement, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case WhileStatement whileStatement:
+                    statementAssignSet = CheckWhileAssignment(whileStatement, prevAssignSet, output);
+                    break;
+                case BlockStatement(List<AST> blockStatements, _):
+                    statementAssignSet = CheckAssignment(blockStatements, prevAssignSet, output, breakAssignmentSets);
+                    break;
+                case ReturnStatement(AST val, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(val, prevAssignSet, output);
+                    break;
+                case ExpressionStatement(AST expression, _):
+                    statementAssignSet = new();
+                    CheckExpressionAssignment(expression, prevAssignSet, output);
+                    break;
+                default:
+                    statementAssignSet = new();
+                    break;
+            };
+
+
+            if (statement is VariableDeclaration)
+            {
+                // remove var from assign set as it was just redeclared
+                statementAssignSet = prevAssignSet.Except(statementAssignSet).ToHashSet();
+            }
+            else
+            {
+                statementAssignSet = prevAssignSet.Union(statementAssignSet).ToHashSet();
+            }
+
+            HashSet<string> nextStatementAssignSet = CheckAssignment(statements.Slice(1, statements.Count - 1), statementAssignSet, output, breakAssignmentSets);
+            return statementAssignSet.Union(nextStatementAssignSet).ToHashSet();
+        }
+
+        private void CheckExpressionAssignment(AST expression, HashSet<string> assignSet, List<string> output)
+        {
+            switch (expression)
+            {
+                case IdentifiedNode identifiedNode:
+                    if (!assignSet.Contains(identifiedNode.Value))
+                    {
+                        output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
+                    }
+                    break;
+                case BinaryExpression(AST left, _, AST right, _):
+                    CheckExpressionAssignment(left, assignSet, output);
+                    CheckExpressionAssignment(right, assignSet, output);
+                    break;
+                case MethodCallExpression(_, _, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+                case NewObjectExpression(_, List<AST> arguments, _):
+                    arguments.ForEach(arg => CheckExpressionAssignment(arg, assignSet, output));
+                    break;
+            }
         }
 
         private void CheckClass(ClassDefinition classDefinition, List<string> output)
@@ -997,7 +1404,7 @@ namespace JavaWhoCompiler
             EnterScope();
 
             // hacky way of defining the type of "this"
-            scope.DefineAssigned("this", classType, classDefinition.Position, output);
+            scope.Define("this", classType, classDefinition.Position, output);
 
             // add fields to scope
             foreach ((string name, (TypeBase type, Position position)) in classType.Fields)
@@ -1006,21 +1413,32 @@ namespace JavaWhoCompiler
             }
 
             Constructor constructor = (Constructor)classDefinition.Constructor;
-            CheckClassConstructor(constructor, classType, output);
+
+            // includes inherited fields, methods need access to all
+            HashSet<string> fieldAssignSet = new(classType.Fields.Keys);
+            // constructor needs to initialize *local* class fields
+            HashSet<string> localFieldAssignSet = new(
+                                                    classDefinition.VariableDeclarations
+                                                    .Select(vd => (VariableDeclaration)vd)
+                                                    .Select(vd => vd.Var.Value)
+                                                    );
+            // class constructor can use inherited fields
+            HashSet<string> inheritedFieldAssignSet = fieldAssignSet.Except(localFieldAssignSet).ToHashSet();
+
+            CheckClassConstructor(constructor, classType, localFieldAssignSet, inheritedFieldAssignSet, output);
+
 
             foreach (MethodDefinition methodDefinition in classDefinition.MethodDefinitions)
             {
-                CheckClassMethod(methodDefinition, output);
+                CheckClassMethod(methodDefinition, fieldAssignSet, output);
             }
 
             // exit class scope
             ExitScope();
         }
 
-        private void CheckClassMethod(MethodDefinition methodDefinition, List<string> output)
+        private void CheckClassMethod(MethodDefinition methodDefinition, HashSet<string> fieldAssignSet, List<string> output)
         {            
-            AddParamsToScope(methodDefinition.Parameters, output);
-
             BlockStatement body = methodDefinition.Body as BlockStatement;
 
             TypeBase methodReturnType = TypeBase.VoidPrimitive;
@@ -1031,28 +1449,20 @@ namespace JavaWhoCompiler
 
             EnterScope(methodReturnType);
 
-            bool returned = false;
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(methodDefinition.Parameters, output);
+
+            // validate types first
             for (int i = 0; i < body.Statements.Count; i++)
             {
-                AST statement = body.Statements[i];
-                if (statement is ReturnStatement returnStatement)
-                {
-                    if (i < body.Statements.Count - 1)
-                    {
-                        output.Add(new TypeException($"Unreachable code after return in method {methodDefinition.Name.Value}", methodDefinition.Position).ToString());
-                    }
-
-                    CheckMethodReturnType(methodDefinition.Name.Value, methodReturnType, returnStatement, output);
-
-                    returned = true;
-                }
-                else
-                {
-                    CheckTypeHelper(statement, output);
-                }
+                CheckTypeHelper(body.Statements[i], output);
             }
 
-            if (methodReturnType != TypeBase.VoidPrimitive && !returned)
+            HashSet<string> fullAssignSet = fieldAssignSet.Union(paramAssignSet).ToHashSet();
+            CheckAssignment(body.Statements, fullAssignSet, output);
+
+            // only check code path if return is not void
+            if (methodReturnType != TypeBase.VoidPrimitive &&
+                !CheckCodePath(body.Statements, output))
             {
                 output.Add(new TypeException($"Method {methodDefinition.Name.Value} expects return value of type {methodReturnType} but got none", methodDefinition.Position).ToString());
             }
@@ -1060,7 +1470,7 @@ namespace JavaWhoCompiler
             ExitScope();
         }
 
-        private void CheckMethodReturnType(string methodName, TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
+        private void CheckMethodReturnType(TypeBase methodReturnType, ReturnStatement returnStatement, List<string> output)
         {
             TypeBase returnExpressionType = TypeBase.VoidPrimitive;
             if (returnStatement.Val is not null)
@@ -1070,71 +1480,97 @@ namespace JavaWhoCompiler
 
             if (returnExpressionType is null)
             {
-                output.Add(new TypeException($"Method {methodName} cannot return unknown expression type", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Cannot return unknown expression type", returnStatement.Val.Position).ToString());
             }
             else if (methodReturnType == TypeBase.VoidPrimitive && returnStatement.Val is not null)
             {
-                output.Add(new TypeException($"Method {methodName} has a return type of Void, can not return type {returnExpressionType}", returnStatement.Position).ToString());
+                output.Add(new TypeException($"Attempting to explicitly return a void value. Try `return;` instead", returnStatement.Position).ToString());
             }
             else if (!returnExpressionType.CanBeAssignedTo(methodReturnType))
             {
-                output.Add(new TypeException($"Method {methodName} cannot return type {returnExpressionType}", returnStatement.Val.Position).ToString());
+                output.Add(new TypeException($"Return type {returnExpressionType} does not match method return type", returnStatement.Val.Position).ToString());
             }
         }
 
-        private void CheckClassConstructor(Constructor constructor, ClassType classType, List<string> output)
+        private void CheckSuperCall(Constructor constructor, ClassType classType, List<string> output)
         {
-            // enter constructor scope
-            EnterScope();
+            // insert empty super call if a super isnt provided and parent is Object
+            List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
+                                       ? []
+                                       : constructor.SuperArguments;
 
-            AddParamsToScope(constructor.Parameters, output);
-
-            // check super call
-            if (classType.ParentClassType is not null)
+            if (superArguments is null)
             {
-                // insert empty super call if a super isnt provided and parent is Object
-                List<AST> superArguments = constructor.SuperArguments is null && classType.ParentClassType == TypeBase.ObjectBuiltIn
-                                           ? []
-                                           : constructor.SuperArguments;
-
-                if (superArguments is null)
-                {
-                    output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
-                }
-
+                output.Add(new TypeException($"Constructor for class {classType.Name} is missing super call", constructor.Position).ToString());
+            }
+            else
+            {
                 TypeList superCallTypes = GetExpressionTypeList(superArguments, output);
                 if (!superCallTypes.AreSubtypesOf(classType.ParentClassType.ConstructorTypes))
                 {
                     output.Add(new TypeException($"Super call arguments in class {classType.Name} are not compatible with parent class {classType.ParentClassType} constructor", constructor.Position).ToString());
                 }
             }
+
+        }
+
+        private void CheckClassConstructor(Constructor constructor, ClassType classType, HashSet<string> localFieldAssignSet, HashSet<string> inheritedFieldAssignSet, List<string> output)
+        {
+            // enter constructor scope
+            EnterScope(initializing:true);
+
+            HashSet<string> paramAssignSet = DefineAndGetParamAssignSet(constructor.Parameters, output);
+
+            // check super call
+            if (classType.ParentClassType is not null)
+            {
+                CheckSuperCall(constructor, classType, output);
+            }
             else if (constructor.SuperArguments is not null)
             {
                 output.Add(new TypeException($"Class {classType} attempts to call a super constructor when it does not inherit any class", constructor.Position).ToString());
             }
 
+            // type check statements
             foreach (AST statement in constructor.Statements)
             {
                 CheckTypeHelper(statement, output);
+            }
+
+            // check assignment
+            HashSet<string> initialAssignSet = paramAssignSet.Union(inheritedFieldAssignSet).ToHashSet();
+            HashSet<string> constructorAssignSet = CheckAssignment(constructor.Statements, initialAssignSet, output);
+
+            // class local field set should be subset of constructor assign set
+            if (!localFieldAssignSet.IsSubsetOf(constructorAssignSet))
+            {
+                output.Add(new TypeException($"Constructor of class {classType.Name} does not initialize all local fields", constructor.Position).ToString());
             }
 
             // exit constructor scope
             ExitScope();
         }
 
-        private void AddParamsToScope(List<AST> astVariableDeclarations, List<string> output)
+        private HashSet<string> DefineAndGetParamAssignSet(List<AST> astVariableDeclarations, List<string> output)
         {
+            HashSet<string> paramAssignSet = new();
             foreach (AST astVariableDeclaration in astVariableDeclarations)
             {
                 VariableDeclaration variableDeclaration = (VariableDeclaration)astVariableDeclaration;
 
-                scope.DefineAssigned(variableDeclaration.Var.Value, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                string varName = variableDeclaration.Var.Value;
+
+                scope.Define(varName, Types.GetType(variableDeclaration.Type, output), variableDeclaration.Position, output);
+                paramAssignSet.Add(varName);
             }
+
+            return paramAssignSet;
         }
 
-        private void EnterScope(TypeBase returnType = null)
+        private void EnterScope(TypeBase returnType = null, bool inLoop = false, bool initializing = false)
         {
-            scope = new Scope(scope, returnType);
+            // or's are in place to persist loop or initializing states when entering a new scope
+            scope = new Scope(scope, returnType, inLoop || scope.InLoop, initializing || scope.Initializing);
         }
 
         private void ExitScope()
@@ -1170,77 +1606,56 @@ namespace JavaWhoCompiler
         {
             return binaryExpression.OperatorType switch
             {
-                OperatorType.Add or 
+                OperatorType.Add or
                 OperatorType.Subtract or
                 OperatorType.Multiply or
-                OperatorType.Divide => DeriveMathOperatorType(binaryExpression, output),
+                OperatorType.Divide or
                 OperatorType.LessThan or
                 OperatorType.Equal or
-                OperatorType.NotEqual => DeriveBooleanOperatorType(binaryExpression, output),
+                OperatorType.NotEqual => CheckAndGetResultTypeOfBinaryExpression(binaryExpression, output),                                            
                 _ => throw new Exception("Something went horribly wrong...") //should never happen
             };
         }
 
-        private TypeBase DeriveBooleanOperatorType(BinaryExpression binaryExpression, List<string> output)
-        {
-            TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
-            TypeBase rightType = GetExpressionType(binaryExpression.Right, output);            
-
-            if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
-            {
-                output.Add(new TypeException($"Can not compare {leftType} to {rightType}", binaryExpression.Position).ToString());
-                return null;
-            }
-
-            //if we arent doing LessThan op then we just return otherwise make sure left and right are ints
-            if (binaryExpression.OperatorType != OperatorType.LessThan)
-            {
-                return TypeBase.BooleanPrimitive;
-            }
-
-            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
-            {
-                return null;
-            }
-
-            return TypeBase.BooleanPrimitive;
-        }
-
-        private TypeBase DeriveMathOperatorType(BinaryExpression binaryExpression, List<string> output)
+        private TypeBase CheckAndGetResultTypeOfBinaryExpression(BinaryExpression binaryExpression, List<string> output)
         {
             TypeBase leftType = GetExpressionType(binaryExpression.Left, output);
             TypeBase rightType = GetExpressionType(binaryExpression.Right, output);
 
-            if (!BinaryExpressionIntCheck(binaryExpression, leftType, rightType, output))
+            if (leftType is null || rightType is null)
             {
+                output.Add(new TypeException($"Can not derive {binaryExpression.OperatorType} type with unknown operand type", binaryExpression.Position).ToString());
                 return null;
             }
 
-            return TypeBase.IntPrimitive;
-        }
-
-        private bool BinaryExpressionIntCheck(BinaryExpression binaryExpression, TypeBase leftType, TypeBase rightType, List<string> output)
-        {
-            if (leftType != TypeBase.IntPrimitive)
+            //if we are doing equality comparison check if they can be assigned otherwise continue
+            if (binaryExpression.OperatorType == OperatorType.Equal 
+                || binaryExpression.OperatorType == OperatorType.NotEqual)
             {
-                output.Add(new TypeException($"{binaryExpression.Left} must be a type of Int", binaryExpression.Left.Position).ToString());
-                return false;
+                if (!leftType.CanBeAssignedTo(rightType) && !rightType.CanBeAssignedTo(leftType))
+                {
+                    output.Add(new TypeException($"Can not {binaryExpression.OperatorType} with Type {leftType.Name} and Type {rightType.Name}", binaryExpression.Position).ToString());
+                    return null;
+                }
+
+                return TypeBase.BooleanPrimitive;
             }
 
-            if (rightType != TypeBase.IntPrimitive)
+            //check if ops are compatible
+            if (leftType.CompatibleOperatorTypes.TryGetValue(binaryExpression.OperatorType, out var leftMap)
+                && leftMap.TryGetValue(rightType, out TypeBase resultType))
             {
-                output.Add(new TypeException($"{binaryExpression.Right} must be a type of Int", binaryExpression.Left.Position).ToString());
-                return false;
+                return resultType;
             }
 
-            return true;
+            output.Add(new TypeException($"Can not {binaryExpression.OperatorType} with Type {leftType.Name} and Type {rightType.Name}", binaryExpression.Position).ToString());
+            return null;
         }
 
         private TypeList GetExpressionTypeList(List<AST> nodes, List<string> output)
         {
             return new TypeList(nodes.Select(n => GetExpressionType(n, output)).ToImmutableList());
         }
-
 
         private TypeBase DerivePrintLnStatementType(PrintLnStatement printLnStatement, List<string> output)
         {
@@ -1249,7 +1664,7 @@ namespace JavaWhoCompiler
             {
                 output.Add(new TypeException($"Cannot call println with an unknown typed argument", printLnStatement.Position).ToString());
             }
-            
+
             return TypeBase.VoidPrimitive;
         }
 
@@ -1260,11 +1675,6 @@ namespace JavaWhoCompiler
             {
                 output.Add(new TypeException($"Cannot determine type of undefined variable {identifiedNode.Value}", identifiedNode.Position).ToString());
                 return null;
-            }
-
-            if (!varInfo.IsAssigned)
-            {
-                output.Add(new TypeException($"Cannot use unassigned variable {identifiedNode.Value} in an expression", identifiedNode.Position).ToString());
             }
 
             identifiedNode.IsField = varInfo.IsField;

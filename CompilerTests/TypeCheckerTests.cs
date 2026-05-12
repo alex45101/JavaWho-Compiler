@@ -1,5 +1,4 @@
 ﻿using JavaWhoCompiler;
-using System.ComponentModel;
 
 namespace CompilerTests
 {
@@ -30,6 +29,46 @@ namespace CompilerTests
         {
             List<string> errors = TypeChecker.CheckType(null);
             Assert.Single(errors); //give error of null input
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int a;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadPrimitiveNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("Int Int;");
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Vardec")]
+        public void VardecBadClassNameTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType { init() {} }
+
+                    Int MyType;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -69,7 +108,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void ClassDeclarationTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -90,7 +129,10 @@ namespace CompilerTests
                     class MyType {
                         Int x;
                         Boolean y;
-                        init() {}
+                        init() {
+                            x = 5;
+                            y = true;
+                        }
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -98,6 +140,183 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecAssignPathTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int z) {
+                            if(z == 5) {
+                                x = 5;
+                                y = true;
+                            } else {
+                                x = 8;
+                                y = false;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecIncompleteAssignPathTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int z) {
+                            if(z == 5) {
+                                x = 5;
+                            } else {
+                                x = 8;
+                                y = false;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecParamShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init(Int x) {
+                            x = 5;
+                            y = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassVardecVarShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Boolean y;
+                        init() {
+                            Int x;
+                            x = 5;
+                            y = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassInheritedVardecParamShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class MyType extends Base {
+                        Int y;
+                        init(Int x) {
+                            super();
+                            y = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassInheritedVardecVarShadowTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class MyType extends Base {
+                        Int y;
+                        init() {
+                            super();
+                            Int x;
+                            y = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void ClassDuplicateFieldTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        Int x;
+                        init() {}
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassFields")]
+        public void InheritedClassDuplicateFieldTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        Int x;
+                        init() {}
+                    }
+
+                    class MyType extends Base {
+                        Int x;
+                        init() { super(); }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -127,7 +346,10 @@ namespace CompilerTests
                     class MyType {
                         Int x;
                         Boolean y;
-                        init() {}
+                        init() {
+                            x = 5;
+                            y = true;
+                        }
                     }
 
                     class SubType extends MyType {
@@ -290,6 +512,32 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "ClassInheritence")]
+        public void InheritedFieldInClassConstructorTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        Int x;
+                        init(Int _x) {
+                            x = _x;
+                        }
+                    }
+
+                    class SubType extends MyType {
+                        Int y;
+                        init() {
+                            super(5);
+                            y = x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassMethods")]
         public void MethodsInClassDefTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -317,31 +565,6 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
-        }
-
-        [Fact]
-        [Trait("Category", "ClassMethods")]
-        public void DeadCodeInMethodTest() {
-            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                    class MyType {
-                        init(Int x, Int y) {}
-
-                        method a(Int y) Int {
-                            Int x;
-                            x = y;
-                            return x;
-
-                            x = 10;
-                            Boolean z;
-                            z = true;
-                        }
-                    }
-                    """);
-            AST root = Parser.Parse(tokens);
-
-            List<string> errors = TypeChecker.CheckType(root);
-
-            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -476,6 +699,106 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Void { }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Void { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void OverridingMultiInheritanceMethodWithCovariantReturnTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) String { return ""; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void BadOverridingMultiInheritanceMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Base {
+                        init() {}
+                        method a(Int x) Object { return new Object(); }
+                    }
+
+                    class Sub extends Base {
+                        init() { super(); }
+                    }
+
+                    class SubSub extends Sub {
+                        init() { super(); }
+                        method a(Int x) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void BadMethodOverridingTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal { init() {} }
+
+                    class TestType {
+                        init(Int x) {}
+
+                        method a(Boolean y) Animal { return new Animal(); }
+                    }
+
+                    class SubTestType extends TestType {
+                        init() { super(5); }
+
+                        method a(Boolean z) Int { return 5; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "ClassMethods")]
         public void BasicMethodCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -580,10 +903,10 @@ namespace CompilerTests
                         method a(Boolean y) Boolean { return y; }
                         method a(SubType s) SubType { return s; }
                     }
-                    
+
                     SubTestType s;
                     s = new SubTestType(new SubType());
-                    
+
                     Int a;
                     a = s.a(new MyType());
 
@@ -601,6 +924,83 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void MethodCallWithOverloadingAndOverridingTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+                    }
+
+                    class SubType extends MyType {
+                        init() {
+                            super();
+                        }
+                    }
+
+                    class TestType {
+                        init(MyType m) {}
+
+                        method a(MyType m) Int { return 5; }
+                        method a(Int x) MyType { return new MyType(); }
+                    }
+
+                    class SubTestType extends TestType {
+                        init(SubType s) { super(s); }
+
+                        method a(Boolean y) Boolean { return y; }
+                        method a(SubType s) SubType { return s; }
+                        method a(Int x) SubType { return new SubType(); }
+                    }
+
+                    SubTestType s;
+                    s = new SubTestType(new SubType());
+
+                    Int a;
+                    a = s.a(new MyType());
+
+                    SubType b;
+                    b = s.a(5);
+
+                    Boolean c;
+                    c = s.a(true);
+
+                    SubType sub;
+                    sub = s.a(new SubType());
+
+                    MyType m;
+                    m = s.a(5);
+
+                    TestType t;
+                    t = new TestType(m);
+
+                    m = t.a(5);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodOverloading")]
+        public void MethodDuplicateTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init() {}
+
+                        method a(Int x) Boolean { return false; }
+                        method a(Int x) Boolean { return true; }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -632,6 +1032,81 @@ namespace CompilerTests
             List<string> errors = TypeChecker.CheckType(root);
 
             Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void SameBaseNonSubtypeMethodCallTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal {
+                        init() {}
+                    }
+
+                    class Cat extends Animal {
+                        init() { super(); }
+                    }
+
+                    class Dog extends Animal {
+                        init() { super(); }
+                    }
+
+                    class Test {
+                        init() {}
+
+                        method a(Cat cat) Void {
+                            println("we got a cat!");
+                        }
+                    }
+
+                    Test t;
+                    t = new Test();
+
+                    Dog d;
+                    d = new Dog();
+
+                    t.a(d);
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassMethods")]
+        public void BaseTypeCallSubMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class Animal {
+                        init() {
+                        }
+
+                        method action() Void {
+                        }
+                    }
+
+                    class Cat extends Animal {
+                        init() {
+                            super();
+                        }
+
+                        method action() Void {
+                        }
+
+                        method specialCatAction() Void {
+                        }
+                    }
+                    Animal catAnimal;
+                    catAnimal = new Cat();
+
+                    // type Animal doesnt have this method
+                    catAnimal.specialCatAction();
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -743,9 +1218,28 @@ namespace CompilerTests
 
             Assert.NotEmpty(errors);
         }
-        
+
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassInheritence")]
+        public void MissingSuperCallTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType extends OtherType {
+                        init() { }
+                    }
+
+                    class OtherType {
+                        init(Int x, String y) { }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ClassDecleration")]
         public void MismatchConstructorCallTest() {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     class MyType {
@@ -763,7 +1257,7 @@ namespace CompilerTests
         }
 
         [Fact]
-        [Trait("Category", "ClassDeclaration")]
+        [Trait("Category", "ClassDecleration")]
         public void MalformedConstructorCallTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
@@ -808,6 +1302,334 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                     Int x;
                     Int y;
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void UseUnassignedShadowedVarTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+                    y = 5;
+                    if(y == 7) {
+                        Int y;
+                        x = y;
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    } else {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarBadIfElseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    if(num == 7) {
+                        y = 2;
+                    } else {
+                        num = 98;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfTrueTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    if(true) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarIfFalseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    if(false) {
+                        y = 2;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+                    while(num < 10) {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(true) {
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(true) {
+                        y = 5;
+                        break;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueNestedBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            y = 3;
+                            break;
+                        } else {
+                            y = 7;
+                            break;
+                        }
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBadNestedIfElseBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            y = 3;
+                            break;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueBadIfBreakTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+                    num = 5;
+
+                    while(true) {
+                        if(num == 2) {
+                            break;
+                        }
+
+                        y = 5;
+                    }
+
+                    x = y;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileTrueNestedWhileTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    Int num;
+
+                    while(true) {
+                        while(true) {
+                            if (true) {
+                                y = 5;
+                                break;
+                            }
+                        }
+
+                        num = y;
+                        break;
+                    }
+
+                    x = y;
+                    x = num;
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Assignment")]
+        public void AssignVarWhileFalseTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    Int x;
+                    Int y;
+
+                    while(false) {
+                        y = 5;
+                        break;
+                    }
 
                     x = y;
                     """);
@@ -1031,7 +1853,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 if(true)
                 {
-                
+
                 }
                 """);
 
@@ -1047,17 +1869,19 @@ namespace CompilerTests
         public void IfElseLinkTests()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
-                if(true)
+                Int x;
+                x = 5;
+                if(x == 8)
                 {
-                
+
                 }
-                else if(true)
+                else if(x == 9)
                 {
-                
+
                 }
                 else
                 {
-                
+
                 }
                 """);
 
@@ -1075,7 +1899,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 if(false)
                 {
-                
+
                 }
                 """);
 
@@ -1083,7 +1907,7 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            Assert.Empty(errors);
+            Assert.NotEmpty(errors);
         }
 
         [Fact]
@@ -1099,7 +1923,7 @@ namespace CompilerTests
 
                 if(x == y)
                 {
-                
+
                 }
                 """);
 
@@ -1139,7 +1963,7 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 x = 5;
-                
+
                 if(x < 6)
                 {
                     Int y;
@@ -1192,13 +2016,29 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "IfStatement")]
+        public void IfVardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                if(true)
+                    Int x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "WhileStatement")]
         public void WhileTrueTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 while(true)
                 {
-                
+
                 }
                 """);
 
@@ -1216,7 +2056,27 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 while(false)
                 {
-                
+
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    break;
                 }
                 """);
 
@@ -1228,6 +2088,69 @@ namespace CompilerTests
         }
 
         [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileNestedBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    if (x == 0)
+                        break;
+
+                    while(x == 8)
+                        break;
+
+                    break;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileBreakDeadCodeTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                Int x;
+                x = 5;
+                while(x < 6)
+                {
+                    break;
+                    Int x;
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "WhileStatement")]
+        public void WhileVardecTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                while(true)
+                    Int x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
         [Trait("Category", "Class")]
         public void SimpleClassTypeEqualityTest()
         {
@@ -1236,7 +2159,7 @@ namespace CompilerTests
                     {
                         init(){}
                     }
-                    
+
                     MyType a;
                     MyType b;
 
@@ -1245,7 +2168,7 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -1256,7 +2179,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Assignment")]
-        public void ClassInheritenceAssignemntTest()
+        public void ClassInheritenceAssignmentTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 class MyType 
@@ -1291,7 +2214,7 @@ namespace CompilerTests
                     {
                         init(){ super(); }
                     }
-                    
+
                     MyType a;
                     SubType b;
 
@@ -1300,12 +2223,12 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
 
                     if(b == a)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
@@ -1332,12 +2255,219 @@ namespace CompilerTests
 
                     if(a == b)
                     {
-                    
+
                     }
                     """);
             AST root = Parser.Parse(tokens);
 
             List<string> errors = TypeChecker.CheckType(root);
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            Int x;
+                            x = y;
+                            return x;
+
+                            x = 10;
+                            Boolean z;
+                            z = true;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void EmptyCodePathMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithSingleNonReturnMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            Int x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithNotTopLevelReturnMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            } else {
+                                return 6;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfElseIfMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            } else if(y == 8) {
+                                return 6;
+                            } else {
+                                return 9;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfNoElseMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            }
+
+                            Int x;
+                            x = 5;
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeInIfNoElseMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5) {
+                                return 5;
+                            }
+
+                            Int x;
+                            x = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeInIfNoBlockMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5)
+                                return 5;
+
+                            Int x;
+                            x = 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfNoBlockMethodTest() {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                    class MyType {
+                        init(Int x, Int y) {}
+
+                        method a(Int y) Int {
+                            if(y == 5)
+                                return 5;
+
+                            Int x;
+                            x = 5;
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
             Assert.Empty(errors);
         }
 
@@ -1410,7 +2540,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void NotAllCodePathsReturnTest()
+        public void CodePathsReturnWithIfTrueTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
                     class Test {
@@ -1428,12 +2558,12 @@ namespace CompilerTests
 
             List<string> errors = TypeChecker.CheckType(root);
 
-            Assert.NotEmpty(errors);
+            Assert.Empty(errors);
         }
 
         [Fact]
         [Trait("Category", "Methods")]
-        public void CodePathsReturnWithIfElseTest()
+        public void DeadCodeWithIfTrueTest()
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
                     class Test {
@@ -1444,10 +2574,410 @@ namespace CompilerTests
                             {
                                 return 5;
                             }
+
+                            Int x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeWithIfFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a() Int {                       
+
+                            if (false)
+                            {
+                                return 5;
+                            }
+
+                            return 4;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfElseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+
+                            if (x == 8)
+                            {
+                                return 5;
+                            }
                             else
                             {
                                 return 4;
                             }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(x == 5)
+                            {
+                                return x;
+                            }
+
+                            while(x == 5) 
+                            {
+
+                            }
+
+                            return x;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                return x;
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void DeadCodeWithWhileFalseTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(false)
+                            {
+                                return x;
+                            }
+
+                            return 5;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithIfInWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(x == 5)
+                                { 
+                                    return 5;
+                                }
+                                else
+                                {
+                                    return 8;
+                                }
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithWhileInIfTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            if(true)
+                            {
+                                while(true)
+                                    return 8;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithEarlyBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                break;
+                                return 5;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithNormalWhileTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(x == 5)
+                            {
+                                return 7;
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithNestedWhileBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(x == 5)
+                                {
+                                    while(true)
+                                    {
+                                        if(x == 7)
+                                            break;
+
+                                        return 7;
+                                    }
+                                }
+                                else
+                                {
+                                    return 7;
+                                }
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void CodePathsReturnWithEmptyWhileTrueTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                            }
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void NotAllPathsReturnWithNestedIfBreakTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int x) Int {                       
+                            while(true)
+                            {
+                                if(true)
+                                    if(true)
+                                        if(true) {
+                                            break;
+                                        }
+
+                            }
+
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void AssignPathInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        init() {}
+                        method a(Int num) Int {
+                            Int x;
+                            Int y;
+
+                            if(num == 7) {
+                                y = 2;
+                            } else {
+                                y = 5;
+                            }
+
+                            x = y;
+                            return y;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void AssignPathInMethodWithFieldTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Test {
+                        Int z;
+                        init() { z = 5; }
+                        method a(Int num) Int {
+                            Int x;
+                            Int y;
+
+                            if(num == 7) {
+                                y = z;
+                            } else {
+                                y = 5;
+                            }
+
+                            x = y;
+                            return y;
+                        }
+                    }
+                    """);
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "Methods")]
+        public void InheritedFieldInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize($$"""
+                    class Base {
+                        Int x;
+                        init() { x = 5; }
+                    }
+
+                    class Test extends Base {
+                        init() {
+                            super();
+                        }
+
+                        method a() Int {
+                            Int y;
+                            y = x;
+
+                            return x;
                         }
                     }
                     """);
@@ -1547,7 +3077,7 @@ namespace CompilerTests
 
         [Fact]
         [Trait("Category", "BinaryExpressions")]
-        public void SimpleAddExpressionTest()
+        public void SimpleIntAddExpressionTest()
         { 
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
@@ -1557,6 +3087,116 @@ namespace CompilerTests
                 y = 7;
 
                 Int result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleIntStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Int y;
+
+                x = "Number: ";
+                y = 7;
+
+                String result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringBooleanAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = x + y;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleBooleanStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Boolean y;
+
+                x = "Bool: ";
+                y = true;
+
+                String result;
+                result = y + x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringIntAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                Int y;
+
+                x = "Number: ";
+                y = 7;
+
+                String result;
+                result = y + x;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.Empty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BinaryExpressions")]
+        public void SimpleStringAddExpressionTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                String x;
+                String y;
+
+                x = "hello ";
+                y = "world";
+
+                String result;
                 result = x + y;
                 """);
 
@@ -1662,10 +3302,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x - y;
                 """);
@@ -1684,10 +3324,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x * y;
                 """);
@@ -1706,10 +3346,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Int result;
                 result = x / y;
                 """);
@@ -1728,10 +3368,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Int y;
-                
+
                 x = 5;
                 y = 7;
-                
+
                 Boolean result;
                 result = x < y;
                 """);
@@ -1750,10 +3390,10 @@ namespace CompilerTests
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
                 Boolean y;
-                
+
                 x = 5;
                 y = true;
-                
+
                 Boolean result;
                 result = x < y;
                 """);
@@ -1771,7 +3411,7 @@ namespace CompilerTests
         { 
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
-                
+
                 x = 5;
 
                 if(x < 8)
@@ -1785,7 +3425,7 @@ namespace CompilerTests
                         z = x + y;
                     }
                 }
-                else if(true)
+                else if(x == 8)
                 {
                     x = 6;
                 }
@@ -1812,7 +3452,7 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 Int x;
-                
+
                 x = 5;
 
                 if(x < 8)
@@ -1862,7 +3502,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == false)
                 {
-                
+
                 }
                 """);
 
@@ -1886,7 +3526,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == (1 + 2))
                 {
-                
+
                 }
                 """);
 
@@ -1910,7 +3550,7 @@ namespace CompilerTests
 
                 while(((x + 7) < (y + 3)) == false)
                 {
-                
+
                 }
                 """);
 
@@ -1934,7 +3574,7 @@ namespace CompilerTests
 
                 if(((x + 7) < (y + 3)) == (1 + 2))
                 {
-                
+
                 }
                 """);
 
@@ -2041,6 +3681,62 @@ namespace CompilerTests
         {
             IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
                 5 / 7;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BreakStatement")]
+        public void BreakOutsideLoopTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                break;
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "BreakStatement")]
+        public void BreakOutsideLoopInMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                class Test {
+                    init() {}
+                    method a(Int x) Int {
+                        break;
+                        while(x == 5)
+                        {
+                            x = x + 1;
+                        }
+
+                        return 7;
+                    }
+                }
+                """);
+
+            AST root = Parser.Parse(tokens);
+
+            List<string> errors = TypeChecker.CheckType(root);
+
+            Assert.NotEmpty(errors);
+        }
+
+        [Fact]
+        [Trait("Category", "ReturnStatement")]
+        public void ReturnOutsideMethodTest()
+        {
+            IEnumerable<IToken> tokens = Tokenizer.Tokenize("""
+                return;
                 """);
 
             AST root = Parser.Parse(tokens);
