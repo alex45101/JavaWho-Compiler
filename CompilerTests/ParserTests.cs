@@ -134,13 +134,22 @@ namespace CompilerTests
             };
 
             yield return new object[] {
-                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
-                new MethodCallExpression("y", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
+                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1))
+                { 
+                    AnnotatedMethodName = "b_temp"
+                },                
+                new MethodCallExpression("y", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1))
+                { 
+                    AnnotatedMethodName = "y_temp"
+                },
                 new BreakStatement(new Position(1, 1))
             };
 
             yield return new object[] {
-                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)),
+                new MethodCallExpression("b", new IdentifiedNode("b", new Position(1, 3)), [], new Position(1, 1)) 
+                { 
+                    AnnotatedMethodName = "b_temp" 
+                },
                 new NewObjectExpression(new IdentifiedNode("C", new Position(1, 5)), [], new Position(1, 1)),
                 new BreakStatement(new Position(1, 1))
             };
@@ -194,8 +203,14 @@ namespace CompilerTests
             };
 
             yield return new object[] {
-                new PrintLnStatement(new StringLiteral("9", new Position(1, 9)), new Position(1, 1)),
-                new PrintLnStatement(new StringLiteral("8", new Position(1, 9)), new Position(1, 1)),
+                new PrintLnStatement(new StringLiteral("9", new Position(1, 9)), new Position(1, 1))
+                { 
+                    AnnotatedMethodName = "println_temp"
+                },
+                new PrintLnStatement(new StringLiteral("8", new Position(1, 9)), new Position(1, 1))
+                {
+                    AnnotatedMethodName = "println_temp"
+                },
                 new BreakStatement(new Position(1, 2)),
             };
 

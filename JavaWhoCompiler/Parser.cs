@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Data.SqlTypes;
+using System.Diagnostics;
+using System.Text;
 
 namespace JavaWhoCompiler
 {
@@ -124,18 +126,18 @@ namespace JavaWhoCompiler
         public string AnnotatedMethodName { 
             get {
                 if(field is null) {
-                    throw new Exception($"Trying to access annotated method name of {this} before annotation");
+                    throw new Exception($"Trying to access annotated method name of {Name} before annotation");
                 }
 
                 return field;
             }
 
-            private set;
+            set;
         } = null;
 
-        public void Annotate(MethodSignature methodSignature) {
-            AnnotatedMethodName = methodSignature.MethodName;
-        }
+        //public void Annotate(MethodSignature methodSignature) {
+        //    AnnotatedMethodName = methodSignature.MethodName;
+        //}
 
         protected override bool EqualCore(AST other, bool ignorePos) =>
             other is MethodCallExpression right &&
