@@ -9,6 +9,8 @@ namespace JavaWhoCompiler
         private int targetIndent = 0;
         private int curIndent = 0;
 
+        private readonly HashSet<string> BuiltInClassNames = [..TypeBase.BuiltIns.Select(bi => bi.Name)];
+
         private void Indent() => targetIndent += 1;
         private void Dedent() => targetIndent -= 1;
 
@@ -52,10 +54,12 @@ namespace JavaWhoCompiler
 
         private void GenerateClass(ClassDefinition classDefinition)
         {
-            Write($"class {classDefinition.Name.Value}");
+            Write($"class ");
+            GenerateClassName(classDefinition.Name.Value);
             if (classDefinition.ExtendsName is (string extendsName, _))
             {
-                Write($" extends {extendsName}");
+                Write($" extends ");
+                GenerateClassName(extendsName);
             }
 
             WriteLine(" {");
@@ -228,14 +232,33 @@ namespace JavaWhoCompiler
             WriteLine(";");
         }
 
-        private void GenerateIdentifiedNode(IdentifiedNode identifiedNode)
+        private void GeneratePrefixed(string value)
+        {
+            // _ prefix to avoid collision with annotated method names or js keywords
+            Write($"_{value}");
+        }
+
+        private void GenerateVariable(string varName) => GeneratePrefixed(varName);
+
+        private void GenerateClassName(string className) {
+            if (BuiltInClassNames.Contains(className))
+            {
+                Write(className);
+            }
+            else
+            {
+                GeneratePrefixed(className);
+            }
+        }
+
+        private void GenerateVariableExpression(IdentifiedNode identifiedNode)
         {
             if (identifiedNode.IsField)
             {
                 Write("this.");
             }
 
-            Write(identifiedNode.Value);
+            GenerateVariable(identifiedNode.Value);
         }
 
         private void GenerateExpression(AST expression)
@@ -243,7 +266,7 @@ namespace JavaWhoCompiler
             switch (expression)
             {
                 case IdentifiedNode identifiedNode:
-                    GenerateIdentifiedNode(identifiedNode);
+                    GenerateVariableExpression(identifiedNode);
                     break;
                 case BooleanLiteral(bool value, _):
                     Write(value.ToString().ToLower());
@@ -259,7 +282,12 @@ namespace JavaWhoCompiler
                     break;
                 case PrintLnStatement printLnStatement:
                     Write($"console.log(");
+
+                    // write (expression.toString()) to prevent String class objects from printing differently
+                    Write("(");
                     GenerateExpression(printLnStatement.Argument);
+                    Write(").toString()");
+
                     Write(")");
                     break;
                 case MethodCallExpression methodCallExpression:
@@ -287,7 +315,9 @@ namespace JavaWhoCompiler
 
         private void GenerateNewObjectExpression(NewObjectExpression newObjectExpression)
         {
-            Write($"new {newObjectExpression.ClassName.Value}(");
+            Write($"new ");
+            GenerateClassName(newObjectExpression.ClassName.Value);
+            Write("(");
             GenerateCommaSeperated<AST>(newObjectExpression.Arguments, GenerateExpression);
             Write(")");
         }
@@ -311,22 +341,25 @@ namespace JavaWhoCompiler
 
         private void GenerateField(VariableDeclaration fieldVariableDeclaration)
         {
-            WriteLine($"{fieldVariableDeclaration.Var.Value};");
+            GenerateVariable(fieldVariableDeclaration.Var.Value);
+            WriteLine(";");
         }
 
         private void GenerateParameter(VariableDeclaration fieldVariableDeclaration)
         {
-            Write(fieldVariableDeclaration.Var.Value);
+            GenerateVariable(fieldVariableDeclaration.Var.Value);
         }
 
         private void GenerateVariableDeclarationStatement(VariableDeclaration variableDeclaration)
         {
-            WriteLine($"let {variableDeclaration.Var.Value};");
+            Write("let ");
+            GenerateVariable(variableDeclaration.Var.Value);
+            WriteLine(";");
         }
 
         private void GenerateAssignmentStatement(AssignmentStatement assignmentStatement)
         {
-            GenerateIdentifiedNode(assignmentStatement.Var);
+            GenerateVariableExpression(assignmentStatement.Var);
             Write(" = ");
             GenerateExpression(assignmentStatement.Val);
 
