@@ -1717,7 +1717,7 @@ namespace JavaWhoCompiler
                         return null;
                     }
 
-                    methodCallExpression.Annotate(matchingSignature);
+                    methodCallExpression.AnnotatedMethodName = matchingSignature.MethodName;
 
                     return matchingSignature.ReturnType;
                 case PrimitiveType primitiveType:
