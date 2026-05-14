@@ -150,8 +150,7 @@ namespace JavaWhoCompiler
                     WriteLine("break;");
                     break;
                 default:
-                    throw new NotImplementedException();
-                    // throw new CodeGeneratorException("Something is deeply wrong...");
+                    throw new CodeGeneratorException("Something is deeply wrong...");
             }
         }
 
@@ -165,16 +164,17 @@ namespace JavaWhoCompiler
             {
                 switch (currentElse)
                 {
-                    case BlockStatement:
-                        GenerateConditional("else", null, currentElse);
-                        currentElse = null;
-                        break;
                     case IfStatement currIfStatement:                        
                         GenerateConditional("else if", currIfStatement.Guard, currIfStatement.IfBody);
                         currentElse = currIfStatement.ElseBody;
                         break;
+                    case AST:
+                        GenerateConditional("else", null, currentElse);
+                        currentElse = null;
+                        break;
                     default:
                         throw new CodeGeneratorException("Something went wrong...");
+
                 }
             }
         }
@@ -202,6 +202,7 @@ namespace JavaWhoCompiler
             }
             else
             {
+                WriteLine("");
                 Indent();
                 GenerateStatement(body);
                 Dedent();
@@ -307,8 +308,7 @@ namespace JavaWhoCompiler
                     GenerateNewObjectExpression(newObjectExpression);
                     break;
                 default:
-                    throw new NotImplementedException();
-                    // throw new CodeGeneratorException("Something is deeply wrong...");
+                    throw new CodeGeneratorException("Something is deeply wrong...");
 
             }
         }
