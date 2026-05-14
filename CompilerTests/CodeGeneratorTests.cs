@@ -1,13 +1,11 @@
-using System.ComponentModel;
 using System.Text;
 using JavaWhoCompiler;
-using Newtonsoft.Json.Bson;
 
 namespace CompilerTests
 {
     public class CodeGeneratorTests
     {
-        public static IEnumerable<object[]> StatementCodeResults()
+        public static IEnumerable<object[]> BasicStatementCodeResults()
         {
             // vardec
             yield return new object[] {
@@ -39,6 +37,106 @@ namespace CompilerTests
 
                 """
             };
+
+            // println
+            yield return new object[] {
+                "println(\"hello world\");",
+                $$"""
+                console.log(("hello world").toString());
+
+                """
+            };
+
+            // if no block
+            yield return new object[] {
+                "if(true) println(5);",
+                $$"""
+                if(true)
+                    console.log((5).toString());
+
+                """
+            };
+
+            // if else no block
+            yield return new object[] {
+                """
+                Int x;
+                x = 5;
+                if(x == 5) 
+                    println(5);
+                else if(x == 8)
+                    println(7);
+                else
+                    println(x);
+                """,
+                $$"""
+                let _x;
+                _x = 5;
+                if(_x == 5)
+                    console.log((5).toString());
+                else if(_x == 8)
+                    console.log((7).toString());
+                else
+                    console.log((_x).toString());
+
+                """
+            };
+
+            // while no block
+            yield return new object[] {
+                "while(true) println(5);",
+                $$"""
+                while(true)
+                    console.log((5).toString());
+
+                """
+            };
+
+            // method call
+            yield return new object[] {
+                """
+                class A {
+                    init() {}
+                    method a() Void {}
+                }
+                A a;
+                a = new A();
+                a.a();
+                """,
+                $$"""
+                class _A {
+                    constructor() {
+                    }
+                    Empty_a_Void() {
+                    }
+                }
+                let _a;
+                _a = new _A();
+                _a.Empty_a_Void();
+
+                """
+            };
+
+            // this method call
+            yield return new object[] {
+                """
+                class A {
+                    init() {}
+                    method a() Void { this.a(); }
+                }
+                """,
+                $$"""
+                class _A {
+                    constructor() {
+                    }
+                    Empty_a_Void() {
+                        this.Empty_a_Void();
+                    }
+                }
+
+                """
+            };
+
         }
 
         private void AssertHelperExpectedResultCode(string expected, string code)
@@ -61,8 +159,8 @@ namespace CompilerTests
 
         [Theory]
         [Trait("Category", "Statement")]
-        [MemberData(nameof(StatementCodeResults))]
-        public void GenerateStatementTest(string code, string expected)
+        [MemberData(nameof(BasicStatementCodeResults))]
+        public void GenerateBasicStatementTest(string code, string expected)
         {
             AssertHelperExpectedResultCode(expected, code);
         }
