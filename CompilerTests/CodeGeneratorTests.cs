@@ -57,6 +57,31 @@ namespace CompilerTests
                 """
             };
 
+            // if else no block
+            yield return new object[] {
+                """
+                Int x;
+                x = 5;
+                if(x == 5) 
+                    println(5);
+                else if(x == 8)
+                    println(7);
+                else
+                    println(x);
+                """,
+                $$"""
+                let _x;
+                _x = 5;
+                if(_x == 5)
+                    console.log((5).toString());
+                else if(_x == 8)
+                    console.log((7).toString());
+                else
+                    console.log((_x).toString());
+
+                """
+            };
+
             // while no block
             yield return new object[] {
                 "while(true) println(5);",
