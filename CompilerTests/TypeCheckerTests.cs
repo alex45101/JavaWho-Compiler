@@ -3745,5 +3745,59 @@ namespace CompilerTests
 
             Assert.NotEmpty(errors);
         }
+
+        [Fact]
+        [Trait("Category", "MethodSignature")]
+        public void MethodSignatureEqualsTest()
+        {
+            string methodName = "a";
+            TypeList paramTypeList = new TypeList([TypeBase.IntPrimitive, TypeBase.ObjectBuiltIn]);
+
+            MethodSignature left = new MethodSignature(methodName, paramTypeList, TypeBase.IntPrimitive, new Position(0, 0));
+            MethodSignature right = new MethodSignature(methodName, paramTypeList, TypeBase.IntPrimitive, new Position(0, 0));
+            
+            Assert.Equal(left, right);
+            Assert.Equal(left.GetHashCode(), right.GetHashCode());
+        }
+
+        [Fact]
+        [Trait("Category", "MethodSignature")]
+        public void DifferentReturnMethodSignatureEqualsTest()
+        {
+            string methodName = "a";
+            TypeList paramTypeList = new TypeList([TypeBase.IntPrimitive, TypeBase.ObjectBuiltIn]);
+
+            MethodSignature left = new MethodSignature(methodName, paramTypeList, TypeBase.IntPrimitive, new Position(0, 0));
+            MethodSignature right = new MethodSignature(methodName, paramTypeList, TypeBase.VoidPrimitive, new Position(0, 0));
+            
+            Assert.Equal(left, right);
+            Assert.Equal(left.GetHashCode(), right.GetHashCode());
+        }
+
+        [Fact]
+        [Trait("Category", "MethodSignature")]
+        public void DifferentNameMethodSignatureEqualsTest()
+        {
+            TypeList paramTypeList = new TypeList([TypeBase.IntPrimitive, TypeBase.ObjectBuiltIn]);
+
+            MethodSignature left = new MethodSignature("a", paramTypeList, TypeBase.IntPrimitive, new Position(0, 0));
+            MethodSignature right = new MethodSignature("b", paramTypeList, TypeBase.VoidPrimitive, new Position(0, 0));
+            
+            Assert.NotEqual(left, right);
+        }
+
+        [Fact]
+        [Trait("Category", "MethodSignature")]
+        public void DifferentTypeListMethodSignatureEqualsTest()
+        {
+            string methodName = "a";
+            TypeList leftParamTypeList = new TypeList([TypeBase.IntPrimitive, TypeBase.ObjectBuiltIn]);
+            TypeList rightParamTypeList = new TypeList([TypeBase.BooleanPrimitive]);
+
+            MethodSignature left = new MethodSignature(methodName, leftParamTypeList, TypeBase.IntPrimitive, new Position(0, 0));
+            MethodSignature right = new MethodSignature(methodName, rightParamTypeList, TypeBase.VoidPrimitive, new Position(0, 0));
+            
+            Assert.NotEqual(left, right);
+        }
     }
 }
